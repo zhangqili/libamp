@@ -29,3 +29,7 @@ target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src/midi/bytequeue
     ${PROJECT_SOURCE_DIR}/usb/lufa
 )
+
+enable_testing()
+
+add_subdirectory(test)
