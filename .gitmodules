@@ -1,0 +1,3 @@
+[submodule "usb/lufa"]
+	path = usb/lufa
+	url = https://github.com/abcminiuser/lufa.git
