@@ -18,7 +18,7 @@
 //#define CONTINOUS_DEBUG
 #define DEBUG_INTERVAL 1
 #define DYNAMICKEY_ENABLE
-#define STORAGE_ENABLE
+//#define STORAGE_ENABLE
 
 /********************/
 /* Keyboard Default */
