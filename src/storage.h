@@ -12,6 +12,8 @@
 #include "dynamic_key.h"
 #include "keycode.h"
 
+#include "lfs.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -50,6 +52,9 @@ typedef struct __DynamicKeyStroke4x4Normalized
     uint32_t key_end_time[4];
     uint8_t key_state;
 } DynamicKeyStroke4x4Normalized;
+
+extern lfs_t g_lfs;
+extern const struct lfs_config g_lfs_config;
 
 void advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, AdvancedKeyConfiguration* config);
 void advanced_key_config_anti_normalize(AdvancedKeyConfiguration* config, AdvancedKeyConfigurationNormalized* buffer);
