@@ -1,3 +1,6 @@
 [submodule "usb/lufa"]
 	path = usb/lufa
 	url = https://github.com/abcminiuser/lufa.git
+[submodule "littlefs"]
+	path = littlefs
+	url = https://github.com/littlefs-project/littlefs.git
