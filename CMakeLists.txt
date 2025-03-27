@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 # Set the project name
 project (libamp)
 
@@ -30,6 +30,8 @@ target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/usb/lufa
 )
 
-enable_testing()
-
-add_subdirectory(test)
+option(LIBAMP_BUILD_TESTS "Build libamp tests" OFF)
+if(LIBAMP_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(test)
+endif()

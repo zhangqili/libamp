@@ -1,35 +1,29 @@
-cmake_minimum_required(VERSION 3.10)
-project(libamp_tests)
+cmake_minimum_required(VERSION 3.14)
 
-# 找到 GoogleTest
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.16.0.zip
+)
+FetchContent_MakeAvailable(googletest)
+include(GoogleTest)
 
-# 设置 keyboard_user.c 和 keyboard_conf.h 的路径
-set(KEYBOARD_CONF ${CMAKE_CURRENT_SOURCE_DIR}/test_commonc/keyboard_conf.h)
-set(KEYBOARD_USER ${CMAKE_CURRENT_SOURCE_DIR}/test_commonc/keyboard_user.c)
-
-# 添加测试源文件
-file(GLOB TEST_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/key/test_key.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/advanced_key/test_advanced_key.cpp
+target_include_directories(libamp PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_common
 )
 
-# 创建测试可执行文件
-add_executable(runTests ${TEST_SOURCES} ${KEYBOARD_USER})
-
-# 链接 GoogleTest 和 libamp
-target_link_libraries(runTests PRIVATE ${PROJECT_NAME} GTest::GTest GTest::Main pthread)
-
-# 添加头文件路径
-target_include_directories(runTests PRIVATE
-        ${PROJECT_SOURCE_DIR}/src
-        ${PROJECT_SOURCE_DIR}/usb
-        ${PROJECT_SOURCE_DIR}/littlefs
-        ${PROJECT_SOURCE_DIR}/src/midi
-        ${PROJECT_SOURCE_DIR}/src/midi/bytequeue
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_commonc
+add_executable(libamp_tests
+    test_common/keyboard_user.c
+    test_common/lfs_port.c
+    key/test_key.cpp
+    advanced_key/test_advanced_key.cpp
+    keyboard/test_keyboard.cpp
 )
 
-# 启用CTest
-add_test(NAME libamp_tests COMMAND runTests)
+target_link_libraries(libamp_tests
+    PRIVATE
+    libamp
+    GTest::gtest_main
+)
+
+gtest_discover_tests(libamp_tests)

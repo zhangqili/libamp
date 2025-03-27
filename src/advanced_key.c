@@ -14,6 +14,7 @@ void advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
     switch (advanced_key->config.mode)
     {
         case KEY_DIGITAL_MODE:
+            advanced_key->value = value;
             state = (bool)value;
             break;
         case KEY_ANALOG_NORMAL_MODE:
@@ -32,41 +33,58 @@ void advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
             if ((advanced_key->value - ANALOG_VALUE_MIN) <= advanced_key->config.upper_deadzone)
             {
                 state = false;
-                advanced_key->extremum = advanced_key->value;
+                if (advanced_key->value < advanced_key->extremum)
+                {
+                    advanced_key->extremum = advanced_key->value;
+                }
                 break;
             }
             if (advanced_key->value >= ANALOG_VALUE_MAX - advanced_key->config.lower_deadzone)
             {
                 state = true;
-                advanced_key->extremum = advanced_key->value;
+                if (advanced_key->value > advanced_key->extremum)
+                {
+                    advanced_key->extremum = advanced_key->value;
+                }
                 break;
             }
             if (advanced_key->key.state && advanced_key->extremum - advanced_key->value >= advanced_key->config.release_distance)
             {
                 state =false;
                 advanced_key->extremum = advanced_key->value;
+                break;
             }
             if (!advanced_key->key.state && advanced_key->value - advanced_key->extremum >= advanced_key->config.trigger_distance)
             {
                 state = true;
                 advanced_key->extremum = advanced_key->value;
+                break;
             }
             if ((advanced_key->key.state && advanced_key->value > advanced_key->extremum) ||
                 (!advanced_key->key.state && advanced_key->value < advanced_key->extremum))
             {
                 advanced_key->extremum = advanced_key->value;
+                break;
             }
             break;
         case KEY_ANALOG_SPEED_MODE:
+            advanced_key->value = value;
             if (advanced_key->difference > advanced_key->config.trigger_speed)
             {
                 state = true;
             }
-            if (advanced_key->difference < advanced_key->config.release_speed)
+            if (advanced_key->difference < -advanced_key->config.release_speed)
             {
                 state = false;
             }
-            advanced_key->value = value;
+            if ((advanced_key->value - ANALOG_VALUE_MIN) <= advanced_key->config.upper_deadzone)
+            {
+                state = false;
+            }
+            if (advanced_key->value >= ANALOG_VALUE_MAX - advanced_key->config.lower_deadzone)
+            {
+                state = true;
+            }
             break;
         default:
             break;
