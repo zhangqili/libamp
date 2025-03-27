@@ -52,19 +52,16 @@ void advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
             {
                 state =false;
                 advanced_key->extremum = advanced_key->value;
-                break;
             }
             if (!advanced_key->key.state && advanced_key->value - advanced_key->extremum >= advanced_key->config.trigger_distance)
             {
                 state = true;
                 advanced_key->extremum = advanced_key->value;
-                break;
             }
             if ((advanced_key->key.state && advanced_key->value > advanced_key->extremum) ||
                 (!advanced_key->key.state && advanced_key->value < advanced_key->extremum))
             {
                 advanced_key->extremum = advanced_key->value;
-                break;
             }
             break;
         case KEY_ANALOG_SPEED_MODE:
@@ -137,9 +134,9 @@ void advanced_key_update_state(AdvancedKey* advanced_key, bool state)
 __WEAK AnalogValue advanced_key_normalize(AdvancedKey* advanced_key, AnalogRawValue value)
 {
 #ifdef OPTIMIZE_FOR_FLOAT_DIVISION
-    return  ANALOG_VALUE_MIN + ANALOG_VALUE_RANGE * (advanced_key->config.upper_bound - value) * advanced_key->range_reciprocal;
+    return  ANALOG_VALUE_MIN + A_ANIT_NORM(advanced_key->config.upper_bound - value) * advanced_key->range_reciprocal;
 #else
-    return  ANALOG_VALUE_MIN + ANALOG_VALUE_RANGE * (advanced_key->config.upper_bound - value) / (advanced_key->config.upper_bound - advanced_key->config.lower_bound);
+    return  ANALOG_VALUE_MIN + A_ANIT_NORM(advanced_key->config.upper_bound - value) / (advanced_key->config.upper_bound - advanced_key->config.lower_bound);
 #endif
 }
 

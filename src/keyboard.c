@@ -268,7 +268,7 @@ int keyboard_6KRObuffer_add(Keyboard_6KROBuffer *buf, Keycode keycode)
 
 int keyboard_6KRObuffer_send(Keyboard_6KROBuffer* buf)
 {
-    return keyboard_hid_send((uint8_t*)buf, sizeof(Keyboard_6KROBuffer));
+    return keyboard_hid_send((uint8_t*)buf, 8);
 }
 
 void keyboard_6KRObuffer_clear(Keyboard_6KROBuffer* buf)
@@ -320,14 +320,14 @@ __WEAK void keyboard_reset_to_default(void)
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         g_keyboard_advanced_keys[i].config.mode = DEFAULT_ADVANCED_KEY_MODE;
-        g_keyboard_advanced_keys[i].config.trigger_distance = DEFAULT_TRIGGER_DISTANCE * ANALOG_VALUE_RANGE;
-        g_keyboard_advanced_keys[i].config.release_distance = DEFAULT_RELEASE_DISTANCE * ANALOG_VALUE_RANGE;
-        g_keyboard_advanced_keys[i].config.activation_value = DEFAULT_ACTIVATION_VALUE * ANALOG_VALUE_RANGE;
-        g_keyboard_advanced_keys[i].config.deactivation_value = DEFAULT_DEACTIVATION_VALUE * ANALOG_VALUE_RANGE;
+        g_keyboard_advanced_keys[i].config.trigger_distance = A_ANIT_NORM(DEFAULT_TRIGGER_DISTANCE);
+        g_keyboard_advanced_keys[i].config.release_distance = A_ANIT_NORM(DEFAULT_RELEASE_DISTANCE);
+        g_keyboard_advanced_keys[i].config.activation_value = A_ANIT_NORM(DEFAULT_ACTIVATION_VALUE);
+        g_keyboard_advanced_keys[i].config.deactivation_value = A_ANIT_NORM(DEFAULT_DEACTIVATION_VALUE);
         g_keyboard_advanced_keys[i].config.calibration_mode = DEFAULT_CALIBRATION_MODE;
         advanced_key_set_deadzone(g_keyboard_advanced_keys + i, 
-            DEFAULT_UPPER_DEADZONE * ANALOG_VALUE_RANGE, 
-            DEFAULT_LOWER_DEADZONE * ANALOG_VALUE_RANGE);
+            A_ANIT_NORM(DEFAULT_UPPER_DEADZONE), 
+            A_ANIT_NORM(DEFAULT_LOWER_DEADZONE));
     }
 #ifdef RGB_ENABLE
     rgb_factory_reset();

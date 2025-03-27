@@ -39,7 +39,10 @@ typedef int16_t AnalogRawValue;
 #else
 #define ANALOG_VALUE_NORMALIZE(x) ((x)/(float)ANALOG_VALUE_RANGE)
 #endif
-#define ANALOG_VALUE_ANTINORMALIZE(x) ((x)*ANALOG_VALUE_RANGE)
+#define ANALOG_VALUE_ANTI_NORMALIZE(x) ((AnalogValue)(((float)(x))*ANALOG_VALUE_RANGE))
+
+#define A_NORM ANALOG_VALUE_NORMALIZE
+#define A_ANIT_NORM ANALOG_VALUE_ANTI_NORMALIZE
 
 typedef enum
 {

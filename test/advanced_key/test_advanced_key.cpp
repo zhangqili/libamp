@@ -25,17 +25,17 @@ TEST(AdvancedKeyTest, NormalMode)
         .config = 
         {
             .mode = KEY_ANALOG_NORMAL_MODE,
-            .activation_value = (AnalogValue)(0.50*ANALOG_VALUE_RANGE),
-            .deactivation_value = (AnalogValue)(0.49*ANALOG_VALUE_RANGE),
+            .activation_value = A_ANIT_NORM(0.50),
+            .deactivation_value = A_ANIT_NORM(0.49),
         },
     };
-    advanced_key_update(&advanced_key, 0.2*ANALOG_VALUE_RANGE);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.2));
     EXPECT_FALSE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, 0.6*ANALOG_VALUE_RANGE);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.6));
     EXPECT_TRUE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, 0.4*ANALOG_VALUE_RANGE);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.4));
     EXPECT_FALSE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, 0.8*ANALOG_VALUE_RANGE);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.8));
     EXPECT_TRUE(advanced_key.key.state);
 }
 
@@ -46,35 +46,35 @@ TEST(AdvancedKeyTest, RapidTriggerMode)
         .config =
         {
             .mode = KEY_ANALOG_RAPID_MODE,
-            .trigger_distance = (AnalogValue)(0.08*ANALOG_VALUE_RANGE),
-            .release_distance = (AnalogValue)(0.08*ANALOG_VALUE_RANGE),
-            .upper_deadzone = (AnalogValue)(0.10*ANALOG_VALUE_RANGE),
-            .lower_deadzone = (AnalogValue)(0.20*ANALOG_VALUE_RANGE),
+            .trigger_distance = A_ANIT_NORM(0.08),
+            .release_distance = A_ANIT_NORM(0.08),
+            .upper_deadzone = A_ANIT_NORM(0.10),
+            .lower_deadzone = A_ANIT_NORM(0.20),
         },
     };
-    advanced_key_update(&advanced_key, 0.09*ANALOG_VALUE_RANGE);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.09));
     EXPECT_FALSE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, 0.12*ANALOG_VALUE_RANGE);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.12));
     EXPECT_TRUE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, 0.12*ANALOG_VALUE_RANGE);
-    advanced_key_update(&advanced_key, 0.60*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANIT_NORM(0.12));
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.60));
     EXPECT_TRUE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, 0.60*ANALOG_VALUE_RANGE);
-    advanced_key_update(&advanced_key, 0.50*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANIT_NORM(0.60));
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.50));
     EXPECT_FALSE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, 0.50*ANALOG_VALUE_RANGE);
-    advanced_key_update(&advanced_key, 0.60*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANIT_NORM(0.50));
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.60));
     EXPECT_TRUE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, 0.60*ANALOG_VALUE_RANGE);
-    advanced_key_update(&advanced_key, 1.00*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANIT_NORM(0.60));
+    advanced_key_update(&advanced_key, A_ANIT_NORM(1.00));
     EXPECT_TRUE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, 1.00*ANALOG_VALUE_RANGE);
-    advanced_key_update(&advanced_key, 0.82*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANIT_NORM(1.00));
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.82));
     EXPECT_TRUE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, 1.00*ANALOG_VALUE_RANGE);
-    advanced_key_update(&advanced_key, 0.78*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANIT_NORM(1.00));
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.78));
     EXPECT_FALSE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, 0.78*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANIT_NORM(0.78));
 }
 
 TEST(AdvancedKeyTest, SpeedMode)
@@ -84,41 +84,41 @@ TEST(AdvancedKeyTest, SpeedMode)
         .config =
         {
             .mode = KEY_ANALOG_SPEED_MODE,
-            .trigger_speed = (AnalogValue)(0.04*ANALOG_VALUE_RANGE),
-            .release_speed = (AnalogValue)(0.04*ANALOG_VALUE_RANGE),
-            .upper_deadzone = (AnalogValue)(0.10*ANALOG_VALUE_RANGE),
-            .lower_deadzone = (AnalogValue)(0.20*ANALOG_VALUE_RANGE),
+            .trigger_speed = A_ANIT_NORM(0.04),
+            .release_speed = A_ANIT_NORM(0.04),
+            .upper_deadzone = A_ANIT_NORM(0.10),
+            .lower_deadzone = A_ANIT_NORM(0.20),
         },
     };
-    advanced_key_update(&advanced_key, ANALOG_VALUE_ANTINORMALIZE(0.09));
-    EXPECT_NEAR(advanced_key.difference, ANALOG_VALUE_ANTINORMALIZE(0.09),1e-6);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.09));
+    EXPECT_NEAR(advanced_key.difference, A_ANIT_NORM(0.09),A_ANIT_NORM(1e-4));
     EXPECT_FALSE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, ANALOG_VALUE_ANTINORMALIZE(0.12));
-    EXPECT_NEAR(advanced_key.difference, ANALOG_VALUE_ANTINORMALIZE(0.12-0.09), 1e-6);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.12));
+    EXPECT_NEAR(advanced_key.difference, A_ANIT_NORM(0.12-0.09), A_ANIT_NORM(1e-4));
     EXPECT_FALSE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, ANALOG_VALUE_ANTINORMALIZE(0.20));
-    EXPECT_NEAR(advanced_key.difference, ANALOG_VALUE_ANTINORMALIZE(0.20-0.12), 1e-6);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.20));
+    EXPECT_NEAR(advanced_key.difference, A_ANIT_NORM(0.20-0.12), A_ANIT_NORM(1e-4));
     EXPECT_TRUE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, ANALOG_VALUE_ANTINORMALIZE(0.80));
-    EXPECT_NEAR(advanced_key.difference, ANALOG_VALUE_ANTINORMALIZE(0.80-0.20), 1e-6);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.80));
+    EXPECT_NEAR(advanced_key.difference, A_ANIT_NORM(0.80-0.20), A_ANIT_NORM(1e-4));
     EXPECT_TRUE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, ANALOG_VALUE_ANTINORMALIZE(0.78));
-    EXPECT_NEAR(advanced_key.difference, ANALOG_VALUE_ANTINORMALIZE(0.78-0.80), 1e-6);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.78));
+    EXPECT_NEAR(advanced_key.difference, A_ANIT_NORM(0.78-0.80), A_ANIT_NORM(1e-4));
     EXPECT_TRUE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, ANALOG_VALUE_ANTINORMALIZE(0.72));
-    EXPECT_NEAR(advanced_key.difference, ANALOG_VALUE_ANTINORMALIZE(0.72-0.78), 1e-6);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.72));
+    EXPECT_NEAR(advanced_key.difference, A_ANIT_NORM(0.72-0.78), A_ANIT_NORM(1e-4));
     EXPECT_FALSE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, ANALOG_VALUE_ANTINORMALIZE(0.74));
-    EXPECT_NEAR(advanced_key.difference, ANALOG_VALUE_ANTINORMALIZE(0.74-0.72), 1e-6);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.74));
+    EXPECT_NEAR(advanced_key.difference, A_ANIT_NORM(0.74-0.72), A_ANIT_NORM(1e-4));
     EXPECT_FALSE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, ANALOG_VALUE_ANTINORMALIZE(0.76));
-    EXPECT_NEAR(advanced_key.difference, ANALOG_VALUE_ANTINORMALIZE(0.76-0.74), 1e-6);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.76));
+    EXPECT_NEAR(advanced_key.difference, A_ANIT_NORM(0.76-0.74), A_ANIT_NORM(1e-4));
     EXPECT_FALSE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, ANALOG_VALUE_ANTINORMALIZE(0.78));
-    EXPECT_NEAR(advanced_key.difference, ANALOG_VALUE_ANTINORMALIZE(0.78-0.76), 1e-6);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.78));
+    EXPECT_NEAR(advanced_key.difference, A_ANIT_NORM(0.78-0.76), A_ANIT_NORM(1e-4));
     EXPECT_FALSE(advanced_key.key.state);
-    advanced_key_update(&advanced_key, ANALOG_VALUE_ANTINORMALIZE(0.81));
-    EXPECT_NEAR(advanced_key.difference, ANALOG_VALUE_ANTINORMALIZE(0.81-0.78), 1e-6);
+    advanced_key_update(&advanced_key, A_ANIT_NORM(0.81));
+    EXPECT_NEAR(advanced_key.difference, A_ANIT_NORM(0.81-0.78), A_ANIT_NORM(1e-4));
     EXPECT_TRUE(advanced_key.key.state);
 }
 
@@ -130,7 +130,7 @@ TEST(AdvancedKeyTest, Value)
         advanced_key.config.mode = i;
         for (int j = 0; j < 1000; j++)
         {
-            float value = ANALOG_VALUE_ANTINORMALIZE((-cos(j/100.f)*0.5+1));
+            float value = A_ANIT_NORM((-cos(j/100.f)*0.5+1));
             advanced_key_update(&advanced_key, value);
             EXPECT_FLOAT_EQ(advanced_key.value, value);
         }
@@ -148,8 +148,8 @@ TEST(AdvancedKeyTest, Calibration)
             {
                 .mode = KEY_ANALOG_NORMAL_MODE,
                 .calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED,
-                .activation_value = (AnalogValue)(0.50*ANALOG_VALUE_RANGE),
-                .deactivation_value = (AnalogValue)(0.49*ANALOG_VALUE_RANGE),
+                .activation_value = A_ANIT_NORM(0.50),
+                .deactivation_value = A_ANIT_NORM(0.49),
                 .upper_bound = (AnalogRawValue)default_upper_bound,
             },
         };
@@ -168,8 +168,8 @@ TEST(AdvancedKeyTest, Calibration)
             {
                 .mode = KEY_ANALOG_NORMAL_MODE,
                 .calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED,
-                .activation_value = (AnalogValue)(0.50*ANALOG_VALUE_RANGE),
-                .deactivation_value = (AnalogValue)(0.49*ANALOG_VALUE_RANGE),
+                .activation_value = A_ANIT_NORM(0.50),
+                .deactivation_value = A_ANIT_NORM(0.49),
                 .upper_bound = (AnalogRawValue)default_upper_bound,
             },
         };

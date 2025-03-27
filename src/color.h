@@ -11,6 +11,15 @@
 #include "stdbool.h"
 
 #ifdef __cplusplus
+#ifndef restrict
+#if defined(__GNUC__) || defined(__clang__)
+    #define restrict __restrict__
+#elif defined(_MSC_VER)
+    #define restrict __restrict
+#else
+    #define restrict
+#endif
+#endif
 extern "C" {
 #endif
 
@@ -30,12 +39,12 @@ typedef struct __ColorHSV
     uint8_t v;
 } ColorHSV;
 
-void rgb_to_hsv(ColorHSV *hsv, ColorRGB *rgb);
-void hsv_to_rgb(ColorRGB *rgb, ColorHSV *hsv);
-void color_get_rgb(Color *color, ColorRGB *rgb);
-void color_set_rgb(Color *color, ColorRGB *rgb);
-void color_get_hsv(Color *color, ColorHSV *hsv);
-void color_set_hsv(Color *color, ColorHSV *hsv);
+void rgb_to_hsv(ColorHSV * restrict hsv, ColorRGB * restrict rgb);
+void hsv_to_rgb(ColorRGB * restrict rgb, ColorHSV * restrict hsv);
+void color_get_rgb(Color * restrict color, ColorRGB * restrict rgb);
+void color_set_rgb(Color * restrict color, ColorRGB * restrict rgb);
+void color_get_hsv(Color * restrict color, ColorHSV * restrict hsv);
+void color_set_hsv(Color * restrict color, ColorHSV * restrict hsv);
 void color_mix(Color *dest, Color *source);
 
 #ifdef __cplusplus
