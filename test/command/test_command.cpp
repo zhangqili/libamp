@@ -1,0 +1,160 @@
+#include <gtest/gtest.h>
+
+#include "rgb.h"
+#include "packet.h"
+#include "command.h"
+
+TEST(Command, PacketKeymap)
+{
+    static PacketKeymap packet = 
+    {
+        .code = 0xFF,
+        .type = PACKET_DATA_KEYMAP,
+        .layer = 1,
+        .start = 3,
+        .length = 5,
+        .keymap = {4,5,6,7,8}
+    };
+    command_parse((uint8_t*)&packet,sizeof(packet));
+    EXPECT_EQ(g_keymap[1][3], 4);
+    EXPECT_EQ(g_keymap[1][4], 5);
+    EXPECT_EQ(g_keymap[1][5], 6);
+    EXPECT_EQ(g_keymap[1][6], 7);
+    EXPECT_EQ(g_keymap[1][7], 8);
+}
+
+TEST(Command, PacketAdvancedKey)
+{
+    static PacketAdvancedKey packet = 
+    {
+        .code = 0xFF,
+        .type = PACKET_DATA_ADVANCED_KEY,
+        .index = 3,
+        .data =
+        {
+            .mode = DEFAULT_ADVANCED_KEY_MODE,
+            .calibration_mode = DEFAULT_CALIBRATION_MODE,
+            .activation_value = DEFAULT_ACTIVATION_VALUE,
+            .deactivation_value = DEFAULT_DEACTIVATION_VALUE,
+            .trigger_distance = DEFAULT_TRIGGER_DISTANCE,
+            .release_distance = DEFAULT_RELEASE_DISTANCE,
+            .trigger_speed = 0.01,
+            .release_speed = 0.01,
+            .upper_deadzone = DEFAULT_UPPER_DEADZONE,
+            .lower_deadzone = DEFAULT_LOWER_DEADZONE,
+            .upper_bound = 2048,
+            .lower_bound = 0,
+        }
+    };
+    command_parse((uint8_t*)&packet,sizeof(packet));
+    EXPECT_EQ(g_keyboard_advanced_keys[3].config.mode, DEFAULT_ADVANCED_KEY_MODE);
+    //EXPECT_EQ(g_keyboard_advanced_keys[3].config.calibration_mode, DEFAULT_CALIBRATION_MODE);
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.activation_value, DEFAULT_ACTIVATION_VALUE*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.deactivation_value, DEFAULT_DEACTIVATION_VALUE*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.trigger_distance, DEFAULT_TRIGGER_DISTANCE*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.release_distance, DEFAULT_RELEASE_DISTANCE*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.trigger_speed, 0.01*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.release_speed, 0.01*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.upper_deadzone, DEFAULT_UPPER_DEADZONE*ANALOG_VALUE_RANGE);
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.lower_deadzone, DEFAULT_LOWER_DEADZONE*ANALOG_VALUE_RANGE);
+    //EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.upper_bound, 2048);
+    //EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.lower_bound, 0);
+}
+
+TEST(Command, PacketRGBConfigs)
+{
+    static PacketRGBConfigs packet = 
+    {
+        .code = 0xFF,
+        .type = PACKET_DATA_RGB_CONFIG,
+        .length = 2,
+        .data =
+        {
+            {
+                .index = 3,
+                .mode = RGB_MODE_LINEAR,
+                .r = 255,
+                .g = 0,
+                .b = 0,
+                .speed = 0.01
+            },
+            {
+                .index = 5,
+                .mode = RGB_MODE_FADING_DIAMOND_RIPPLE,
+                .r = 0,
+                .g = 255,
+                .b = 0,
+                .speed = 0.01
+                
+            }
+        }
+    };
+    command_parse((uint8_t*)&packet,sizeof(packet));
+
+    uint16_t key_index;
+    key_index = g_rgb_mapping[3];
+    ColorHSV hsv;
+    ColorRGB rgb;
+    rgb.r = 255;
+    rgb.g = 0;
+    rgb.b = 0;
+    rgb_to_hsv(&hsv,&rgb);
+    EXPECT_TRUE(!memcmp(&hsv,&g_rgb_configs[key_index].hsv,sizeof(hsv)));
+    EXPECT_TRUE(!memcmp(&packet.data->r,&g_rgb_configs[key_index].rgb,sizeof(ColorRGB)));
+    EXPECT_EQ(g_rgb_configs[key_index].mode, RGB_MODE_LINEAR);
+    EXPECT_FLOAT_EQ(g_rgb_configs[key_index].speed, 0.01);
+
+    key_index = g_rgb_mapping[5];
+    rgb.r = 0;
+    rgb.g = 255;
+    rgb.b = 0;
+    rgb_to_hsv(&hsv,&rgb);
+    EXPECT_EQ(hsv.h, g_rgb_configs[key_index].hsv.h);
+    EXPECT_EQ(hsv.s, g_rgb_configs[key_index].hsv.s);
+    EXPECT_EQ(hsv.v, g_rgb_configs[key_index].hsv.v);
+    EXPECT_TRUE(!memcmp(&rgb,&g_rgb_configs[key_index].rgb,sizeof(ColorRGB)));
+    EXPECT_EQ(g_rgb_configs[key_index].mode, RGB_MODE_FADING_DIAMOND_RIPPLE);
+    EXPECT_FLOAT_EQ(g_rgb_configs[key_index].speed, 0.01);
+}
+
+
+TEST(Command, PacketDynamicKey)
+{
+    static DynamicKeyStroke4x4Normalized dynamic_key = 
+    {
+        .type = DYNAMIC_KEY_STROKE,
+        .key_binding = {KEY_A, KEY_B, KEY_C, KEY_D},
+        .key_control = {0x0FFF, 0x00F0, 0xF1F0, 0x010F},
+        .press_begin_distance = 0.25,
+        .press_fully_distance = 0.75,
+        .release_begin_distance = 0.75,
+        .release_fully_distance = 0.25,
+    };
+    static DynamicKey dynamic_key1 = 
+    {
+        .tk = 
+        {
+            .type = DYNAMIC_KEY_TOGGLE_KEY,
+            .key_binding = KEY_A,
+        }
+    };
+    uint8_t buffer[64];
+    memset(buffer, 0, sizeof(buffer));
+    PacketDynamicKey* packet = (PacketDynamicKey*)buffer;
+    packet->code = 0xff;
+    packet->type = PACKET_DATA_DYNAMIC_KEY,
+    packet->index = 1,
+    memcpy(packet->dynamic_key,&dynamic_key,sizeof(DynamicKeyStroke4x4Normalized));
+    command_parse((uint8_t*)packet,sizeof(packet));
+    EXPECT_EQ(g_keyboard_dynamic_keys[1].type, DYNAMIC_KEY_STROKE);
+    EXPECT_FLOAT_EQ(g_keyboard_dynamic_keys[1].dks.press_fully_distance, dynamic_key.press_fully_distance*ANALOG_VALUE_RANGE);
+
+    memset(buffer, 0, sizeof(buffer));
+    packet->code = 0xff;
+    packet->type = PACKET_DATA_DYNAMIC_KEY,
+    packet->index = 0,
+    memcpy(packet->dynamic_key,&dynamic_key1,sizeof(DynamicKey));
+    command_parse((uint8_t*)packet,sizeof(packet));
+    EXPECT_EQ(g_keyboard_dynamic_keys[1].type, DYNAMIC_KEY_STROKE);
+    EXPECT_TRUE(!memcmp(&g_keyboard_dynamic_keys[0], &dynamic_key1, sizeof(DynamicKey)));
+}

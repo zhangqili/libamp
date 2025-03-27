@@ -135,10 +135,10 @@ TEST(DynamicKey, DynamicKeyStroke)
             .type = DYNAMIC_KEY_STROKE,
             .key_binding = {KEY_A, KEY_B, KEY_C, KEY_D},
             .key_control = {0x0FFF, 0x00F0, 0xF1F0, 0x010F},
-            .press_begin_distance = 0.25,
-            .press_fully_distance = 0.75,
-            .release_begin_distance = 0.75,
-            .release_fully_distance = 0.25,
+            .press_begin_distance = (AnalogValue)(0.25*(ANALOG_VALUE_RANGE)),
+            .press_fully_distance = (AnalogValue)(0.75*(ANALOG_VALUE_RANGE)),
+            .release_begin_distance = (AnalogValue)(0.75*(ANALOG_VALUE_RANGE)),
+            .release_fully_distance = (AnalogValue)(0.25*(ANALOG_VALUE_RANGE)),
         }
     };
     memcpy(&g_keyboard_dynamic_keys[0], &dynamic_key, sizeof(DynamicKey));

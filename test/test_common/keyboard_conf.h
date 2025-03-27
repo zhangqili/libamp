@@ -12,7 +12,7 @@
 #define LAYER_NUM               5
 #define ADVANCED_KEY_NUM        64
 #define KEY_NUM                 0
-//#define FIXED_POINT_EXPERIMENTAL
+#define FIXED_POINT_EXPERIMENTAL
 //#define CONTINOUS_POLL
 #define OPTIMIZE_FOR_FLOAT_DIVISION
 //#define CONTINOUS_DEBUG
