@@ -5,9 +5,11 @@
 #include "layer.h"
 #include "math.h"
 
+extern uint8_t keyboard_send_buffer[64];
+extern uint8_t mouse_send_buffer[64];
+
 TEST(Keyboard, KeyboardTask)
 {
-    keyboard_init();
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         g_keyboard_advanced_keys[i].config.calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED;
@@ -25,7 +27,6 @@ TEST(Keyboard, KeyboardTask)
 
 TEST(Keyboard, Layer)
 {
-    keyboard_init();
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         g_keyboard_advanced_keys[i].config.calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED;
@@ -39,4 +40,38 @@ TEST(Keyboard, Layer)
     EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
     keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[54],true);
     EXPECT_EQ(g_keymap[1][54], layer_cache_get_keycode(54));
+}
+
+TEST(Keyboard, 6KROBuffer)
+{
+    g_keyboard_nkro_enable = false;
+    keyboard_buffer_clear();
+    keyboard_event_handler({KEY_A|(KEY_LEFT_CTRL << 8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_event_handler({KEY_B|(KEY_LEFT_ALT << 8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_event_handler({KEY_C|(KEY_LEFT_SHIFT << 8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_event_handler({KEY_D|(KEY_LEFT_GUI << 8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_event_handler({KEY_A|(KEY_RIGHT_CTRL << 8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_event_handler({KEY_B|(KEY_RIGHT_ALT << 8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_event_handler({KEY_C|(KEY_RIGHT_SHIFT << 8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_event_handler({KEY_D|(KEY_RIGHT_GUI << 8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_buffer_send();
+    EXPECT_EQ(keyboard_send_buffer[0], 0xFF);
+    EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
+    EXPECT_EQ(keyboard_send_buffer[3], KEY_B);
+    EXPECT_EQ(keyboard_send_buffer[4], KEY_C);
+    EXPECT_EQ(keyboard_send_buffer[5], KEY_D);
+    EXPECT_EQ(keyboard_send_buffer[6], KEY_A);
+    EXPECT_EQ(keyboard_send_buffer[7], KEY_B);
+}
+
+TEST(Keyboard, NKROBuffer)
+{
+    g_keyboard_nkro_enable = true;
+    keyboard_buffer_clear();
+    keyboard_event_handler({KEY_A|(KEY_LEFT_CTRL<<8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_event_handler({KEY_S|(KEY_LEFT_ALT<<8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_buffer_send();
+    EXPECT_EQ(keyboard_send_buffer[0], KEY_LEFT_CTRL|KEY_LEFT_ALT);
+    EXPECT_EQ(keyboard_send_buffer[KEY_A/8 + 1], BIT(4));
+    EXPECT_EQ(keyboard_send_buffer[KEY_S/8 + 1], BIT(KEY_S%8));
 }

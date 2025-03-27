@@ -15,9 +15,14 @@ target_include_directories(libamp PUBLIC
 add_executable(libamp_tests
     test_common/keyboard_user.c
     test_common/lfs_port.c
+    test_common/main.cpp
     key/test_key.cpp
     advanced_key/test_advanced_key.cpp
     keyboard/test_keyboard.cpp
+    dynamic_key/test_dynamic_key.cpp
+    mouse/test_mouse.cpp
+    extra_key/test_extra_key.cpp
+    joystick/test_joystick.cpp
 )
 
 target_link_libraries(libamp_tests

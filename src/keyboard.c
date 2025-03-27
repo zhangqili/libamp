@@ -268,7 +268,7 @@ int keyboard_6KRObuffer_add(Keyboard_6KROBuffer *buf, Keycode keycode)
 
 int keyboard_6KRObuffer_send(Keyboard_6KROBuffer* buf)
 {
-    return keyboard_hid_send((uint8_t*)buf, sizeof(buf->buffer));
+    return keyboard_hid_send((uint8_t*)buf, sizeof(Keyboard_6KROBuffer));
 }
 
 void keyboard_6KRObuffer_clear(Keyboard_6KROBuffer* buf)
@@ -300,6 +300,7 @@ void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf)
 
 void keyboard_init(void)
 {
+    g_keyboard_tick = 0;
 #ifdef STORAGE_ENABLE
     storage_mount();
     g_current_config_index = storage_read_config_index();
