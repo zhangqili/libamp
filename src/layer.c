@@ -9,7 +9,8 @@
 #include "keyboard_def.h"
 #include "keyboard.h"
 
-uint8_t g_layer_cache[ADVANCED_KEY_NUM + KEY_NUM];
+#include "string.h"
+
 uint8_t g_current_layer;
 static uint16_t layer_state;
 static Keycode keymap_cache[ADVANCED_KEY_NUM + KEY_NUM];
@@ -85,7 +86,6 @@ void layer_toggle(uint8_t layer)
 
 void layer_cache_set(uint16_t id, uint8_t layer)
 {
-    g_layer_cache[id] = layer;
     int8_t layer_temp = layer;
     Keycode keycode = 0;
     while (layer_temp>=0)
@@ -104,9 +104,9 @@ void layer_cache_set(uint16_t id, uint8_t layer)
     keymap_cache[id] = KEY_NO_EVENT;
 }
 
-uint8_t layer_cache_get(uint16_t id)
+void layer_cache_reset()
 {
-    return g_layer_cache[id];
+    memcpy(keymap_cache, g_keymap[0], sizeof(keymap_cache));
 }
 
 Keycode layer_cache_get_keycode(uint16_t id)

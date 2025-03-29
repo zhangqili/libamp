@@ -32,14 +32,26 @@ TEST(Keyboard, Layer)
         g_keyboard_advanced_keys[i].config.calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED;
         advanced_key_reset_range(&g_keyboard_advanced_keys[i], 2048);
     }
+
+    EXPECT_EQ(g_keymap[0][10], layer_cache_get_keycode(10));
+    // LAYER_MOMENTARY LAYER 1
     keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[60],true);
     EXPECT_EQ(g_keymap[0][60], layer_cache_get_keycode(60));
+
     keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[1],true);
     EXPECT_EQ(g_keymap[1][1], layer_cache_get_keycode(1));
+    
     keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],true);
     EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
+    // LAYER_MOMENTARY LAYER 2
     keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[54],true);
     EXPECT_EQ(g_keymap[1][54], layer_cache_get_keycode(54));
+
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[0],true);
+    EXPECT_EQ(g_keymap[2][0], layer_cache_get_keycode(0));
+
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],false);
+    EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
 }
 
 TEST(Keyboard, 6KROBuffer)

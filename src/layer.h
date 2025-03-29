@@ -14,7 +14,6 @@
 extern "C" {
 #endif
 
-extern uint8_t g_layer_cache[ADVANCED_KEY_NUM + KEY_NUM];
 extern uint8_t g_current_layer;
 
 void layer_control(KeyboardEvent event);
@@ -23,7 +22,7 @@ void layer_set(uint8_t layer);
 void layer_reset(uint8_t layer);
 void layer_toggle(uint8_t layer);
 void layer_cache_set(uint16_t id, uint8_t layer);
-uint8_t layer_cache_get(uint16_t id);
+void layer_cache_reset();
 Keycode layer_cache_get_keycode(uint16_t id);
 
 #ifdef __cplusplus
