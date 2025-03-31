@@ -14,6 +14,7 @@
 uint8_t g_current_layer;
 static uint16_t layer_state;
 static Keycode keymap_cache[ADVANCED_KEY_NUM + KEY_NUM];
+static bool keymap_lock[ADVANCED_KEY_NUM + KEY_NUM];
 
 void layer_control(KeyboardEvent event)
 {
@@ -38,6 +39,7 @@ void layer_control(KeyboardEvent event)
         default:
             break;
         }
+        layer_cache_refresh();
         break;
     case KEYBOARD_EVENT_KEY_UP:
         switch ((event.keycode >> 12) & 0x0F)
@@ -48,6 +50,7 @@ void layer_control(KeyboardEvent event)
         default:
             break;
         }
+        layer_cache_refresh();
         break;
     default:
         break;
@@ -87,6 +90,12 @@ void layer_toggle(uint8_t layer)
 void layer_cache_set(uint16_t id, uint8_t layer)
 {
     int8_t layer_temp = layer;
+    keymap_cache[id] = layer_get_keycode(id, layer);
+}
+
+Keycode layer_get_keycode(uint16_t id, uint8_t layer)
+{
+    int8_t layer_temp = layer;
     Keycode keycode = 0;
     while (layer_temp>=0)
     {
@@ -97,14 +106,38 @@ void layer_cache_set(uint16_t id, uint8_t layer)
         }
         else
         {
-            keymap_cache[id] = keycode;
-            return;
+            return keycode;
         }
     }
-    keymap_cache[id] = KEY_NO_EVENT;
+    return KEY_NO_EVENT;
 }
 
-void layer_cache_reset()
+
+void layer_lock(uint16_t id)
+{
+    keymap_lock[id] = true;
+}
+
+void layer_unlock(uint16_t id)
+{
+    keymap_lock[id] = false;
+    keymap_cache[id] = layer_get_keycode(id, g_current_layer);
+}
+
+void layer_cache_refresh(void)
+{
+    for (int i = 0; i < (ADVANCED_KEY_NUM + KEY_NUM); i++)
+    {
+        if (!keymap_lock[i])
+        {
+            keymap_cache[i] = layer_get_keycode(i, g_current_layer);
+        }
+        
+    }
+    
+}
+
+void layer_cache_reset(void)
 {
     memcpy(keymap_cache, g_keymap[0], sizeof(keymap_cache));
 }

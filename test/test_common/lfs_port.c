@@ -12,6 +12,11 @@
  */
 static int lfs_deskio_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size)
 {
+    UNUSED(c);
+    UNUSED(block);
+    UNUSED(off);
+    UNUSED(buffer);
+    UNUSED(size);
     //w25qxx_advance_read(c->block_size * block + off, (uint8_t *)buffer ,size);
     return LFS_ERR_OK;
 }
@@ -27,6 +32,11 @@ static int lfs_deskio_read(const struct lfs_config *c, lfs_block_t block, lfs_of
  */
 static int lfs_deskio_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size)
 {
+    UNUSED(c);
+    UNUSED(block);
+    UNUSED(off);
+    UNUSED(buffer);
+    UNUSED(size);
     //w25qxx_advance_write(c->block_size * block + off, (uint8_t *)buffer, size);
     return LFS_ERR_OK;
 }
@@ -39,13 +49,14 @@ static int lfs_deskio_prog(const struct lfs_config *c, lfs_block_t block, lfs_of
  */
 static int lfs_deskio_erase(const struct lfs_config *c, lfs_block_t block)
 {
+    UNUSED(c);
+    UNUSED(block);
     //w25qxx_advance_sector_erase_4k(block);
     return LFS_ERR_OK;
 }
 
 static int lfs_deskio_sync(const struct lfs_config *c)
 {
-    
     UNUSED(c);
     return LFS_ERR_OK;
 }

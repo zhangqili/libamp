@@ -2,6 +2,7 @@
 
 #include "keyboard.h"
 #include "dynamic_key.h"
+#include "layer.h"
 #include "math.h"
 
 extern uint8_t keyboard_send_buffer[64];
@@ -155,7 +156,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
@@ -168,7 +169,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
@@ -185,7 +186,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
@@ -199,7 +200,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
@@ -217,7 +218,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
@@ -231,7 +232,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
@@ -247,7 +248,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_C);
@@ -259,7 +260,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_C);
@@ -289,12 +290,12 @@ TEST(DynamicKey, MutexDistancePriority)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     if (g_keyboard_advanced_keys[1].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[1],
-            keyboard_make_event(&g_keyboard_advanced_keys[1].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[1].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
@@ -309,12 +310,12 @@ TEST(DynamicKey, MutexDistancePriority)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     if (g_keyboard_advanced_keys[1].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[1],
-            keyboard_make_event(&g_keyboard_advanced_keys[1].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[1].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_B);
@@ -328,12 +329,12 @@ TEST(DynamicKey, MutexDistancePriority)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     if (g_keyboard_advanced_keys[1].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[1],
-            keyboard_make_event(&g_keyboard_advanced_keys[1].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[1].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
@@ -350,12 +351,12 @@ TEST(DynamicKey, MutexDistancePriority)
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[0],
-            keyboard_make_event(&g_keyboard_advanced_keys[0].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[0].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     if (g_keyboard_advanced_keys[1].key.report_state)
     {
         keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[1],
-            keyboard_make_event(&g_keyboard_advanced_keys[1].key, KEYBOARD_EVENT_KEY_TRUE));
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[1].key.id), KEYBOARD_EVENT_KEY_TRUE));
     }
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);

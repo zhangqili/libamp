@@ -9,6 +9,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wstrict-prototypes -fdata-sections -ffunction-sections")
+
 target_include_directories(libamp PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/test_common
 )

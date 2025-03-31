@@ -22,7 +22,11 @@ void layer_set(uint8_t layer);
 void layer_reset(uint8_t layer);
 void layer_toggle(uint8_t layer);
 void layer_cache_set(uint16_t id, uint8_t layer);
-void layer_cache_reset();
+void layer_cache_reset(void);
+void layer_lock(uint16_t id);
+void layer_unlock(uint16_t id);
+void layer_cache_refresh(void);
+Keycode layer_get_keycode(uint16_t id, uint8_t layer);
 Keycode layer_cache_get_keycode(uint16_t id);
 
 #ifdef __cplusplus

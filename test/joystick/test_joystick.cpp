@@ -31,13 +31,13 @@ TEST(Joystick, Axis)
 
     joystick_buffer_clear();
     keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[42], 
-        keyboard_make_event(&g_keyboard_advanced_keys[42].key, KEYBOARD_EVENT_KEY_TRUE));
+        MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[42].key.id), KEYBOARD_EVENT_KEY_TRUE));
     keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[43], 
-        keyboard_make_event(&g_keyboard_advanced_keys[43].key, KEYBOARD_EVENT_KEY_TRUE));
+        MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[43].key.id), KEYBOARD_EVENT_KEY_TRUE));
     keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[44], 
-        keyboard_make_event(&g_keyboard_advanced_keys[44].key, KEYBOARD_EVENT_KEY_TRUE));
+        MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[44].key.id), KEYBOARD_EVENT_KEY_TRUE));
     keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[45], 
-        keyboard_make_event(&g_keyboard_advanced_keys[45].key, KEYBOARD_EVENT_KEY_TRUE));
+        MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[45].key.id), KEYBOARD_EVENT_KEY_TRUE));
     joystick_buffer_send();
 
     Joystick* joystick = (Joystick*)joystick_send_buffer;
