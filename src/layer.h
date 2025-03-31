@@ -14,7 +14,10 @@
 extern "C" {
 #endif
 
+#define layer_cache_get_keycode(layer) g_keymap_cache[(layer)]
+
 extern uint8_t g_current_layer;
+extern Keycode g_keymap_cache[ADVANCED_KEY_NUM + KEY_NUM];
 
 void layer_control(KeyboardEvent event);
 uint8_t layer_get(void);
@@ -24,8 +27,7 @@ void layer_toggle(uint8_t layer);
 void layer_lock(uint16_t id);
 void layer_unlock(uint16_t id);
 void layer_cache_refresh(void);
-Keycode layer_get_keycode(uint16_t id, uint8_t layer);
-Keycode layer_cache_get_keycode(uint16_t id);
+Keycode layer_get_keycode(uint16_t id, int8_t layer);
 
 #ifdef __cplusplus
 }

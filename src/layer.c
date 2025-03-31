@@ -13,7 +13,7 @@
 
 uint8_t g_current_layer;
 static uint16_t layer_state;
-static Keycode keymap_cache[ADVANCED_KEY_NUM + KEY_NUM];
+Keycode g_keymap_cache[ADVANCED_KEY_NUM + KEY_NUM];
 static bool keymap_lock[ADVANCED_KEY_NUM + KEY_NUM];
 
 void layer_control(KeyboardEvent event)
@@ -87,16 +87,15 @@ void layer_toggle(uint8_t layer)
     g_current_layer = layer_get();
 }
 
-Keycode layer_get_keycode(uint16_t id, uint8_t layer)
+Keycode layer_get_keycode(uint16_t id, int8_t layer)
 {
-    int8_t layer_temp = layer;
     Keycode keycode = 0;
-    while (layer_temp>=0)
+    while (layer>=0)
     {
-        keycode = g_keymap[layer_temp][id];
+        keycode = g_keymap[layer][id];
         if (KEYCODE(keycode) == KEY_TRANSPARENT)
         {
-            layer_temp--;
+            layer--;
         }
         else
         {
@@ -106,16 +105,15 @@ Keycode layer_get_keycode(uint16_t id, uint8_t layer)
     return KEY_NO_EVENT;
 }
 
-
-void layer_lock(uint16_t id)
+inline void layer_lock(uint16_t id)
 {
     keymap_lock[id] = true;
 }
 
-void layer_unlock(uint16_t id)
+inline void layer_unlock(uint16_t id)
 {
     keymap_lock[id] = false;
-    keymap_cache[id] = layer_get_keycode(id, g_current_layer);
+    g_keymap_cache[id] = layer_get_keycode(id, g_current_layer);
 }
 
 void layer_cache_refresh(void)
@@ -124,12 +122,7 @@ void layer_cache_refresh(void)
     {
         if (!keymap_lock[i])
         {
-            keymap_cache[i] = layer_get_keycode(i, g_current_layer);
+            g_keymap_cache[i] = layer_get_keycode(i, g_current_layer);
         }
     }
-}
-
-Keycode layer_cache_get_keycode(uint16_t id)
-{
-    return keymap_cache[id];
 }
