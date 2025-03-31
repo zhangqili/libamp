@@ -58,7 +58,7 @@ TEST(Keyboard, LayerWithSpecificKeycode)
 {
     g_keymap[0][15] = (JOYSTICK_COLLECTION) | (0 << 8) | (0x01 << 13); 
     g_keymap[1][15] = (JOYSTICK_COLLECTION) | (1 << 8) | (0x01 << 13);
-    layer_cache_reset();
+    layer_cache_refresh();
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         g_keyboard_advanced_keys[i].config.calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED;

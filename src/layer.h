@@ -21,8 +21,6 @@ uint8_t layer_get(void);
 void layer_set(uint8_t layer);
 void layer_reset(uint8_t layer);
 void layer_toggle(uint8_t layer);
-void layer_cache_set(uint16_t id, uint8_t layer);
-void layer_cache_reset(void);
 void layer_lock(uint16_t id);
 void layer_unlock(uint16_t id);
 void layer_cache_refresh(void);

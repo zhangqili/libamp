@@ -23,6 +23,7 @@ TEST(Joystick, Axis)
     g_keymap[0][43] = JOYSTICK_COLLECTION | (0x02 << 13) | 1 << 8;
     g_keymap[0][44] = JOYSTICK_COLLECTION | (0x03 << 13) | 2 << 8;
     g_keymap[0][45] = JOYSTICK_COLLECTION | (0x07 << 13) | 3 << 8;
+    layer_cache_refresh();
 
     advanced_key_update(&g_keyboard_advanced_keys[42], A_ANIT_NORM(0.6));
     advanced_key_update(&g_keyboard_advanced_keys[43], A_ANIT_NORM(0.7));

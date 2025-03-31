@@ -182,7 +182,6 @@ void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
-        layer_cache_set(key->key.id, g_current_layer);
         layer_lock(key->key.id);
         keyboard_event_handler(event);
 #ifdef RGB_ENABLE
@@ -218,7 +217,6 @@ void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event)
         }
         break;
     case KEYBOARD_EVENT_KEY_FALSE:
-        layer_unlock(key->key.id);
         break;
     default:
         break;
@@ -308,7 +306,7 @@ void keyboard_init(void)
     setup_midi();
 #endif
     keyboard_recovery();
-    layer_cache_reset();
+    layer_cache_refresh();
 }
 
 __WEAK void keyboard_reset_to_default(void)
@@ -418,7 +416,7 @@ void keyboard_send_report(void)
         }
         for (int i = 0; i < KEY_NUM; i++)
         {        
-            keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[i].key.id), 
+            keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(g_keyboard_keys[i].id), 
                 g_keyboard_keys[i].report_state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE));
         }
 #ifdef CONTINOUS_POLL
@@ -491,10 +489,12 @@ void keyboard_key_update(Key *key, bool state)
 {
     if (!key->state && state)
     {
+        layer_lock(key->id);
         keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_KEY_DOWN));
     }
     if (key->state && !state)
     {
+        layer_unlock(key->id);
         keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_KEY_UP));
     }
     key_update(key, state);
@@ -523,7 +523,6 @@ void keyboard_advanced_key_update_state(AdvancedKey *key, bool state)
         uint8_t velocity = intensity*127;
         if (!key->key.state && state)
         {
-            layer_cache_set(key->key.id, g_current_layer);
             KeyboardEvent event = MK_EVENT(layer_cache_get_keycode(key->key.id), KEYBOARD_EVENT_KEY_DOWN);
             midi_event_handler(event, velocity);
             keyboard_advanced_key_event_handler(key,event);

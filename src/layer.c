@@ -87,12 +87,6 @@ void layer_toggle(uint8_t layer)
     g_current_layer = layer_get();
 }
 
-void layer_cache_set(uint16_t id, uint8_t layer)
-{
-    int8_t layer_temp = layer;
-    keymap_cache[id] = layer_get_keycode(id, layer);
-}
-
 Keycode layer_get_keycode(uint16_t id, uint8_t layer)
 {
     int8_t layer_temp = layer;
@@ -132,14 +126,7 @@ void layer_cache_refresh(void)
         {
             keymap_cache[i] = layer_get_keycode(i, g_current_layer);
         }
-        
     }
-    
-}
-
-void layer_cache_reset(void)
-{
-    memcpy(keymap_cache, g_keymap[0], sizeof(keymap_cache));
 }
 
 Keycode layer_cache_get_keycode(uint16_t id)
