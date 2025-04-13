@@ -6,6 +6,7 @@
 #ifndef LAYER_H_
 #define LAYER_H_
 #include "stdint.h"
+#include "stdbool.h"
 #include "keycode.h"
 #include "event.h"
 #include "keyboard_conf.h"
@@ -18,6 +19,7 @@ extern "C" {
 
 extern uint8_t g_current_layer;
 extern Keycode g_keymap_cache[ADVANCED_KEY_NUM + KEY_NUM];
+extern bool g_keymap_lock[ADVANCED_KEY_NUM + KEY_NUM];
 
 void layer_control(KeyboardEvent event);
 uint8_t layer_get(void);

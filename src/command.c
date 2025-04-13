@@ -9,6 +9,7 @@
 #include "rgb.h"
 #include "string.h"
 #include "packet.h"
+#include "layer.h"
 
 static inline void command_advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, AdvancedKeyConfiguration* config)
 {
@@ -80,10 +81,19 @@ void unload_cargo(uint8_t *buf)
     case PACKET_DATA_KEYMAP: // Keymap
         {
             PacketKeymap* packet = (PacketKeymap*)buf;
-            if (packet->layer < LAYER_NUM && packet->start + packet->length <= (ADVANCED_KEY_NUM + KEY_NUM))
+            //if (packet->layer < LAYER_NUM && packet->start + packet->length <= (ADVANCED_KEY_NUM + KEY_NUM))
+            //{
+            //    memcpy(&g_keymap[packet->layer][packet->start], packet->keymap, packet->length * sizeof(Keycode));
+            //}
+            for (uint16_t i = 0; i < packet->length; i++)
             {
-                memcpy(&g_keymap[packet->layer][packet->start], packet->keymap, packet->length * sizeof(Keycode));
+                g_keymap[packet->layer][packet->start + i] = packet->keymap[i];
+                if (!g_keymap_lock[packet->start + i])
+                {
+                    g_keymap_cache[packet->start + i] = layer_get_keycode(packet->start + i, g_current_layer); 
+                }
             }
+            
         }
         break;
     case PACKET_DATA_DYNAMIC_KEY: // Dynamic Key
