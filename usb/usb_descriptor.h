@@ -494,7 +494,6 @@ extern const USB_Descriptor_String_t PROGMEM SerialNumberString;
 */
 
 #include "util.h"
-#include "report.h"
 //#include "usb_descriptor.h"
 #include "usb_descriptor_common.h"
 

@@ -9,8 +9,8 @@
 #include "mouse.h"
 #include "layer.h"
 #include "record.h"
-#include "report.h"
 #include "process_midi.h"
+#include "driver.h"
 
 #include "stdio.h"
 #include "string.h"
@@ -228,8 +228,12 @@ int keyboard_buffer_send(void)
 #ifdef NKRO_ENABLE
     if (g_keyboard_nkro_enable)
     {
+        keyboard_nkro_buffer.report_id = REPORT_ID_NKRO;
         return keyboard_NKRObuffer_send(&keyboard_nkro_buffer);
     }
+#endif
+#ifdef KEYBOARD_SHARED_EP
+    keyboard_6kro_buffer.report_id = REPORT_ID_KEYBOARD;
 #endif
     return keyboard_6KRObuffer_send(&keyboard_6kro_buffer);
 }
@@ -262,7 +266,11 @@ int keyboard_6KRObuffer_add(Keyboard_6KROBuffer *buf, Keycode keycode)
 
 int keyboard_6KRObuffer_send(Keyboard_6KROBuffer* buf)
 {
-    return keyboard_hid_send((uint8_t*)buf, 8);
+#ifdef KEYBOARD_SHARED_EP
+    return hid_send_shared_ep((uint8_t*)buf, offsetof(Keyboard_6KROBuffer, keynum));
+#else
+    return hid_send_keyboard((uint8_t*)buf, offsetof(Keyboard_6KROBuffer, keynum));
+#endif
 }
 
 void keyboard_6KRObuffer_clear(Keyboard_6KROBuffer* buf)
@@ -284,7 +292,7 @@ int keyboard_NKRObuffer_add(Keyboard_NKROBuffer*buf,Keycode keycode)
 
 int keyboard_NKRObuffer_send(Keyboard_NKROBuffer*buf)
 {
-    return keyboard_hid_send((uint8_t*)buf, sizeof(Keyboard_NKROBuffer));
+    return hid_send_nkro((uint8_t*)buf, sizeof(Keyboard_NKROBuffer));
 }
 
 void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf)
@@ -474,12 +482,6 @@ __WEAK void keyboard_task(void)
     keyboard_send_report();
 }
 
-__WEAK int keyboard_hid_send(uint8_t *report, uint16_t len)
-{
-    UNUSED(report);
-    UNUSED(len);
-    return 0;
-}
 __WEAK void keyboard_delay(uint32_t ms)
 {
     UNUSED(ms);

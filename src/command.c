@@ -10,6 +10,7 @@
 #include "string.h"
 #include "packet.h"
 #include "layer.h"
+#include "driver.h"
 
 static inline void command_advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, AdvancedKeyConfiguration* config)
 {
@@ -139,7 +140,7 @@ int load_cargo(void)
             uint8_t key_index = page_index & 0xFF;
             packet->index = key_index;
             command_advanced_key_config_normalize(&packet->data, &g_keyboard_advanced_keys[key_index].config);
-            if (!hid_send(buf, 63))
+            if (!hid_send_raw(buf, 63))
             {
                 page_index++;
                 if ((page_index & 0xFF) >= ADVANCED_KEY_NUM)
@@ -154,7 +155,7 @@ int load_cargo(void)
             PacketRGBSwitch *packet = (PacketRGBSwitch *)buf;
             packet->type = PACKET_DATA_RGB_SWITCH;
             packet->state = g_rgb_switch;
-            if (!hid_send(buf,63))
+            if (!hid_send_raw(buf,63))
             {
                 page_index = 0x0200;
             }
@@ -180,7 +181,7 @@ int load_cargo(void)
                     memcpy(&packet->data[i].speed, &g_rgb_configs[rgb_index].speed, sizeof(float));
                 }
             }
-            if (!hid_send(buf,63))
+            if (!hid_send_raw(buf,63))
             {
                 page_index++;
                 if ((page_index & 0xFF)*6>=RGB_NUM)
@@ -204,7 +205,7 @@ int load_cargo(void)
                 LAYER_PAGE_LENGTH : 
                 (ADVANCED_KEY_NUM + KEY_NUM) - layer_page_index*LAYER_PAGE_LENGTH;
             memcpy(&packet->keymap, &g_keymap[layer_index][packet->start], packet->length*sizeof(Keycode));
-            if (!hid_send(buf,63))
+            if (!hid_send_raw(buf,63))
             {
                 page_index++;
                 if ((page_index & 0xFF)>=LAYER_NUM*LAYER_PAGE_EXPECTED_NUM)
@@ -234,7 +235,7 @@ int load_cargo(void)
             memcpy(&packet->dynamic_key,&g_keyboard_dynamic_keys[dk_index],sizeof(DynamicKey));
             break;
         }
-        if (!hid_send(buf,63))
+        if (!hid_send_raw(buf,63))
         {
             page_index++;
         }
@@ -242,7 +243,7 @@ int load_cargo(void)
     case 0x80: // config index
         buf[1] = 0x80;
         buf[2] = g_current_config_index;
-        if (!hid_send(buf,63))
+        if (!hid_send_raw(buf,63))
         {
             page_index = 0xFFFF;
         }
@@ -276,7 +277,7 @@ void send_debug_info(void)
         packet->data[i].raw = g_keyboard_advanced_keys[key_index].raw;
         packet->data[i].value = g_keyboard_advanced_keys[key_index].value;
     }
-    hid_send(buffer, 63);
+    hid_send_raw(buffer, 63);
     report_num += packet->length;
 #else
     static AnalogRawValue analog_buffer[64];
@@ -305,7 +306,7 @@ void send_debug_info(void)
     report_num += (i - report_num%ADVANCED_KEY_NUM);
     if (packet->length)
     {
-        hid_send(buffer, 63);
+        hid_send_raw(buffer, 63);
     }
 #endif
 }
@@ -341,11 +342,4 @@ void command_parse(uint8_t *buf, uint8_t len)
     default:
         break;
     }
-}
-
-__WEAK int hid_send(uint8_t *report, uint16_t len)
-{
-    UNUSED(report);
-    UNUSED(len);
-    return 0;
 }

@@ -6,6 +6,7 @@
 #include "keyboard.h"
 #include "mouse.h"
 #include "string.h"
+#include "driver.h"
 
 static Mouse mouse;
 
@@ -69,18 +70,14 @@ int mouse_buffer_send(void)
     int ret = 0;
     if ((*(uint32_t*)&mouse)!=mouse_value)
     {
-        ret = mouse_hid_send((uint8_t*)&mouse, sizeof(Mouse));
+#ifdef MOUSE_SHARED_EP
+        mouse.report_id = REPORT_ID_MOUSE;
+#endif
+        ret = hid_send_mouse((uint8_t*)&mouse, sizeof(Mouse));
         if (!ret)
         {
             mouse_value = *(uint32_t*)&mouse;
         }
     }
     return ret;
-}
-
-__WEAK int mouse_hid_send(uint8_t *report, uint16_t len)
-{
-    UNUSED(report);
-    UNUSED(len);
-    return 0;
 }

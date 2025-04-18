@@ -26,6 +26,9 @@ extern "C" {
 
 typedef struct
 {
+#ifdef KEYBOARD_SHARED_EP
+    uint8_t report_id;
+#endif
     uint8_t modifier;
     uint8_t reserved;
     uint8_t buffer[6];
@@ -34,6 +37,7 @@ typedef struct
 
 typedef struct
 {
+    uint8_t report_id;
     uint8_t modifier;
     uint8_t buffer[NKRO_REPORT_BITS];
 } __PACKED Keyboard_NKROBuffer;
@@ -54,6 +58,18 @@ enum KEYBOARD_REPORT_FLAG
     JOYSTICK_REPORT_FLAG = 4,
 };
 
+enum ReportID { 
+    REPORT_ID_ALL = 0,
+    REPORT_ID_KEYBOARD = 1,
+    REPORT_ID_MOUSE,
+    REPORT_ID_SYSTEM,
+    REPORT_ID_CONSUMER,
+    REPORT_ID_PROGRAMMABLE_BUTTON,
+    REPORT_ID_NKRO,
+    REPORT_ID_JOYSTICK,
+    REPORT_ID_DIGITIZER,
+    REPORT_ID_COUNT = REPORT_ID_DIGITIZER
+};
 
 extern Key g_keyboard_keys[KEY_NUM];
 extern AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
@@ -110,7 +126,6 @@ void keyboard_save(void);
 void keyboard_set_config_index(uint8_t index);
 void keyboard_task(void);
 void keyboard_delay(uint32_t ms);
-int keyboard_hid_send(uint8_t *report, uint16_t len);
 
 #ifdef __cplusplus
 }

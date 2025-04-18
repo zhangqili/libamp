@@ -4,7 +4,7 @@
 #include "joystick.h"
 #include "layer.h"
 
-extern uint8_t joystick_send_buffer[64];
+extern uint8_t shared_ep_send_buffer[64];
 
 TEST(Joystick, Buffer)
 {
@@ -12,7 +12,7 @@ TEST(Joystick, Buffer)
     joystick_event_handler({JOYSTICK_COLLECTION|(0<<8), KEYBOARD_EVENT_KEY_TRUE});
     joystick_event_handler({JOYSTICK_COLLECTION|(9<<8), KEYBOARD_EVENT_KEY_TRUE});
     joystick_buffer_send();
-    Joystick* joystick = (Joystick*)joystick_send_buffer;
+    Joystick* joystick = (Joystick*)shared_ep_send_buffer;
     EXPECT_EQ(joystick->buttons[0], BIT(0));
     EXPECT_EQ(joystick->buttons[1], BIT(1));
 }
@@ -41,7 +41,7 @@ TEST(Joystick, Axis)
         MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[45].key.id), KEYBOARD_EVENT_KEY_TRUE));
     joystick_buffer_send();
 
-    Joystick* joystick = (Joystick*)joystick_send_buffer;
+    Joystick* joystick = (Joystick*)shared_ep_send_buffer;
     EXPECT_NEAR(joystick->axes[0], (int8_t)((A_ANIT_NORM(0.6) - ANALOG_VALUE_MIN) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE), 1);
     EXPECT_NEAR(joystick->axes[1], (int8_t)((ANALOG_VALUE_MIN - A_ANIT_NORM(0.7)) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE), 1);
     EXPECT_NEAR(joystick->axes[2], (int8_t)(((A_ANIT_NORM(0.8) - ANALOG_VALUE_MIN) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE)*2 - JOYSTICK_MAX_VALUE), 1);

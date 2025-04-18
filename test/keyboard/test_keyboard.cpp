@@ -5,8 +5,8 @@
 #include "layer.h"
 #include "math.h"
 
+extern uint8_t shared_ep_send_buffer[64];
 extern uint8_t keyboard_send_buffer[64];
-extern uint8_t mouse_send_buffer[64];
 
 TEST(Keyboard, KeyboardTask)
 {
@@ -147,7 +147,7 @@ TEST(Keyboard, NKROBuffer)
     keyboard_event_handler({KEY_A|(KEY_LEFT_CTRL<<8), KEYBOARD_EVENT_KEY_TRUE});
     keyboard_event_handler({KEY_S|(KEY_LEFT_ALT<<8), KEYBOARD_EVENT_KEY_TRUE});
     keyboard_buffer_send();
-    EXPECT_EQ(keyboard_send_buffer[0], KEY_LEFT_CTRL|KEY_LEFT_ALT);
-    EXPECT_EQ(keyboard_send_buffer[KEY_A/8 + 1], BIT(4));
-    EXPECT_EQ(keyboard_send_buffer[KEY_S/8 + 1], BIT(KEY_S%8));
+    EXPECT_EQ(shared_ep_send_buffer[1], KEY_LEFT_CTRL|KEY_LEFT_ALT);
+    EXPECT_EQ(shared_ep_send_buffer[KEY_A/8 + 2], BIT(4));
+    EXPECT_EQ(shared_ep_send_buffer[KEY_S/8 + 2], BIT(KEY_S%8));
 }

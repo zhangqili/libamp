@@ -3,6 +3,7 @@
 #include "midi.h"
 #include "usb_descriptor.h"
 #include "process_midi.h"
+#include "driver.h"
 
 #ifdef AUDIO_ENABLE
 #    include "audio.h"
@@ -140,7 +141,7 @@ void setup_midi(void) {
 
 __WEAK void send_midi_packet(MIDIEventPacket* event)
 {
-    UNUSED(event);
+    send_midi((uint8_t*)event, sizeof(MIDIEventPacket));
 }
 
 __WEAK bool recv_midi_packet(MIDIEventPacket* const event)

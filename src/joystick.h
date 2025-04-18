@@ -10,6 +10,7 @@
 #include "stdint.h"
 #include "keycode.h"
 #include "keyboard_def.h"
+#include "keyboard_conf.h"
 #include "analog.h"
 
 #ifdef __cplusplus
@@ -70,7 +71,10 @@ typedef int16_t JoystickAxis;
 typedef int8_t JoystickAxis;
 #endif
 
-typedef struct {
+typedef struct __Joystick {
+#ifdef JOYSTICK_SHARED_EP
+    uint8_t report_id;
+#endif
 #if JOYSTICK_AXIS_COUNT > 0
     JoystickAxis axes[JOYSTICK_AXIS_COUNT];
 #endif
@@ -90,7 +94,6 @@ void joystick_buffer_clear(void);
 void joystick_add_buffer(Keycode keycode);
 void joystick_set_axis(Keycode keycode, AnalogValue value);
 int joystick_buffer_send(void);
-int joystick_hid_send(uint8_t *report, uint16_t len);
 
 #ifdef __cplusplus
 }

@@ -9,11 +9,9 @@
 #include "analog.h"
 #include "qmk_midi.h"
 
+uint8_t shared_ep_send_buffer[64];
 uint8_t keyboard_send_buffer[64];
-uint8_t mouse_send_buffer[64];
 uint8_t raw_send_buffer[64];
-uint8_t extra_key_send_buffer[64];
-uint8_t joystick_send_buffer[64];
 uint8_t midi_send_buffer[64];
 
 const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM] = {
@@ -1135,42 +1133,6 @@ static const float table[]=
     1.000000
 };
 
-int keyboard_hid_send(uint8_t*report,uint16_t len)
-{
-    memcpy(keyboard_send_buffer, report, len);
-    return 0;
-}
-
-int mouse_hid_send(uint8_t*report,uint16_t len)
-{
-    memcpy(mouse_send_buffer, report, len);
-    return 0;
-}
-
-int hid_send(uint8_t *report, uint16_t len)
-{
-    memcpy(raw_send_buffer, report, len);
-    return 0;
-}
-
-int extra_key_hid_send(uint8_t report_id, uint16_t usage)
-{
-    extra_key_send_buffer[0] = report_id;
-    memcpy(&extra_key_send_buffer[1], &usage, sizeof(usage));
-    return 0;
-}
-
-int joystick_hid_send(uint8_t *report, uint16_t len)
-{
-    memcpy(joystick_send_buffer,report,len);
-    return 0;
-}
-
-void send_midi_packet(MIDIEventPacket* event)
-{
-    memcpy(midi_send_buffer,event,sizeof(MIDIEventPacket));
-}
-
 AnalogValue advanced_key_normalize(AdvancedKey* advanced_key, AnalogRawValue value)
 {
 
@@ -1229,4 +1191,45 @@ void keyboard_user_event_handler(KeyboardEvent event)
         g_keyboard_state = KEYBOARD_STATE_IDLE;
         break;
     }
+}
+
+int hid_send_shared_ep(uint8_t *report, uint16_t len)
+{
+    memcpy(shared_ep_send_buffer,report,len);
+    return 0;
+}
+
+int hid_send_keyboard(uint8_t *report, uint16_t len)
+{
+    memcpy(keyboard_send_buffer,report,len);
+    return 0;
+}
+
+int hid_send_nkro(uint8_t *report, uint16_t len)
+{
+    memcpy(shared_ep_send_buffer,report,len);
+    return 0;
+}
+
+int hid_send_extra_key(uint8_t*report,uint16_t len)
+{
+    memcpy(shared_ep_send_buffer,report,len);
+    return 0;
+}
+
+int hid_send_mouse(uint8_t*report,uint16_t len)
+{
+    memcpy(shared_ep_send_buffer,report,len);
+    return 0;
+}
+
+int hid_send_joystick(uint8_t*report,uint16_t len)
+{
+    memcpy(shared_ep_send_buffer,report,len);
+    return 0;
+}
+
+void send_midi(uint8_t *report, uint16_t len)
+{
+    memcpy(midi_send_buffer,report,len);
 }

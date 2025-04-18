@@ -6,6 +6,7 @@
 #include "joystick.h"
 #include "keyboard_def.h"
 #include "string.h"
+#include "driver.h"
 
 static Joystick joystick;
 
@@ -64,12 +65,8 @@ void joystick_set_axis(Keycode keycode, AnalogValue value)
 }
 int joystick_buffer_send(void)
 {
-    return joystick_hid_send((uint8_t*)&joystick, sizeof(Joystick));
-}
-
-__WEAK int joystick_hid_send(uint8_t *report, uint16_t len)
-{
-    UNUSED(report);
-    UNUSED(len);
-    return 0;
+#ifdef JOYSTICK_SHARED_EP
+    joystick.report_id = REPORT_ID_JOYSTICK;
+#endif
+    return hid_send_joystick((uint8_t*)&joystick, sizeof(Joystick));
 }

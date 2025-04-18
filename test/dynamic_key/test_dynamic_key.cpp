@@ -6,7 +6,6 @@
 #include "math.h"
 
 extern uint8_t keyboard_send_buffer[64];
-extern uint8_t mouse_send_buffer[64];
 
 TEST(DynamicKey, ModTap)
 {

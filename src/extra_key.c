@@ -4,10 +4,14 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "extra_key.h"
-#include "report.h"
+#include "driver.h"
 
-static uint16_t consumer_buffer;
-static uint16_t system_buffer;
+static ExtraKey consumer_buffer = {
+    .report_id = REPORT_ID_CONSUMER,
+};
+static ExtraKey system_buffer = {
+    .report_id = REPORT_ID_SYSTEM,
+};
 
 void extra_key_event_handler(KeyboardEvent event)
 {
@@ -17,11 +21,11 @@ void extra_key_event_handler(KeyboardEvent event)
         switch (KEYCODE(event.keycode))
         {
         case CONSUMER_COLLECTION:
-            consumer_buffer = 0;
+            consumer_buffer.usage = 0;
             BIT_SET(g_keyboard_send_flags, CONSUMER_REPORT_FLAG);
             break;
         case SYSTEM_COLLECTION:
-            system_buffer = 0;
+            system_buffer.usage = 0;
             BIT_SET(g_keyboard_send_flags, SYSTEM_REPORT_FLAG);
             break;
         default:
@@ -32,11 +36,11 @@ void extra_key_event_handler(KeyboardEvent event)
         switch (KEYCODE(event.keycode))
         {
         case CONSUMER_COLLECTION:
-            consumer_buffer = CONSUMER_KEYCODE_TO_RAWCODE(MODIFIER(event.keycode));
+            consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(MODIFIER(event.keycode));
             BIT_SET(g_keyboard_send_flags, CONSUMER_REPORT_FLAG);
             break;
         case SYSTEM_COLLECTION:
-            system_buffer = MODIFIER(event.keycode);
+            system_buffer.usage = MODIFIER(event.keycode);
             BIT_SET(g_keyboard_send_flags, SYSTEM_REPORT_FLAG);
             break;
         default:
@@ -47,15 +51,15 @@ void extra_key_event_handler(KeyboardEvent event)
         switch (KEYCODE(event.keycode))
         {
         case CONSUMER_COLLECTION:
-            if (!consumer_buffer)
+            if (!consumer_buffer.usage)
             {
-                consumer_buffer = CONSUMER_KEYCODE_TO_RAWCODE(MODIFIER(event.keycode));
+                consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(MODIFIER(event.keycode));
             }
                 break;
         case SYSTEM_COLLECTION:
-            if (!system_buffer)
+            if (!system_buffer.usage)
             {
-                system_buffer = MODIFIER(event.keycode);
+                system_buffer.usage = MODIFIER(event.keycode);
             }
         default:
             break;
@@ -70,17 +74,10 @@ void extra_key_event_handler(KeyboardEvent event)
 
 int consumer_key_buffer_send(void)
 {
-    return extra_key_hid_send(REPORT_ID_CONSUMER, consumer_buffer);
+    return hid_send_extra_key((uint8_t*)&consumer_buffer, sizeof(ExtraKey));
 }
 
 int system_key_buffer_send(void)
 {
-    return extra_key_hid_send(REPORT_ID_SYSTEM, system_buffer);
-}
-
-__WEAK int extra_key_hid_send(uint8_t report_id, uint16_t usage)
-{
-    UNUSED(report_id);
-    UNUSED(usage);
-    return 0;
+    return hid_send_extra_key((uint8_t*)&system_buffer, sizeof(ExtraKey));
 }
