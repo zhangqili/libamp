@@ -1,5 +1,25 @@
 # libamp
 
+## Add to your project
+
+```bash
+git submodule add https://github.com/zhangqili/libamp.git
+git submodule update --init --recursive
+```
+
+Make sure you have provided the keyboard_conf.h
+```cmake
+add_subdirectory(libamp)
+# Add user defined header
+target_include_directories(libamp PUBLIC
+    ./libamp_user/
+)
+# Add linked libraries
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    libamp
+)
+```
+
 ## Test
 
 ```bash
