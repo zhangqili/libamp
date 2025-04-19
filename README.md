@@ -12,6 +12,7 @@ Make sure you have provided the keyboard_conf.h
 add_subdirectory(libamp)
 # Add user defined header
 target_include_directories(libamp PUBLIC
+    # This folder contains keyboard_conf.h
     ./libamp_user/
 )
 # Add linked libraries
