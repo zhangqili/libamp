@@ -320,6 +320,7 @@ void keyboard_init(void)
 __WEAK void keyboard_reset_to_default(void)
 {
     memcpy(g_keymap, g_default_keymap, sizeof(g_keymap));
+    layer_cache_refresh();
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         g_keyboard_advanced_keys[i].config.mode = DEFAULT_ADVANCED_KEY_MODE;
