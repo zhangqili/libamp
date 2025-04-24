@@ -11,6 +11,7 @@
 #include "record.h"
 #include "process_midi.h"
 #include "driver.h"
+#include "command.h"
 
 #include "stdio.h"
 #include "string.h"
@@ -478,9 +479,36 @@ void keyboard_send_report(void)
 __WEAK void keyboard_task(void)
 {
     keyboard_scan();
-    analog_average();
-    analog_check();
-    keyboard_send_report();
+    for (uint8_t i = 0; i < ANALOG_BUFFER_LENGTH; i++)
+    {
+        g_ADC_Averages[i] = ringbuf_avg(&adc_ringbuf[i]);
+#ifdef FILTER_ENABLE
+        g_ADC_Averages[i] = adaptive_schimidt_filter(g_analog_filters+i,g_ADC_Averages[i]);
+#endif
+      if ((uint16_t)~g_analog_map[i])
+      {
+        AdvancedKey* key = &g_keyboard_advanced_keys[g_analog_map[i]];
+        if (key->config.mode != KEY_DIGITAL_MODE)
+        {
+            advanced_key_update_raw(key, g_ADC_Averages[i]);
+        }
+      }
+    }
+    switch (g_keyboard_state)
+    {
+    case KEYBOARD_STATE_DEBUG:
+      send_debug_info();
+      break;
+    case KEYBOARD_STATE_UPLOAD_CONFIG:
+      if (!load_cargo())
+      {
+        g_keyboard_state = KEYBOARD_STATE_IDLE;
+      }
+      break;
+    default:
+      keyboard_send_report();
+      break;
+    }
 }
 
 __WEAK void keyboard_delay(uint32_t ms)
