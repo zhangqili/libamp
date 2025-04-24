@@ -18,6 +18,10 @@
 extern "C" {
 #endif
 
+#ifndef REPORT_RATE
+#define REPORT_RATE 1000
+#endif
+
 #define NKRO_REPORT_BITS 30
 
 #define KEYBINDING(keycode, modifier) (((modifier) << 8) | (keycode))

@@ -16,8 +16,18 @@ extern "C" {
 
 #ifdef WHEEL_EXTENDED_REPORT
 typedef int16_t MouseInt;
+#ifndef MOUSE_MAX_VALUE
+#define MOUSE_MAX_VALUE 32767
+#endif
 #else
 typedef int8_t MouseInt;
+#ifndef MOUSE_MAX_VALUE
+#define MOUSE_MAX_VALUE 127
+#endif
+#endif
+
+#ifndef MOUSE_MAX_SPEED
+#define MOUSE_MAX_SPEED 1000
 #endif
 
 typedef struct __Mouse {
@@ -39,6 +49,7 @@ typedef struct __Mouse {
 void mouse_event_handler(KeyboardEvent event);
 void mouse_buffer_clear(void);
 void mouse_add_buffer(uint16_t keycode);
+void mouse_set_axis(Keycode keycode, AnalogValue value);
 int mouse_buffer_send(void);
 
 #ifdef __cplusplus

@@ -202,6 +202,17 @@ void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event)
     case KEYBOARD_EVENT_KEY_TRUE:
         switch (KEYCODE(event.keycode))
         {
+#ifdef MOUSE_ENABLE
+        case MOUSE_COLLECTION:
+            if (MODIFIER(event.keycode) & 0xF0)
+            {
+                BIT_SET(g_keyboard_send_flags, MOUSE_REPORT_FLAG);
+                mouse_set_axis(MODIFIER(event.keycode), key->value);
+                break;
+            }
+            keyboard_event_handler(event);
+            break;
+#endif
 #ifdef JOYSTICK_ENABLE
         case JOYSTICK_COLLECTION:
             if (MODIFIER(event.keycode) & 0xE0)
@@ -210,8 +221,9 @@ void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event)
                 joystick_set_axis(MODIFIER(event.keycode), key->value);
                 break;
             }
+            keyboard_event_handler(event);
+            break;
 #endif
-            // fall through
         default:
             keyboard_event_handler(event);
             break;
@@ -568,6 +580,16 @@ void keyboard_advanced_key_update_state(AdvancedKey *key, bool state)
         key->key.report_state = state;
         break;
 #endif
+#ifdef MOUSE_ENABLE
+    case MOUSE_COLLECTION:
+        if (MODIFIER(keycode) & 0xF0)
+        {
+            BIT_SET(g_keyboard_send_flags, MOUSE_REPORT_FLAG);
+            key->key.report_state = true;
+            break;
+        }
+        goto default_condition;
+#endif
 #ifdef JOYSTICK_ENABLE
     case JOYSTICK_COLLECTION:
         if (MODIFIER(keycode) & 0xE0)
@@ -577,8 +599,9 @@ void keyboard_advanced_key_update_state(AdvancedKey *key, bool state)
             break;
         }
 #endif
-        // fall through
+        goto default_condition;
     default:
+        default_condition:
         if (!key->key.state && state)
         {
             keyboard_advanced_key_event_handler(key,

@@ -63,6 +63,7 @@ void joystick_set_axis(Keycode keycode, AnalogValue value)
     }
 
 }
+
 int joystick_buffer_send(void)
 {
 #ifdef JOYSTICK_SHARED_EP

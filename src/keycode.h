@@ -216,6 +216,12 @@ enum MouseKeycode {
   MOUSE_BACK = 0x04,
   MOUSE_WHEEL_UP = 0x05,
   MOUSE_WHEEL_DOWN = 0x06,
+  MOUSE_WHEEL_LEFT = 0x07,
+  MOUSE_WHEEL_RIGHT = 0x08,
+  MOUSE_MOVE_UP = 0x10,
+  MOUSE_MOVE_DOWN = 0x11,
+  MOUSE_MOVE_LEFT = 0x12,
+  MOUSE_MOVE_RIGHT = 0x13,
 };
 
 enum KeyboardKeycode {
