@@ -7,6 +7,7 @@
 #include"lfs.h"
 #include"keyboard.h"
 #include"rgb.h"
+#include"layer.h"
 
 void advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, AdvancedKeyConfiguration* config)
 {
@@ -133,6 +134,7 @@ void storage_read_config(uint8_t index)
         read_advanced_key_config(&g_lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
     }
     lfs_file_read(&g_lfs, &lfs_file, g_keymap, sizeof(g_keymap));
+    layer_cache_refresh();
     lfs_file_read(&g_lfs, &lfs_file, &g_rgb_switch, sizeof(g_rgb_switch));
     lfs_file_read(&g_lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
     lfs_file_read(&g_lfs, &lfs_file, g_keyboard_dynamic_keys, sizeof(g_keyboard_dynamic_keys));

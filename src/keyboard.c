@@ -327,7 +327,6 @@ void keyboard_init(void)
     setup_midi();
 #endif
     keyboard_recovery();
-    layer_cache_refresh();
 }
 
 __WEAK void keyboard_reset_to_default(void)
