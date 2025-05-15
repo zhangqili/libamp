@@ -78,7 +78,7 @@ void rgb_update(void)
             {
                 const RGBLocation* location = &g_rgb_locations[i];
                 float vertical_distance = location->x * direction_cos + location->y * direction_sin;
-                temp_hsv.h = ((uint32_t)(vertical_distance * g_rgb_base_config.density + g_keyboard_tick * g_rgb_base_config.speed)) % 360;
+                temp_hsv.h = ((uint32_t)(g_rgb_base_config.hsv.h + vertical_distance * g_rgb_base_config.density + g_keyboard_tick * g_rgb_base_config.speed)) % 360;
                 color_set_hsv(&temp_rgb, &temp_hsv);
                 color_mix(&g_rgb_colors[i], &temp_rgb);
             }
@@ -86,7 +86,6 @@ void rgb_update(void)
         break;
     case RGB_BASE_MODE_WAVE:
         {
-            rgb_to_hsv(&temp_hsv, &g_rgb_base_config.rgb);
             float direction_c = g_rgb_base_config.direction * M_PI / 180;
             float direction_sin = sinf(direction_c);
             float direction_cos = cosf(direction_c);
@@ -94,14 +93,18 @@ void rgb_update(void)
             {
                 const RGBLocation* location = &g_rgb_locations[i];
                 float vertical_distance = location->x * direction_cos + location->y * direction_sin;
-                float intensity = sinf((vertical_distance * g_rgb_base_config.density + g_keyboard_tick * g_rgb_base_config.speed) / 360);
-                if (intensity > 0.0f)
+                float intensity = fmodf(((vertical_distance * g_rgb_base_config.density + g_keyboard_tick * g_rgb_base_config.speed)  / 180), 2.0f);
+                intensity -= 1.0f;
+                float secondary_intensity;
+                if (intensity<0)
                 {
-                    temp_rgb.r = ((uint8_t)(intensity * ((float)(g_rgb_base_config.rgb.r)))) >> 1;
-                    temp_rgb.g = ((uint8_t)(intensity * ((float)(g_rgb_base_config.rgb.g)))) >> 1;
-                    temp_rgb.b = ((uint8_t)(intensity * ((float)(g_rgb_base_config.rgb.b)))) >> 1;
-                    color_mix(&g_rgb_colors[i], &temp_rgb);
+                    intensity = -intensity;
                 }
+                secondary_intensity = 1 - intensity;
+                temp_rgb.r = (uint8_t)(intensity * ((float)(g_rgb_base_config.rgb.r)) + secondary_intensity * ((float)(g_rgb_base_config.secondary_rgb.r)));
+                temp_rgb.g = (uint8_t)(intensity * ((float)(g_rgb_base_config.rgb.g)) + secondary_intensity * ((float)(g_rgb_base_config.secondary_rgb.g)));
+                temp_rgb.b = (uint8_t)(intensity * ((float)(g_rgb_base_config.rgb.b)) + secondary_intensity * ((float)(g_rgb_base_config.secondary_rgb.b)));
+                color_mix(&g_rgb_colors[i], &temp_rgb);
             }
         }
         break;
@@ -401,6 +404,8 @@ void rgb_factory_reset(void)
     ColorHSV temphsv = RGB_DEFAULT_COLOR_HSV;
     g_rgb_base_config.hsv = temphsv;
     color_set_hsv(&g_rgb_base_config.rgb, &temphsv);
+    memset(&g_rgb_base_config.secondary_rgb,0,sizeof(g_rgb_base_config.secondary_rgb));
+    memset(&g_rgb_base_config.secondary_hsv,0,sizeof(g_rgb_base_config.secondary_hsv));
     for (uint8_t i = 0; i < RGB_NUM; i++)
     {
         g_rgb_configs[i].mode = RGB_DEFAULT_MODE;

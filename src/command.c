@@ -62,8 +62,12 @@ void unload_cargo(uint8_t *buf)
             g_rgb_base_config.rgb.r = packet->r;
             g_rgb_base_config.rgb.g = packet->g;
             g_rgb_base_config.rgb.b = packet->b;
-            g_rgb_base_config.speed = packet->speed;
             rgb_to_hsv(&g_rgb_base_config.hsv, &g_rgb_base_config.rgb);
+            g_rgb_base_config.secondary_rgb.r = packet->secondary_r;
+            g_rgb_base_config.secondary_rgb.g = packet->secondary_g;
+            g_rgb_base_config.secondary_rgb.b = packet->secondary_b;
+            rgb_to_hsv(&g_rgb_base_config.secondary_hsv, &g_rgb_base_config.secondary_rgb);
+            g_rgb_base_config.speed = packet->speed;
             g_rgb_base_config.direction = packet->direction;
             g_rgb_base_config.density = packet->density;
             g_rgb_base_config.brightness = packet->brightness;
@@ -166,6 +170,9 @@ int load_cargo(void)
             packet->r = g_rgb_base_config.rgb.r;
             packet->g = g_rgb_base_config.rgb.g;
             packet->b = g_rgb_base_config.rgb.b;
+            packet->secondary_r = g_rgb_base_config.secondary_rgb.r;
+            packet->secondary_g = g_rgb_base_config.secondary_rgb.g;
+            packet->secondary_b = g_rgb_base_config.secondary_rgb.b;
             packet->speed = g_rgb_base_config.speed;
             packet->direction = g_rgb_base_config.direction;
             packet->density = g_rgb_base_config.density;

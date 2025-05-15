@@ -108,6 +108,8 @@ typedef struct __RGBBaseConfig
     RGBBaseMode mode;
     ColorRGB rgb;
     ColorHSV hsv;
+    ColorRGB secondary_rgb;
+    ColorHSV secondary_hsv;
     float speed;
     uint32_t begin_time;
     uint16_t direction;

@@ -52,6 +52,9 @@ typedef struct __PacketRGBBaseConfig
   uint8_t r;
   uint8_t g;
   uint8_t b;
+  uint8_t secondary_r;
+  uint8_t secondary_g;
+  uint8_t secondary_b;
   float speed;
   uint16_t direction;
   uint8_t density;
