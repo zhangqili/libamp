@@ -47,7 +47,11 @@ extern "C" {
 #endif
 
 #ifndef JELLY_DISTANCE
-#define JELLY_DISTANCE 10.0f
+#define JELLY_DISTANCE 5.0f
+#endif
+
+#ifndef BUBBLE_DISTANCE
+#define BUBBLE_DISTANCE 2.5f
 #endif
 
 #ifndef PORT_LOCATION
@@ -129,6 +133,7 @@ typedef enum __RGBMode
     RGB_MODE_DIAMOND_RIPPLE,
     RGB_MODE_FADING_DIAMOND_RIPPLE,
     RGB_MODE_JELLY,
+    RGB_MODE_BUBBLE,
 } RGBMode;
 
 typedef struct __RGBConfig

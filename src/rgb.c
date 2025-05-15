@@ -13,6 +13,7 @@
 
 #define MANHATTAN_DISTANCE(m, n) (fabsf((m)->x - (n)->x) + fabsf((m)->y - (n)->y))
 #define MANHATTAN_DISTANCE_DIRECT(x1, y1, x2, y2) (fabsf((x1) - (x2)) + fabsf((y1) - (y2)))
+#define EUCLIDEAN_DISTANCE(m, n) sqrtf(((m)->x - (n)->x)*((m)->x - (n)->x) + ((m)->y - (n)->y)*((m)->y - (n)->y))
 
 __WEAK const uint8_t g_rgb_mapping[ADVANCED_KEY_NUM];
 __WEAK const RGBLocation g_rgb_locations[RGB_NUM];
@@ -165,6 +166,7 @@ void rgb_update(void)
         case RGB_MODE_FADING_STRING:
         case RGB_MODE_DIAMOND_RIPPLE:
         case RGB_MODE_FADING_DIAMOND_RIPPLE:
+        case RGB_MODE_BUBBLE:
             for (int8_t j = 0; j < RGB_NUM; j++)
             {
                 switch (config->mode)
@@ -202,6 +204,27 @@ void rgb_update(void)
                     else
                     {
                         intensity = 1.0f + intensity > 0 ? 1.0f + intensity : 0;
+                    }
+                    break;
+                case RGB_MODE_BUBBLE:
+                    {
+                        float e_distance = EUCLIDEAN_DISTANCE(location, g_rgb_locations + j);
+                        if (e_distance > BUBBLE_DISTANCE)
+                        {
+                            intensity = 0;
+                            continue;
+                        }
+                        intensity = (distance - e_distance);
+                        if (intensity > 0)
+                        {
+                            intensity = FADING_DISTANCE - intensity > 0 ? FADING_DISTANCE - intensity : 0;
+                            intensity /= FADING_DISTANCE;
+                            break;
+                        }
+                        else
+                        {
+                            intensity = 1.0f + intensity > 0 ? 1.0f + intensity : 0;
+                        }
                     }
                     break;
                 default:
@@ -438,6 +461,7 @@ void rgb_activate(uint16_t id)
     case RGB_MODE_FADING_STRING:
     case RGB_MODE_DIAMOND_RIPPLE:
     case RGB_MODE_FADING_DIAMOND_RIPPLE:
+    case RGB_MODE_BUBBLE:
         rgb_loop_queue_push(&rgb_argument_queue, a);
         break;
     default:
