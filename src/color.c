@@ -117,6 +117,20 @@ void color_set_rgb(Color* restrict  color, ColorRGB* restrict rgb)
     memcpy(color,rgb,sizeof(Color));
 }
 
+void colorf_set_rgb(ColorFloat * restrict color, ColorRGB * restrict rgb)
+{
+	color->r = rgb->r;
+	color->g = rgb->g;
+	color->b = rgb->b;
+}
+
+void colorf_set_hsv(ColorFloat * restrict color, ColorHSV * restrict rgb)
+{
+	ColorRGB temp_rgb = {0,0,0};
+	hsv_to_rgb(&temp_rgb, rgb);
+	colorf_set_rgb(color, &temp_rgb);
+}
+
 void color_get_hsv(Color* restrict color, ColorHSV* restrict hsv)
 {
     rgb_to_hsv(hsv, color);
@@ -127,6 +141,34 @@ void color_set_hsv(Color* restrict color, ColorHSV* restrict hsv)
 }
 
 void color_mix(Color *dest, Color *source)
+{
+	if (dest->r + source->r < 256)
+	{
+		dest->r += source->r;
+	}
+	else
+	{
+		dest->r = 255;
+	}
+	if (dest->g + source->g < 256)
+	{
+		dest->g += source->g;
+	}
+	else
+	{
+		dest->g = 255;
+	}
+	if (dest->b + source->b < 256)
+	{
+		dest->b += source->b;
+	}
+	else
+	{
+		dest->b = 255;
+	}
+}
+
+void colorf_mix(ColorFloat *dest, ColorFloat *source)
 {
 	if (dest->r + source->r < 256)
 	{

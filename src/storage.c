@@ -135,7 +135,7 @@ void storage_read_config(uint8_t index)
     }
     lfs_file_read(&g_lfs, &lfs_file, g_keymap, sizeof(g_keymap));
     layer_cache_refresh();
-    lfs_file_read(&g_lfs, &lfs_file, &g_rgb_switch, sizeof(g_rgb_switch));
+    lfs_file_read(&g_lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
     lfs_file_read(&g_lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
     lfs_file_read(&g_lfs, &lfs_file, g_keyboard_dynamic_keys, sizeof(g_keyboard_dynamic_keys));
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
@@ -169,7 +169,7 @@ void storage_save_config(uint8_t index)
         save_advanced_key_config(&g_lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
     }
     lfs_file_write(&g_lfs, &lfs_file, g_keymap, sizeof(g_keymap));
-    lfs_file_write(&g_lfs, &lfs_file, &g_rgb_switch, sizeof(g_rgb_switch));
+    lfs_file_write(&g_lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
     lfs_file_write(&g_lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
     {

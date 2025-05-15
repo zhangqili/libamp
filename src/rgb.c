@@ -18,9 +18,9 @@ __WEAK const uint8_t g_rgb_mapping[ADVANCED_KEY_NUM];
 __WEAK const RGBLocation g_rgb_locations[RGB_NUM];
 
 uint8_t g_rgb_buffer[RGB_BUFFER_LENGTH];
+RGBBaseConfig g_rgb_base_config;
 RGBConfig g_rgb_configs[RGB_NUM];
 ColorRGB g_rgb_colors[RGB_NUM];
-bool g_rgb_switch = true;
 
 #ifdef RGB_USE_LIST_EXPERIMENTAL
 static RGBArgumentList rgb_argument_list;
@@ -56,7 +56,7 @@ void rgb_init(void)
 
 void rgb_update(void)
 {
-    if (!g_rgb_switch)
+    if (!g_rgb_base_config.mode)
     {
         rgb_turn_off();
         return;
@@ -66,6 +66,50 @@ void rgb_update(void)
     float intensity;
     memset(g_rgb_colors, 0, sizeof(g_rgb_colors));
     
+    switch (g_rgb_base_config.mode)
+    {
+    case RGB_BASE_MODE_RAINBOW:
+        {
+            rgb_to_hsv(&temp_hsv, &g_rgb_base_config.rgb);
+            float direction_c = g_rgb_base_config.direction * M_PI / 180;
+            float direction_sin = sinf(direction_c);
+            float direction_cos = cosf(direction_c);
+            for (uint8_t i = 0; i < RGB_NUM; i++)
+            {
+                const RGBLocation* location = &g_rgb_locations[i];
+                float vertical_distance = location->x * direction_cos + location->y * direction_sin;
+                temp_hsv.h = ((uint32_t)(vertical_distance * g_rgb_base_config.density + g_keyboard_tick * g_rgb_base_config.speed)) % 360;
+                color_set_hsv(&temp_rgb, &temp_hsv);
+                color_mix(&g_rgb_colors[i], &temp_rgb);
+            }
+        }
+        break;
+    case RGB_BASE_MODE_WAVE:
+        {
+            rgb_to_hsv(&temp_hsv, &g_rgb_base_config.rgb);
+            float direction_c = g_rgb_base_config.direction * M_PI / 180;
+            float direction_sin = sinf(direction_c);
+            float direction_cos = cosf(direction_c);
+            for (uint8_t i = 0; i < RGB_NUM; i++)
+            {
+                const RGBLocation* location = &g_rgb_locations[i];
+                float vertical_distance = location->x * direction_cos + location->y * direction_sin;
+                float intensity = sinf((vertical_distance * g_rgb_base_config.density + g_keyboard_tick * g_rgb_base_config.speed) / 360);
+                if (intensity > 0.0f)
+                {
+                    temp_rgb.r = ((uint8_t)(intensity * ((float)(g_rgb_base_config.rgb.r)))) >> 1;
+                    temp_rgb.g = ((uint8_t)(intensity * ((float)(g_rgb_base_config.rgb.g)))) >> 1;
+                    temp_rgb.b = ((uint8_t)(intensity * ((float)(g_rgb_base_config.rgb.b)))) >> 1;
+                    color_mix(&g_rgb_colors[i], &temp_rgb);
+                }
+            }
+        }
+        break;
+    default:
+        break;
+    }
+
+
 #ifdef RGB_USE_LIST_EXPERIMENTAL
     rgb_loop_queue_foreach(&rgb_argument_queue, RGBLoopQueueElm, item)
     {
@@ -247,6 +291,15 @@ __WEAK void rgb_update_callback(void)
 
 void rgb_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b)
 {
+#ifdef RGB_GAMMA_ENABLE
+    r = GAMMA_CORRECT(r, 255)*(g_rgb_base_config.brightness / 255.0f) + 0.5;
+    g = GAMMA_CORRECT(g, 255)*(g_rgb_base_config.brightness / 255.0f) + 0.5;
+    b = GAMMA_CORRECT(b, 255)*(g_rgb_base_config.brightness / 255.0f) + 0.5;
+#else
+    r = (r * g_rgb_base_config.brightness) >> 8;
+    g = (g * g_rgb_base_config.brightness) >> 8;
+    b = (b * g_rgb_base_config.brightness) >> 8;
+#endif
     for (uint8_t i = 0; i < 8; i++)
     {
         g_rgb_buffer[RGB_RESET_LENGTH + index * 24 + i] = (g << i) & (0x80) ? ONE_PULSE : ZERO_PULSE;
@@ -288,9 +341,9 @@ void rgb_init_flash(void)
                 animation_playing = true;
             }
             
-            temp_rgb.r = ((uint8_t)(intensity * 255));
-            temp_rgb.g = ((uint8_t)(intensity * 255));
-            temp_rgb.b = ((uint8_t)(intensity * 255));
+            temp_rgb.r = intensity * 255;
+            temp_rgb.g = intensity * 255;
+            temp_rgb.b = intensity * 255;
             color_mix(&g_rgb_colors[i], &temp_rgb);
         }
         if (!animation_playing)
@@ -317,9 +370,9 @@ void rgb_flash(void)
         intensity = (RGB_FLASH_MAX_DURATION/2 - fabsf(distance - (RGB_FLASH_MAX_DURATION/2)))/((float)(RGB_FLASH_MAX_DURATION/2));
         for (int8_t i = 0; i < RGB_NUM; i++)
         {
-            temp_rgb.r = ((uint8_t)(intensity * 255));
-            temp_rgb.g = ((uint8_t)(intensity * 255));
-            temp_rgb.b = ((uint8_t)(intensity * 255));
+            temp_rgb.r = (intensity * 255);
+            temp_rgb.g = (intensity * 255);
+            temp_rgb.b = (intensity * 255);
             color_mix(&g_rgb_colors[i], &temp_rgb);
         }
         for (uint8_t i = 0; i < RGB_NUM; i++)
@@ -340,8 +393,14 @@ void rgb_turn_off(void)
 
 void rgb_factory_reset(void)
 {
-    g_rgb_switch = true;
+    g_rgb_base_config.mode = RGB_BASE_MODE_BLANK;
+    g_rgb_base_config.brightness = 255;
+    g_rgb_base_config.density = 32;
+    g_rgb_base_config.direction = 0;
+    g_rgb_base_config.speed = RGB_DEFAULT_SPEED;
     ColorHSV temphsv = RGB_DEFAULT_COLOR_HSV;
+    g_rgb_base_config.hsv = temphsv;
+    color_set_hsv(&g_rgb_base_config.rgb, &temphsv);
     for (uint8_t i = 0; i < RGB_NUM; i++)
     {
         g_rgb_configs[i].mode = RGB_DEFAULT_MODE;

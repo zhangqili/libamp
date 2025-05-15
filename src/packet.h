@@ -44,12 +44,19 @@ typedef struct __PacketAdvancedKey
   AdvancedKeyConfigurationNormalized data;
 } PacketAdvancedKey;
 
-typedef struct __PacketRGBSwitch
+typedef struct __PacketRGBBaseConfig
 {
   uint8_t code;
   uint8_t type;
-  uint8_t state;
-} __PACKED PacketRGBSwitch;
+  uint8_t mode;
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+  float speed;
+  uint16_t direction;
+  uint8_t density;
+  uint8_t brightness;
+} __PACKED PacketRGBBaseConfig;
 
 typedef struct __PacketRGBConfig
 {

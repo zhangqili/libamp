@@ -57,8 +57,16 @@ void unload_cargo(uint8_t *buf)
         break;
     case PACKET_DATA_RGB_SWITCH: // Global LED
         {
-            PacketRGBSwitch* packet = (PacketRGBSwitch*)buf;
-            g_rgb_switch = packet->state;
+            PacketRGBBaseConfig* packet = (PacketRGBBaseConfig*)buf;
+            g_rgb_base_config.mode = packet->mode;
+            g_rgb_base_config.rgb.r = packet->r;
+            g_rgb_base_config.rgb.g = packet->g;
+            g_rgb_base_config.rgb.b = packet->b;
+            g_rgb_base_config.speed = packet->speed;
+            rgb_to_hsv(&g_rgb_base_config.hsv, &g_rgb_base_config.rgb);
+            g_rgb_base_config.direction = packet->direction;
+            g_rgb_base_config.density = packet->density;
+            g_rgb_base_config.brightness = packet->brightness;
         }
         break;
     case PACKET_DATA_RGB_CONFIG: // LED
@@ -152,9 +160,16 @@ int load_cargo(void)
         return 1;
     case PACKET_DATA_RGB_SWITCH: // Global LED
         {
-            PacketRGBSwitch *packet = (PacketRGBSwitch *)buf;
+            PacketRGBBaseConfig *packet = (PacketRGBBaseConfig *)buf;
             packet->type = PACKET_DATA_RGB_SWITCH;
-            packet->state = g_rgb_switch;
+            packet->mode = g_rgb_base_config.mode;
+            packet->r = g_rgb_base_config.rgb.r;
+            packet->g = g_rgb_base_config.rgb.g;
+            packet->b = g_rgb_base_config.rgb.b;
+            packet->speed = g_rgb_base_config.speed;
+            packet->direction = g_rgb_base_config.direction;
+            packet->density = g_rgb_base_config.density;
+            packet->brightness = g_rgb_base_config.brightness;
             if (!hid_send_raw(buf,63))
             {
                 page_index = 0x0200;

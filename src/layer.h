@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-#define layer_cache_get_keycode(layer) g_keymap_cache[(layer)]
+#define layer_cache_get_keycode(id) g_keymap_cache[(id)]
 
 extern uint8_t g_current_layer;
 extern Keycode g_keymap_cache[ADVANCED_KEY_NUM + KEY_NUM];

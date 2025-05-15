@@ -90,6 +90,31 @@ extern "C" {
 #define RGB_BOTTOM -0.5f
 #endif
 
+#ifndef RGB_GAMMA
+#define RGB_GAMMA 2.2f
+#endif
+
+#define GAMMA_CORRECT(value, max) (powf(((float)value)/(max), RGB_GAMMA)*(max))
+typedef enum __RGBBaseMode
+{
+    RGB_BASE_MODE_OFF,
+    RGB_BASE_MODE_BLANK,
+    RGB_BASE_MODE_RAINBOW,
+    RGB_BASE_MODE_WAVE,
+} RGBBaseMode;
+
+typedef struct __RGBBaseConfig
+{
+    RGBBaseMode mode;
+    ColorRGB rgb;
+    ColorHSV hsv;
+    float speed;
+    uint32_t begin_time;
+    uint16_t direction;
+    uint8_t density;
+    uint8_t brightness;
+} RGBBaseConfig;
+
 typedef enum __RGBMode
 {
     RGB_MODE_FIXED,
@@ -162,11 +187,11 @@ void rgb_forward_list_push(RGBArgumentList* list, RGBArgument t);
 
 extern uint8_t g_rgb_buffer[RGB_BUFFER_LENGTH];
 extern ColorRGB g_rgb_colors[RGB_NUM];
+extern RGBBaseConfig g_rgb_base_config;
 extern RGBConfig g_rgb_configs[RGB_NUM];
 
 extern const uint8_t g_rgb_mapping[ADVANCED_KEY_NUM];
 extern const RGBLocation g_rgb_locations[RGB_NUM];
-extern bool g_rgb_switch;
 
 void rgb_init(void);
 void rgb_update(void);

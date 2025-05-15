@@ -159,6 +159,28 @@ void keyboard_operation_event_handler(KeyboardEvent event)
         case KEYBOARD_NKRO_TOGGLE:
             g_keyboard_nkro_enable = !g_keyboard_nkro_enable;
             break;
+#ifdef RGB_ENABLE
+        case KEYBOARD_RGB_BRIGHTNESS_UP:
+            if ((int16_t)g_rgb_base_config.brightness + 16 < 255)
+            {
+                g_rgb_base_config.brightness+=16;
+            }
+            else
+            {
+                g_rgb_base_config.brightness = 255;
+            }
+            break;
+        case KEYBOARD_RGB_BRIGHTNESS_DOWN:
+            if ((int16_t)g_rgb_base_config.brightness - 16 > 0)
+            {
+                g_rgb_base_config.brightness-=16;
+            }
+            else
+            {
+                g_rgb_base_config.brightness = 0;
+            }
+            break;
+#endif
         case KEYBOARD_CONFIG0:
         case KEYBOARD_CONFIG1:
         case KEYBOARD_CONFIG2:
