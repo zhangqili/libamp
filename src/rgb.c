@@ -25,17 +25,17 @@ ColorRGB g_rgb_colors[RGB_NUM];
 
 #ifdef RGB_USE_LIST_EXPERIMENTAL
 static RGBArgumentList rgb_argument_list;
-static RGBArgumentListNode RGB_Argument_List_Buffer[ARGUMENT_BUFFER_LENGTH];
+static RGBArgumentListNode RGB_Argument_List_Buffer[RGB_ARGUMENT_BUFFER_LENGTH];
 #endif
 static RGBLoopQueue rgb_argument_queue;
-static RGBLoopQueueElm RGB_Argument_Buffer[ARGUMENT_BUFFER_LENGTH];
+static RGBLoopQueueElm RGB_Argument_Buffer[RGB_ARGUMENT_BUFFER_LENGTH];
 
 void rgb_init(void)
 {
 #ifdef RGB_USE_LIST_EXPERIMENTAL
-    rgb_forward_list_init(&rgb_argument_list, RGB_Argument_List_Buffer, ARGUMENT_BUFFER_LENGTH);
+    rgb_forward_list_init(&rgb_argument_list, RGB_Argument_List_Buffer, RGB_ARGUMENT_BUFFER_LENGTH);
 #endif
-    rgb_loop_queue_init(&rgb_argument_queue, RGB_Argument_Buffer, ARGUMENT_BUFFER_LENGTH);
+    rgb_loop_queue_init(&rgb_argument_queue, RGB_Argument_Buffer, RGB_ARGUMENT_BUFFER_LENGTH);
     for (uint16_t i = 0; i < RGB_BUFFER_LENGTH; i++)
     {
         g_rgb_buffer[i] = NONE_PULSE;
@@ -43,17 +43,6 @@ void rgb_init(void)
 }
 
 #define COLOR_INTERVAL(key, low, up) (uint8_t)((key) < 0 ? (low) : ((key) > ANALOG_VALUE_MAX ? (up) : (key) * (up)))
-#define FORWARD_LINK_REMOVE_THIS(__index)\
-            if ((__index) == rgb_argument_list.head)\
-            {\
-                rgb_forward_list_erase_after(&rgb_argument_list, NULL);\
-                (__index) = rgb_argument_list.head;\
-            }\
-            else\
-            {\
-                rgb_forward_list_erase_after(&rgb_argument_list, last_node);\
-                (__index) = last_node->next;\
-            }\
 
 void rgb_update(void)
 {
@@ -117,11 +106,11 @@ void rgb_update(void)
 #ifdef RGB_USE_LIST_EXPERIMENTAL
     rgb_loop_queue_foreach(&rgb_argument_queue, RGBLoopQueueElm, item)
     {
-        rgb_forward_list_push(&rgb_argument_list, *item);
+        rgb_forward_list_insert_after(&rgb_argument_list,&rgb_argument_list.data[rgb_argument_list.head], *item);
         rgb_loop_queue_pop(&rgb_argument_queue);
     }
-    RGBArgumentListNode * last_node = NULL;
-    for (int16_t iterator = rgb_argument_list.head; iterator >= 0;)
+    RGBArgumentListNode * last_node = &rgb_argument_list.data[rgb_argument_list.head];
+    for (int16_t iterator = rgb_argument_list.data[rgb_argument_list.head].next; iterator >= 0;)
     {
         RGBArgumentListNode* node = &(rgb_argument_list.data[iterator]);
         RGBArgument * item = &(node->data);
@@ -146,7 +135,8 @@ void rgb_update(void)
         // if (distance > 25)
         {
 #ifdef RGB_USE_LIST_EXPERIMENTAL
-            FORWARD_LINK_REMOVE_THIS(iterator);
+            rgb_forward_list_erase_after(&rgb_argument_list, last_node);
+            iterator = last_node->next;
 #endif
             continue;
         }
@@ -506,33 +496,34 @@ void rgb_forward_list_init(RGBArgumentList* list, RGBArgumentListNode* data, uin
     }
     list->data[len - 1].next = -1;
     list->free_node = 0;
+    rgb_forward_list_push_front(list, (RGBArgument){0,0});
 }
 
 void rgb_forward_list_erase_after(RGBArgumentList* list, RGBArgumentListNode* data)
 {
     int16_t target = 0;
-    if (data == NULL)
-    {
-		target = list->head;
-        if (target < 0)
-        {
-            return;
-        }
-		data = &list->data[list->head];
-        list->head = list->data[target].next;
-        list->data[target].next = list->free_node;
-        list->free_node = target;
-    }
-    else
-    {
-        target = data->next;
-        data->next = list->data[target].next;
-        list->data[target].next = list->free_node;
-        list->free_node = target;
-    }
+    target = data->next;
+    data->next = list->data[target].next;
+    list->data[target].next = list->free_node;
+    list->free_node = target;
 }
 
-void rgb_forward_list_push(RGBArgumentList* list, RGBArgument t)
+void rgb_forward_list_insert_after(RGBArgumentList* list, RGBArgumentListNode* data, RGBArgument t)
+{
+    if (list->free_node == -1)
+    {
+        return;
+    }
+    int16_t new_node = list->free_node;
+    list->free_node = list->data[list->free_node].next;
+
+    list->data[new_node].data = t;
+    list->data[new_node].next = data->next;
+
+    data->next = new_node;
+}
+
+void rgb_forward_list_push_front(RGBArgumentList* list, RGBArgument t)
 {
     if (list->free_node == -1)
     {

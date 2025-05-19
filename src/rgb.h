@@ -98,6 +98,10 @@ extern "C" {
 #define RGB_GAMMA 2.2f
 #endif
 
+#ifndef RGB_ARGUMENT_BUFFER_LENGTH
+#define RGB_ARGUMENT_BUFFER_LENGTH 64
+#endif
+
 #define GAMMA_CORRECT(value, max) (powf(((float)value)/(max), RGB_GAMMA)*(max))
 typedef enum __RGBBaseMode
 {
@@ -188,9 +192,8 @@ void rgb_loop_queue_push(RGBLoopQueue* q, RGBLoopQueueElm t);
 
 void rgb_forward_list_init(RGBArgumentList* list, RGBArgumentListNode*data, uint16_t len);
 void rgb_forward_list_erase_after(RGBArgumentList* list, RGBArgumentListNode*data);
-void rgb_forward_list_push(RGBArgumentList* list, RGBArgument t);
-
-#define ARGUMENT_BUFFER_LENGTH 64
+void rgb_forward_list_insert_after(RGBArgumentList* list, RGBArgumentListNode* data, RGBArgument t);
+void rgb_forward_list_push_front(RGBArgumentList* list, RGBArgument t);
 
 extern uint8_t g_rgb_buffer[RGB_BUFFER_LENGTH];
 extern ColorRGB g_rgb_colors[RGB_NUM];
