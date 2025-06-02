@@ -21,11 +21,15 @@ enum LayerControlKeycode {
 
 enum ModifierKeycode
 {
-    /*------------------------- HID report data -------------------------*/
-    KEY_NO_MODIFIER=0,
-    KEY_LEFT_CTRL = 0x01,KEY_LEFT_SHIFT = 0x02,KEY_LEFT_ALT = 0x04,KEY_LEFT_GUI = 0x08,
-    KEY_RIGHT_CTRL = 0x10,KEY_RIGHT_SHIFT = 0x20,KEY_RIGHT_ALT = 0x40,KEY_RIGHT_GUI = 0x80,
-    /*------------------------- HID report data -------------------------*/
+    KEY_NO_MODIFIER            = 0x00,
+    KEY_LEFT_CTRL              = 0x01,
+    KEY_LEFT_SHIFT             = 0x02,
+    KEY_LEFT_ALT               = 0x04,
+    KEY_LEFT_GUI               = 0x08,
+    KEY_RIGHT_CTRL             = 0x10,
+    KEY_RIGHT_SHIFT            = 0x20,
+    KEY_RIGHT_ALT              = 0x40,
+    KEY_RIGHT_GUI              = 0x80,
 };
 
 enum KeycodeEnum {
@@ -195,49 +199,49 @@ enum KeycodeEnum {
   KEY_CRSEL_PROPS              = 0xa3,   // Keyboard CrSel/Props
   KEY_EXSEL                    = 0xa4,   // Keyboard ExSel
   //Reserved b5-DF
-  MOUSE_COLLECTION = 0xa5,
-  LAYER_CONTROL = 0xa6,
-  DYNAMIC_KEY = 0xa7,
-  CONSUMER_COLLECTION = 0xa8,
-  SYSTEM_COLLECTION = 0xa9,
-  JOYSTICK_COLLECTION = 0xaa,
-  MIDI_COLLECTION = 0xab,
-  MIDI_NOTE = 0xac,
-  KEY_USER = 0xFD,
-  KEYBOARD_OPERATION = 0xFE,
-  KEY_TRANSPARENT = 0xFF,
+  MOUSE_COLLECTION             = 0xa5,
+  LAYER_CONTROL                = 0xa6,
+  DYNAMIC_KEY                  = 0xa7,
+  CONSUMER_COLLECTION          = 0xa8,
+  SYSTEM_COLLECTION            = 0xa9,
+  JOYSTICK_COLLECTION          = 0xaa,
+  MIDI_COLLECTION              = 0xab,
+  MIDI_NOTE                    = 0xac,
+  KEY_USER                     = 0xFD,
+  KEYBOARD_OPERATION           = 0xFE,
+  KEY_TRANSPARENT              = 0xFF,
 };
 
 enum MouseKeycode {
-  MOUSE_LBUTTON = 0x00,
-  MOUSE_RBUTTON = 0x01,
-  MOUSE_MBUTTON = 0x02,
-  MOUSE_FORWARD = 0x03,
-  MOUSE_BACK = 0x04,
-  MOUSE_WHEEL_UP = 0x05,
-  MOUSE_WHEEL_DOWN = 0x06,
-  MOUSE_WHEEL_LEFT = 0x07,
-  MOUSE_WHEEL_RIGHT = 0x08,
-  MOUSE_MOVE_UP = 0x10,
-  MOUSE_MOVE_DOWN = 0x11,
-  MOUSE_MOVE_LEFT = 0x12,
-  MOUSE_MOVE_RIGHT = 0x13,
+  MOUSE_LBUTTON                = 0x00,
+  MOUSE_RBUTTON                = 0x01,
+  MOUSE_MBUTTON                = 0x02,
+  MOUSE_FORWARD                = 0x03,
+  MOUSE_BACK                   = 0x04,
+  MOUSE_WHEEL_UP               = 0x05,
+  MOUSE_WHEEL_DOWN             = 0x06,
+  MOUSE_WHEEL_LEFT             = 0x07,
+  MOUSE_WHEEL_RIGHT            = 0x08,
+  MOUSE_MOVE_UP                = 0x10,
+  MOUSE_MOVE_DOWN              = 0x11,
+  MOUSE_MOVE_LEFT              = 0x12,
+  MOUSE_MOVE_RIGHT             = 0x13,
 };
 
 enum KeyboardKeycode {
-  KEYBOARD_REBOOT = 0x00,
-  KEYBOARD_FACTORY_RESET = 0x01,
-  KEYBOARD_SAVE = 0x02,
-  KEYBOARD_BOOTLOADER = 0x03,
-  KEYBOARD_DEBUG_TOGGLE = 0x04,
-  KEYBOARD_RESET_TO_DEFAULT = 0x05,
-  KEYBOARD_NKRO_TOGGLE = 0x06,
-  KEYBOARD_RGB_BRIGHTNESS_UP = 0x07,
+  KEYBOARD_REBOOT              = 0x00,
+  KEYBOARD_FACTORY_RESET       = 0x01,
+  KEYBOARD_SAVE                = 0x02,
+  KEYBOARD_BOOTLOADER          = 0x03,
+  KEYBOARD_DEBUG_TOGGLE        = 0x04,
+  KEYBOARD_RESET_TO_DEFAULT    = 0x05,
+  KEYBOARD_NKRO_TOGGLE         = 0x06,
+  KEYBOARD_RGB_BRIGHTNESS_UP   = 0x07,
   KEYBOARD_RGB_BRIGHTNESS_DOWN = 0x08,
-  KEYBOARD_CONFIG0 = 0x10,
-  KEYBOARD_CONFIG1 = 0x11,
-  KEYBOARD_CONFIG2 = 0x12,
-  KEYBOARD_CONFIG3 = 0x13,
+  KEYBOARD_CONFIG0             = 0x10,
+  KEYBOARD_CONFIG1             = 0x11,
+  KEYBOARD_CONFIG2             = 0x12,
+  KEYBOARD_CONFIG3             = 0x13,
 };
 
 enum ConsumerKeycode

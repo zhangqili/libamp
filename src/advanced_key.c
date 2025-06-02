@@ -7,82 +7,100 @@
 #include "keyboard.h"
 #include "keyboard_def.h"
 
+static inline bool advanced_key_update_digital_mode(AdvancedKey* advanced_key)
+{
+    return (bool)advanced_key->value;
+}
+
+static inline bool advanced_key_update_analog_normal_mode(AdvancedKey* advanced_key)
+{
+    if((advanced_key->value - ANALOG_VALUE_MIN) > advanced_key->config.activation_value)
+    {
+        return true;
+    }
+    if((advanced_key->value - ANALOG_VALUE_MIN) < advanced_key->config.deactivation_value)
+    {
+        return false;
+    }
+    return advanced_key->key.state;
+}
+
+static inline bool advanced_key_update_analog_rapid_mode(AdvancedKey* advanced_key)
+{
+    bool state = advanced_key->key.state;
+    if ((advanced_key->value - ANALOG_VALUE_MIN) <= advanced_key->config.upper_deadzone)
+    {
+        if (advanced_key->value < advanced_key->extremum)
+        {
+            advanced_key->extremum = advanced_key->value;
+        }
+        return false;
+    }
+    if (advanced_key->value >= ANALOG_VALUE_MAX - advanced_key->config.lower_deadzone)
+    {
+        if (advanced_key->value > advanced_key->extremum)
+        {
+            advanced_key->extremum = advanced_key->value;
+        }
+        return true;
+    }
+    if (advanced_key->key.state && advanced_key->extremum - advanced_key->value >= advanced_key->config.release_distance)
+    {
+        state =false;
+        advanced_key->extremum = advanced_key->value;
+    }
+    if (!advanced_key->key.state && advanced_key->value - advanced_key->extremum >= advanced_key->config.trigger_distance)
+    {
+        state = true;
+        advanced_key->extremum = advanced_key->value;
+    }
+    if ((advanced_key->key.state && advanced_key->value > advanced_key->extremum) ||
+        (!advanced_key->key.state && advanced_key->value < advanced_key->extremum))
+    {
+        advanced_key->extremum = advanced_key->value;
+    }
+    return state;
+}
+
+static inline bool advanced_key_update_analog_speed_mode(AdvancedKey* advanced_key)
+{
+    if (advanced_key->difference > advanced_key->config.trigger_speed)
+    {
+        return true;
+    }
+    if (advanced_key->difference < -advanced_key->config.release_speed)
+    {
+        return false;
+    }
+    if ((advanced_key->value - ANALOG_VALUE_MIN) <= advanced_key->config.upper_deadzone)
+    {
+        return false;
+    }
+    if (advanced_key->value >= ANALOG_VALUE_MAX - advanced_key->config.lower_deadzone)
+    {
+        return true;
+    }
+    return advanced_key->key.state;
+}
+
 void advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
 {
     advanced_key->difference = value - advanced_key->value;
+    advanced_key->value = value;
     bool state = advanced_key->key.state;
     switch (advanced_key->config.mode)
     {
         case KEY_DIGITAL_MODE:
-            advanced_key->value = value;
-            state = (bool)value;
+            state = advanced_key_update_digital_mode(advanced_key);
             break;
         case KEY_ANALOG_NORMAL_MODE:
-            advanced_key->value = value;
-            if((advanced_key->value - ANALOG_VALUE_MIN) > advanced_key->config.activation_value)
-            {
-                state = true;
-            }
-            if((advanced_key->value - ANALOG_VALUE_MIN) < advanced_key->config.deactivation_value)
-            {
-                state = false;
-            }
+            state = advanced_key_update_analog_normal_mode(advanced_key);
             break;
         case KEY_ANALOG_RAPID_MODE:
-            advanced_key->value = value;
-            if ((advanced_key->value - ANALOG_VALUE_MIN) <= advanced_key->config.upper_deadzone)
-            {
-                state = false;
-                if (advanced_key->value < advanced_key->extremum)
-                {
-                    advanced_key->extremum = advanced_key->value;
-                }
-                break;
-            }
-            if (advanced_key->value >= ANALOG_VALUE_MAX - advanced_key->config.lower_deadzone)
-            {
-                state = true;
-                if (advanced_key->value > advanced_key->extremum)
-                {
-                    advanced_key->extremum = advanced_key->value;
-                }
-                break;
-            }
-            if (advanced_key->key.state && advanced_key->extremum - advanced_key->value >= advanced_key->config.release_distance)
-            {
-                state =false;
-                advanced_key->extremum = advanced_key->value;
-            }
-            if (!advanced_key->key.state && advanced_key->value - advanced_key->extremum >= advanced_key->config.trigger_distance)
-            {
-                state = true;
-                advanced_key->extremum = advanced_key->value;
-            }
-            if ((advanced_key->key.state && advanced_key->value > advanced_key->extremum) ||
-                (!advanced_key->key.state && advanced_key->value < advanced_key->extremum))
-            {
-                advanced_key->extremum = advanced_key->value;
-            }
+            state = advanced_key_update_analog_rapid_mode(advanced_key);
             break;
         case KEY_ANALOG_SPEED_MODE:
-            advanced_key->value = value;
-            if (advanced_key->difference > advanced_key->config.trigger_speed)
-            {
-                state = true;
-            }
-            if (advanced_key->difference < -advanced_key->config.release_speed)
-            {
-                state = false;
-            }
-            if ((advanced_key->value - ANALOG_VALUE_MIN) <= advanced_key->config.upper_deadzone)
-            {
-                state = false;
-            }
-            if (advanced_key->value >= ANALOG_VALUE_MAX - advanced_key->config.lower_deadzone)
-            {
-                state = true;
-            }
-            break;
+            state = advanced_key_update_analog_speed_mode(advanced_key);
         default:
             break;
     }
