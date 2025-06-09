@@ -137,7 +137,6 @@ void storage_read_config(uint8_t index)
     layer_cache_refresh();
     lfs_file_read(&g_lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
     lfs_file_read(&g_lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
-    lfs_file_read(&g_lfs, &lfs_file, g_keyboard_dynamic_keys, sizeof(g_keyboard_dynamic_keys));
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
     {
         DynamicKey buffer;
