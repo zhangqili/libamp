@@ -5,7 +5,7 @@ project (libamp)
 file(GLOB COMPONENT_SRCS
     ${PROJECT_SOURCE_DIR}/src/*.c
     ${PROJECT_SOURCE_DIR}/usb/*.c
-    ${PROJECT_SOURCE_DIR}/littlefs/*.c
+    ${PROJECT_SOURCE_DIR}/lib/littlefs/*.c
     ${PROJECT_SOURCE_DIR}/src/midi/*.c
     ${PROJECT_SOURCE_DIR}/src/midi/bytequeue/*.c
 )
@@ -24,14 +24,15 @@ target_compile_definitions( ${PROJECT_NAME} PRIVATE
 target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/usb
-    ${PROJECT_SOURCE_DIR}/littlefs
     ${PROJECT_SOURCE_DIR}/src/midi
     ${PROJECT_SOURCE_DIR}/src/midi/bytequeue
-    ${PROJECT_SOURCE_DIR}/usb/lufa
+    ${PROJECT_SOURCE_DIR}/lib/littlefs
+    ${PROJECT_SOURCE_DIR}/lib/lufa
 )
 
 option(LIBAMP_BUILD_TESTS "Build libamp tests" OFF)
 if(LIBAMP_BUILD_TESTS)
     enable_testing()
+    add_subdirectory(${CMAKE_SOURCE_DIR}/lib/googletest)
     add_subdirectory(test)
 endif()

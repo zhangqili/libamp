@@ -64,23 +64,24 @@ static inline bool advanced_key_update_analog_rapid_mode(AdvancedKey* advanced_k
 
 static inline bool advanced_key_update_analog_speed_mode(AdvancedKey* advanced_key)
 {
+    bool state = advanced_key->key.state;
     if (advanced_key->difference > advanced_key->config.trigger_speed)
     {
-        return true;
+        state = true;
     }
     if (advanced_key->difference < -advanced_key->config.release_speed)
     {
-        return false;
+        state = false;
     }
     if ((advanced_key->value - ANALOG_VALUE_MIN) <= advanced_key->config.upper_deadzone)
     {
-        return false;
+        state = false;
     }
     if (advanced_key->value >= ANALOG_VALUE_MAX - advanced_key->config.lower_deadzone)
     {
-        return true;
+        state = true;
     }
-    return advanced_key->key.state;
+    return state;
 }
 
 void advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
