@@ -7,6 +7,7 @@
 #define EVENT_H
 #include "stdint.h"
 #include "keycode.h"
+#include "advanced_key.h"
 
 typedef enum
 {
@@ -20,8 +21,9 @@ typedef enum
 typedef struct
 {
     Keycode keycode;
-    uint8_t event;
+    uint16_t event;
+    //AnalogValue value;
 } KeyboardEvent;
-#define MK_EVENT(keycode, event) ((KeyboardEvent){(keycode), (event)})
+#define MK_EVENT(keycode, event) ((KeyboardEvent){(keycode), (event), 0.0f})
 
 #endif //EVENT_H

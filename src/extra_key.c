@@ -22,11 +22,11 @@ void extra_key_event_handler(KeyboardEvent event)
         {
         case CONSUMER_COLLECTION:
             consumer_buffer.usage = 0;
-            BIT_SET(g_keyboard_send_flags, CONSUMER_REPORT_FLAG);
+            KEYBOARD_REPORT_FLAG_SET(CONSUMER_REPORT_FLAG);
             break;
         case SYSTEM_COLLECTION:
             system_buffer.usage = 0;
-            BIT_SET(g_keyboard_send_flags, SYSTEM_REPORT_FLAG);
+            KEYBOARD_REPORT_FLAG_SET(SYSTEM_REPORT_FLAG);
             break;
         default:
             break;
@@ -37,11 +37,11 @@ void extra_key_event_handler(KeyboardEvent event)
         {
         case CONSUMER_COLLECTION:
             consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(MODIFIER(event.keycode));
-            BIT_SET(g_keyboard_send_flags, CONSUMER_REPORT_FLAG);
+            KEYBOARD_REPORT_FLAG_SET(CONSUMER_REPORT_FLAG);
             break;
         case SYSTEM_COLLECTION:
             system_buffer.usage = MODIFIER(event.keycode);
-            BIT_SET(g_keyboard_send_flags, SYSTEM_REPORT_FLAG);
+            KEYBOARD_REPORT_FLAG_SET(SYSTEM_REPORT_FLAG);
             break;
         default:
             break;

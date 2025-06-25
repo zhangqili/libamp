@@ -28,6 +28,10 @@ extern "C" {
 #define KEYCODE(binding) ((binding) & 0xFF)
 #define MODIFIER(binding) (((binding) >> 8) & 0xFF)
 
+#define KEYBOARD_REPORT_FLAG_SET(flag) BIT_SET(g_keyboard_report_flags, flag)
+#define KEYBOARD_REPORT_FLAG_CLEAR(flag) BIT_RESET(g_keyboard_report_flags, flag)
+#define KEYBOARD_REPORT_FLAG_GET(flag) BIT_GET(g_keyboard_report_flags, flag)
+
 typedef struct
 {
 #ifdef KEYBOARD_SHARED_EP
@@ -53,7 +57,7 @@ typedef enum
     KEYBOARD_STATE_UPLOAD_CONFIG
 } KEYBOARD_STATE;
 
-enum KEYBOARD_REPORT_FLAG
+enum KeyboardReportFlag
 {
     KEYBOARD_REPORT_FLAG = 0,
     MOUSE_REPORT_FLAG = 1,
@@ -94,7 +98,7 @@ extern uint8_t g_keyboard_knob_flag;
 extern volatile bool g_keyboard_send_report_enable;
 
 extern KEYBOARD_STATE g_keyboard_state;
-extern volatile uint8_t g_keyboard_send_flags;
+extern volatile uint_fast8_t g_keyboard_report_flags;
 
 extern uint8_t g_current_config_index;
 
@@ -124,6 +128,7 @@ void keyboard_factory_reset(void);
 void keyboard_jump_to_bootloader(void);
 void keyboard_user_event_handler(KeyboardEvent event);
 void keyboard_scan(void);
+void keyboard_fill_buffer(void);
 void keyboard_send_report(void);
 void keyboard_recovery(void);
 void keyboard_save(void);

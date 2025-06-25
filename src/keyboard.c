@@ -50,7 +50,7 @@ uint8_t g_keyboard_knob_flag;
 volatile bool g_keyboard_send_report_enable = true;
 
 KEYBOARD_STATE g_keyboard_state;
-volatile uint8_t g_keyboard_send_flags;
+volatile uint_fast8_t g_keyboard_report_flags;
 
 uint8_t g_current_config_index;
 
@@ -103,7 +103,7 @@ void keyboard_event_handler(KeyboardEvent event)
         {
         case KEYBOARD_EVENT_KEY_UP:
         case KEYBOARD_EVENT_KEY_DOWN:
-            BIT_SET(g_keyboard_send_flags, KEYBOARD_REPORT_FLAG);
+            KEYBOARD_REPORT_FLAG_SET(KEYBOARD_REPORT_FLAG);
             break;
         case KEYBOARD_EVENT_KEY_TRUE:
             if (KEYCODE(event.keycode) <= KEY_EXSEL)
@@ -228,7 +228,7 @@ void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event)
         case MOUSE_COLLECTION:
             if (MODIFIER(event.keycode) & 0xF0)
             {
-                BIT_SET(g_keyboard_send_flags, MOUSE_REPORT_FLAG);
+                KEYBOARD_REPORT_FLAG_SET(MOUSE_REPORT_FLAG);
                 mouse_set_axis(MODIFIER(event.keycode), key->value);
                 break;
             }
@@ -239,7 +239,7 @@ void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event)
         case JOYSTICK_COLLECTION:
             if (MODIFIER(event.keycode) & 0xE0)
             {
-                BIT_SET(g_keyboard_send_flags, JOYSTICK_REPORT_FLAG);
+                KEYBOARD_REPORT_FLAG_SET(JOYSTICK_REPORT_FLAG);
                 joystick_set_axis(MODIFIER(event.keycode), key->value);
                 break;
             }
@@ -282,6 +282,12 @@ void keyboard_buffer_clear(void)
     }
 #endif
     keyboard_6KRObuffer_clear(&keyboard_6kro_buffer);
+#ifdef MOUSE_ENABLE
+    mouse_buffer_clear();
+#endif
+#ifdef JOYSTICK_ENABLE
+    joystick_buffer_clear();
+#endif
 }
 
 int keyboard_6KRObuffer_add(Keyboard_6KROBuffer *buf, Keycode keycode)
@@ -436,81 +442,71 @@ void keyboard_set_config_index(uint8_t index)
     keyboard_recovery();
 }
 
+void keyboard_fill_buffer(void)
+{
+    for (int i = 0; i < ADVANCED_KEY_NUM; i++)
+    {
+        keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[i], 
+            MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[i].key.id), g_keyboard_advanced_keys[i].key.report_state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE));
+    }
+    for (int i = 0; i < KEY_NUM; i++)
+    {        
+        keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(g_keyboard_keys[i].id), 
+            g_keyboard_keys[i].report_state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE));
+    }
+}
+
 void keyboard_send_report(void)
 {
-    keyboard_buffer_clear();
-#ifdef MOUSE_ENABLE
-    mouse_buffer_clear();
-#endif
-#ifdef JOYSTICK_ENABLE
-    joystick_buffer_clear();
-#endif
-
-    if (g_keyboard_send_report_enable 
-#ifndef CONTINOUS_POLL
-        && g_keyboard_send_flags
-#endif
-    )
-    {
-        for (int i = 0; i < ADVANCED_KEY_NUM; i++)
-        {
-            keyboard_advanced_key_event_handler(&g_keyboard_advanced_keys[i], 
-                MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[i].key.id), g_keyboard_advanced_keys[i].key.report_state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE));
-        }
-        for (int i = 0; i < KEY_NUM; i++)
-        {        
-            keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(g_keyboard_keys[i].id), 
-                g_keyboard_keys[i].report_state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE));
-        }
 #ifdef CONTINOUS_POLL
-        BIT_SET(g_keyboard_send_flags,KEYBOARD_REPORT_FLAG);
+    KEYBOARD_REPORT_FLAG_SET(KEYBOARD_REPORT_FLAG);
 #endif
 #ifdef MOUSE_ENABLE
-        if (BIT_GET(g_keyboard_send_flags,MOUSE_REPORT_FLAG))
+    if (KEYBOARD_REPORT_FLAG_GET(MOUSE_REPORT_FLAG))
+    {
+        if (!mouse_buffer_send())
         {
-            if (!mouse_buffer_send())
-            {
-                BIT_RESET(g_keyboard_send_flags,MOUSE_REPORT_FLAG);
-            }
+            KEYBOARD_REPORT_FLAG_CLEAR(MOUSE_REPORT_FLAG);
         }
+    }
 #endif
 #ifdef EXTRAKEY_ENABLE
-        if (BIT_GET(g_keyboard_send_flags,CONSUMER_REPORT_FLAG))
+    if (KEYBOARD_REPORT_FLAG_GET(CONSUMER_REPORT_FLAG))
+    {
+        if (!consumer_key_buffer_send())
         {
-            if (!consumer_key_buffer_send())
-            {
-                BIT_RESET(g_keyboard_send_flags,CONSUMER_REPORT_FLAG);
-            }
+            KEYBOARD_REPORT_FLAG_CLEAR(CONSUMER_REPORT_FLAG);
         }
-        if (BIT_GET(g_keyboard_send_flags,SYSTEM_REPORT_FLAG))
-        {
-            if (!system_key_buffer_send())
-            {
-                BIT_RESET(g_keyboard_send_flags,SYSTEM_REPORT_FLAG);
-            }
-        }
-#endif
-        if (BIT_GET(g_keyboard_send_flags,KEYBOARD_REPORT_FLAG))
-        {
-            if (!keyboard_buffer_send())
-            {
-                BIT_RESET(g_keyboard_send_flags,KEYBOARD_REPORT_FLAG);
-            }
-        }
-#ifdef JOYSTICK_ENABLE
-        if (BIT_GET(g_keyboard_send_flags,JOYSTICK_REPORT_FLAG))
-        {
-            if (!joystick_buffer_send())
-            {
-                BIT_RESET(g_keyboard_send_flags,JOYSTICK_REPORT_FLAG);
-            }
-        }
-#endif
     }
+    if (KEYBOARD_REPORT_FLAG_GET(SYSTEM_REPORT_FLAG))
+    {
+        if (!system_key_buffer_send())
+        {
+            KEYBOARD_REPORT_FLAG_CLEAR(SYSTEM_REPORT_FLAG);
+        }
+    }
+#endif
+    if (KEYBOARD_REPORT_FLAG_GET(KEYBOARD_REPORT_FLAG))
+    {
+        if (!keyboard_buffer_send())
+        {
+            KEYBOARD_REPORT_FLAG_CLEAR(KEYBOARD_REPORT_FLAG);
+        }
+    }
+#ifdef JOYSTICK_ENABLE
+    if (KEYBOARD_REPORT_FLAG_GET(JOYSTICK_REPORT_FLAG))
+    {
+        if (!joystick_buffer_send())
+        {
+            KEYBOARD_REPORT_FLAG_CLEAR(JOYSTICK_REPORT_FLAG);
+        }
+    }
+#endif
 }
 
 __WEAK void keyboard_task(void)
 {
+    keyboard_buffer_clear();
     keyboard_scan();
     for (uint8_t i = 0; i < ANALOG_BUFFER_LENGTH; i++)
     {
@@ -524,6 +520,11 @@ __WEAK void keyboard_task(void)
             if (key->config.mode != KEY_DIGITAL_MODE)
             {
                 advanced_key_update_raw(key, g_ADC_Averages[i]);
+                if (key->key.report_state)
+                {
+                    keyboard_advanced_key_event_handler(key, 
+                    MK_EVENT(layer_cache_get_keycode(key->key.id), KEYBOARD_EVENT_KEY_TRUE));
+                }
             }
         }
     }
@@ -539,7 +540,19 @@ __WEAK void keyboard_task(void)
         }
         break;
     default:
-        keyboard_send_report();
+        if (g_keyboard_send_report_enable 
+#ifndef CONTINOUS_POLL
+            && g_keyboard_report_flags
+#endif
+        )
+        {
+            for (int i = 0; i < KEY_NUM; i++)
+            {        
+                keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(g_keyboard_keys[i].id), 
+                    g_keyboard_keys[i].report_state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE));
+            }
+            keyboard_send_report();
+        }
         break;
     }
 }
@@ -605,7 +618,7 @@ void keyboard_advanced_key_update_state(AdvancedKey *key, bool state)
     case MOUSE_COLLECTION:
         if (MODIFIER(keycode) & 0xF0)
         {
-            BIT_SET(g_keyboard_send_flags, MOUSE_REPORT_FLAG);
+            KEYBOARD_REPORT_FLAG_SET(MOUSE_REPORT_FLAG);
             key->key.report_state = true;
             break;
         }
@@ -615,7 +628,7 @@ void keyboard_advanced_key_update_state(AdvancedKey *key, bool state)
     case JOYSTICK_COLLECTION:
         if (MODIFIER(keycode) & 0xE0)
         {
-            BIT_SET(g_keyboard_send_flags, JOYSTICK_REPORT_FLAG);
+            KEYBOARD_REPORT_FLAG_SET(JOYSTICK_REPORT_FLAG);
             key->key.report_state = true;
             break;
         }

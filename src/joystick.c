@@ -16,7 +16,7 @@ void joystick_event_handler(KeyboardEvent event)
     {
     case KEYBOARD_EVENT_KEY_UP:
     case KEYBOARD_EVENT_KEY_DOWN:
-        BIT_SET(g_keyboard_send_flags, JOYSTICK_REPORT_FLAG);
+        KEYBOARD_REPORT_FLAG_SET(JOYSTICK_REPORT_FLAG);
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
         joystick_add_buffer(MODIFIER(event.keycode));
