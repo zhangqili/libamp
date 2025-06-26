@@ -22,8 +22,8 @@ typedef struct
 {
     Keycode keycode;
     uint16_t event;
-    //AnalogValue value;
+    void* key;
 } KeyboardEvent;
-#define MK_EVENT(keycode, event) ((KeyboardEvent){(keycode), (event), 0.0f})
+#define MK_EVENT(keycode, event, key) ((KeyboardEvent){(keycode), (event), (key)})
 
 #endif //EVENT_H

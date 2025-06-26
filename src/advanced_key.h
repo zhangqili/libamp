@@ -44,6 +44,8 @@ typedef int16_t AnalogRawValue;
 #define A_NORM ANALOG_VALUE_NORMALIZE
 #define A_ANIT_NORM ANALOG_VALUE_ANTI_NORMALIZE
 
+#define IS_ADVANCED_KEY(key) (((Key*)(key))->id < ADVANCED_KEY_NUM)
+
 typedef enum
 {
     KEY_DIGITAL_MODE,

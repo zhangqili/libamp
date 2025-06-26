@@ -124,7 +124,12 @@ TEST(Command, PacketDynamicKey)
     {
         .type = DYNAMIC_KEY_STROKE,
         .key_binding = {KEY_A, KEY_B, KEY_C, KEY_D},
-        .key_control = {0x0FFF, 0x00F0, 0xF1F0, 0x010F},
+        .key_control = {
+            DKS_KEY_CONTROL(DKS_HOLD,   DKS_HOLD,   DKS_HOLD,   DKS_RELEASE), 
+            DKS_KEY_CONTROL(DKS_RELEASE,DKS_HOLD,   DKS_RELEASE,DKS_RELEASE),
+            DKS_KEY_CONTROL(DKS_RELEASE,DKS_HOLD,   DKS_TAP,    DKS_HOLD),
+            DKS_KEY_CONTROL(DKS_HOLD,   DKS_RELEASE,DKS_TAP,    DKS_RELEASE)
+        },
         .press_begin_distance = 0.25,
         .press_fully_distance = 0.75,
         .release_begin_distance = 0.75,

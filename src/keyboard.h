@@ -107,7 +107,7 @@ void keyboard_operation_event_handler(KeyboardEvent event);
 void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event);
 
 int keyboard_buffer_send(void);
-void keyboard_buffer_clear(void);
+void keyboard_clear_buffer(void);
 
 int keyboard_6KRObuffer_add(Keyboard_6KROBuffer *buf, Keycode keycode);
 int keyboard_6KRObuffer_send(Keyboard_6KROBuffer *buf);

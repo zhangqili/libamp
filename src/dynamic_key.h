@@ -11,6 +11,7 @@
 #include "stdbool.h"
 #include "key.h"
 #include "keycode.h"
+#include "event.h"
 #include "advanced_key.h"
 
 #ifdef __cplusplus
@@ -35,12 +36,19 @@ enum
     DYNAMIC_KEY_ACTION_NUM,
 };
 
-
+enum 
+{
+    DKS_RELEASE = 0,
+    DKS_TAP = 1,
+    DKS_HOLD = 3,
+};
+#define DKS_KEY_CONTROL(a, b, c, d) \
+    (((a) & 0x03) | (((b) & 0x03) << 2) | (((c) & 0x03) << 4) | (((d) & 0x03) << 6))
 typedef struct __DynamicKeyStroke4x4
 {
     uint32_t type;
     Keycode key_binding[4];
-    uint16_t key_control[4];
+    uint8_t key_control[4];
     AnalogValue press_begin_distance;
     AnalogValue press_fully_distance;
     AnalogValue release_begin_distance;
@@ -96,7 +104,8 @@ typedef union __DynamicKey
 } DynamicKey;
 
 void dynamic_key_update(DynamicKey*dynamic_key, AdvancedKey*advanced_key, bool state);
-void dynamic_key_add_buffer(DynamicKey*dynamic_key);
+void dynamic_key_event_handler(KeyboardEvent event);
+void dynamic_key_add_buffer(KeyboardEvent event, DynamicKey*dynamic_key);
 void dynamic_key_s_update (DynamicKey*dynamic_key, AdvancedKey*key, bool state);
 void dynamic_key_mt_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state);
 void dynamic_key_tk_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state);

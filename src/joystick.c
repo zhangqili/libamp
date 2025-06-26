@@ -19,6 +19,12 @@ void joystick_event_handler(KeyboardEvent event)
         KEYBOARD_REPORT_FLAG_SET(JOYSTICK_REPORT_FLAG);
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
+        if (MODIFIER(event.keycode) & 0xE0)
+        {
+            KEYBOARD_REPORT_FLAG_SET(JOYSTICK_REPORT_FLAG);
+            joystick_set_axis(MODIFIER(event.keycode), IS_ADVANCED_KEY(event.key) ? ((AdvancedKey*)event.key)->value : ANALOG_VALUE_MAX);
+            break;
+        }
         joystick_add_buffer(MODIFIER(event.keycode));
         break;
     case KEYBOARD_EVENT_KEY_FALSE:

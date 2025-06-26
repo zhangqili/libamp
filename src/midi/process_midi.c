@@ -17,6 +17,7 @@
 
 #include "midi.h"
 #include "qmk_midi.h"
+#include "math.h"
 
 static uint8_t tone_status[MIDI_TONE_COUNT];
 
@@ -49,9 +50,24 @@ uint8_t midi_compute_note(uint16_t keycode) {
     return 12 * midi_config.octave + (keycode - MIDI_TONE_MIN) + midi_config.transpose;
 }
 
-bool midi_event_handler(KeyboardEvent event, uint8_t velocity)
+bool midi_event_handler(KeyboardEvent event)
 {
     uint8_t keycode = MODIFIER(event.keycode);
+    uint8_t velocity = 0;
+    if (IS_ADVANCED_KEY(event.key))
+    {
+        float intensity = fabs(((AdvancedKey*)event.key)->difference/(float)MIDI_REF_VELOCITY);
+        if (intensity > 1.0f)
+        {
+            intensity = 1.0f;
+        }
+        velocity = intensity*127;
+    }
+    else
+    {
+        velocity = midi_config.velocity;
+    }
+    
     if (KEYCODE(event.keycode) == MIDI_NOTE)
     {
         uint8_t channel  = midi_config.channel;

@@ -121,7 +121,7 @@ TEST(Keyboard, LayerWithSpecificKeycode)
 TEST(Keyboard, 6KROBuffer)
 {
     g_keyboard_nkro_enable = false;
-    keyboard_buffer_clear();
+    keyboard_clear_buffer();
     keyboard_event_handler({KEY_A|(KEY_LEFT_CTRL << 8), KEYBOARD_EVENT_KEY_TRUE});
     keyboard_event_handler({KEY_B|(KEY_LEFT_ALT << 8), KEYBOARD_EVENT_KEY_TRUE});
     keyboard_event_handler({KEY_C|(KEY_LEFT_SHIFT << 8), KEYBOARD_EVENT_KEY_TRUE});
@@ -143,7 +143,7 @@ TEST(Keyboard, 6KROBuffer)
 TEST(Keyboard, NKROBuffer)
 {
     g_keyboard_nkro_enable = true;
-    keyboard_buffer_clear();
+    keyboard_clear_buffer();
     keyboard_event_handler({KEY_A|(KEY_LEFT_CTRL<<8), KEYBOARD_EVENT_KEY_TRUE});
     keyboard_event_handler({KEY_S|(KEY_LEFT_ALT<<8), KEYBOARD_EVENT_KEY_TRUE});
     keyboard_buffer_send();
