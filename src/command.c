@@ -55,7 +55,8 @@ void unload_cargo(uint8_t *buf)
             command_advanced_key_config_anti_normalize(&g_keyboard_advanced_keys[key_index].config, &packet->data);
         }
         break;
-    case PACKET_DATA_RGB_SWITCH: // Global LED
+#ifdef RGB_ENABLE
+    case PACKET_DATA_RGB_BASE_CONFIG: // Global LED
         {
             PacketRGBBaseConfig* packet = (PacketRGBBaseConfig*)buf;
             g_rgb_base_config.mode = packet->mode;
@@ -91,6 +92,7 @@ void unload_cargo(uint8_t *buf)
             }
         }
         break;
+#endif
     case PACKET_DATA_KEYMAP: // Keymap
         {
             PacketKeymap* packet = (PacketKeymap*)buf;
@@ -109,6 +111,7 @@ void unload_cargo(uint8_t *buf)
             
         }
         break;
+#ifdef DYNAMICKEY_ENABLE
     case PACKET_DATA_DYNAMIC_KEY: // Dynamic Key
         {
             PacketDynamicKey *packet = (PacketDynamicKey *)buf;
@@ -127,6 +130,7 @@ void unload_cargo(uint8_t *buf)
             }
         }
         break;
+#endif
     default:
         break;
     }
@@ -162,10 +166,11 @@ int load_cargo(void)
             }
         }
         return 1;
-    case PACKET_DATA_RGB_SWITCH: // Global LED
+#ifdef RGB_ENABLE
+    case PACKET_DATA_RGB_BASE_CONFIG: // Global LED
         {
             PacketRGBBaseConfig *packet = (PacketRGBBaseConfig *)buf;
-            packet->type = PACKET_DATA_RGB_SWITCH;
+            packet->type = PACKET_DATA_RGB_BASE_CONFIG;
             packet->mode = g_rgb_base_config.mode;
             packet->r = g_rgb_base_config.rgb.r;
             packet->g = g_rgb_base_config.rgb.g;
@@ -213,6 +218,7 @@ int load_cargo(void)
             }
         }
         return 1;
+#endif
 #define LAYER_PAGE_LENGTH 16
 #define LAYER_PAGE_EXPECTED_NUM ((ADVANCED_KEY_NUM + KEY_NUM + 15) / 16)
     case PACKET_DATA_KEYMAP: // Keymap
@@ -237,6 +243,7 @@ int load_cargo(void)
             }
         }
         return 1;
+#ifdef DYNAMICKEY_ENABLE
     case PACKET_DATA_DYNAMIC_KEY: // Dynamic Key
         PacketDynamicKey *packet = (PacketDynamicKey *)buf;
         packet->type = PACKET_DATA_DYNAMIC_KEY;
@@ -262,6 +269,7 @@ int load_cargo(void)
             page_index++;
         }
         return 1;
+#endif
     case 0x80: // config index
         buf[1] = 0x80;
         buf[2] = g_current_config_index;

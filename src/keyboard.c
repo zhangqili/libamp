@@ -52,8 +52,6 @@ volatile bool g_keyboard_send_report_enable = true;
 KEYBOARD_STATE g_keyboard_state;
 volatile uint_fast8_t g_keyboard_report_flags;
 
-uint8_t g_current_config_index;
-
 #ifdef NKRO_ENABLE
 bool g_keyboard_nkro_enable;
 static Keyboard_NKROBuffer keyboard_nkro_buffer;
@@ -327,7 +325,7 @@ void keyboard_init(void)
     g_keyboard_tick = 0;
 #ifdef STORAGE_ENABLE
     storage_mount();
-    g_current_config_index = storage_read_config_index();
+    storage_read_config_index();
 #endif
 #ifdef RGB_ENABLE
     rgb_init();
@@ -368,8 +366,11 @@ void keyboard_factory_reset(void)
 #ifdef STORAGE_ENABLE
     for (int i = 0; i < STORAGE_CONFIG_FILE_NUM; i++)
     {
-        storage_save_config(i);
+        g_current_config_index = i;
+        storage_save_config();
     }
+    g_current_config_index = 0;
+    keyboard_set_config_index(0);
 #endif
 }
 
@@ -395,7 +396,7 @@ __WEAK void keyboard_scan(void)
 void keyboard_recovery(void)
 {
 #ifdef STORAGE_ENABLE
-    storage_read_config(g_current_config_index);
+    storage_read_config();
 #else
     keyboard_reset_to_default();
 #endif
@@ -404,7 +405,7 @@ void keyboard_recovery(void)
 void keyboard_save(void)
 {
 #ifdef STORAGE_ENABLE
-    storage_save_config(g_current_config_index);
+    storage_save_config();
 #endif
 }
 
@@ -415,7 +416,7 @@ void keyboard_set_config_index(uint8_t index)
     {
         g_current_config_index = index;
     }
-    storage_save_config_index(g_current_config_index);
+    storage_save_config_index();
 #else
     UNUSED(index);
 #endif

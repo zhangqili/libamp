@@ -6,7 +6,7 @@
 #include "color.h"
 #include "string.h"
 
-void rgb_to_hsv(ColorHSV * restrict hsv, ColorRGB * restrict rgb)
+void rgb_to_hsv(ColorHSV * restrict hsv, const ColorRGB * restrict rgb)
 {
 	float max;
 	float min;
@@ -47,7 +47,7 @@ void rgb_to_hsv(ColorHSV * restrict hsv, ColorRGB * restrict rgb)
 	hsv->v=max*100/255;
 }
 
-void hsv_to_rgb(ColorRGB * restrict rgb, ColorHSV * restrict hsv)
+void hsv_to_rgb(ColorRGB * restrict rgb, const ColorHSV * restrict hsv)
 {
     float c = 0;
     float x = 0;
@@ -108,39 +108,39 @@ void hsv_to_rgb(ColorRGB * restrict rgb, ColorHSV * restrict hsv)
     }
 }
 
-void color_get_rgb(Color* restrict color, ColorRGB* restrict rgb)
+void color_get_rgb(const Color* restrict color, ColorRGB* restrict rgb)
 {
     memcpy(rgb,color,sizeof(Color));
 }
-void color_set_rgb(Color* restrict  color, ColorRGB* restrict rgb)
+void color_set_rgb(Color* restrict  color, const ColorRGB* restrict rgb)
 {
     memcpy(color,rgb,sizeof(Color));
 }
 
-void colorf_set_rgb(ColorFloat * restrict color, ColorRGB * restrict rgb)
+void colorf_set_rgb(ColorFloat * restrict color, const ColorRGB * restrict rgb)
 {
 	color->r = rgb->r;
 	color->g = rgb->g;
 	color->b = rgb->b;
 }
 
-void colorf_set_hsv(ColorFloat * restrict color, ColorHSV * restrict rgb)
+void colorf_set_hsv(ColorFloat * restrict color, const ColorHSV * restrict rgb)
 {
 	ColorRGB temp_rgb = {0,0,0};
 	hsv_to_rgb(&temp_rgb, rgb);
 	colorf_set_rgb(color, &temp_rgb);
 }
 
-void color_get_hsv(Color* restrict color, ColorHSV* restrict hsv)
+void color_get_hsv(const Color* restrict color, ColorHSV* restrict hsv)
 {
     rgb_to_hsv(hsv, color);
 }
-void color_set_hsv(Color* restrict color, ColorHSV* restrict hsv)
+void color_set_hsv(Color* restrict color, const ColorHSV* restrict hsv)
 {
     hsv_to_rgb(color, hsv);
 }
 
-void color_mix(Color *dest, Color *source)
+void color_mix(Color *dest, const Color *source)
 {
 	if (dest->r + source->r < 256)
 	{
@@ -168,7 +168,7 @@ void color_mix(Color *dest, Color *source)
 	}
 }
 
-void colorf_mix(ColorFloat *dest, ColorFloat *source)
+void colorf_mix(ColorFloat *dest, const ColorFloat *source)
 {
 	if (dest->r + source->r < 256)
 	{

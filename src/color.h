@@ -47,16 +47,16 @@ typedef struct __ColorHSV
     uint8_t v;
 } ColorHSV;
 
-void rgb_to_hsv(ColorHSV * restrict hsv, ColorRGB * restrict rgb);
-void hsv_to_rgb(ColorRGB * restrict rgb, ColorHSV * restrict hsv);
-void color_get_rgb(Color * restrict color, ColorRGB * restrict rgb);
-void color_set_rgb(Color * restrict color, ColorRGB * restrict rgb);
-void colorf_set_rgb(ColorFloat * restrict color, ColorRGB * restrict rgb);
-void colorf_set_hsv(ColorFloat * restrict color, ColorHSV * restrict rgb);
-void color_get_hsv(Color * restrict color, ColorHSV * restrict hsv);
-void color_set_hsv(Color * restrict color, ColorHSV * restrict hsv);
-void color_mix(Color *dest, Color *source);
-void colorf_mix(ColorFloat *dest, ColorFloat *source);
+void rgb_to_hsv(ColorHSV * restrict hsv, const ColorRGB * restrict rgb);
+void hsv_to_rgb(ColorRGB * restrict rgb, const ColorHSV * restrict hsv);
+void color_get_rgb(const Color * restrict color, ColorRGB * restrict rgb);
+void color_set_rgb(Color * restrict color, const ColorRGB * restrict rgb);
+void colorf_set_rgb(ColorFloat * restrict color, const ColorRGB * restrict rgb);
+void colorf_set_hsv(ColorFloat * restrict color, const ColorHSV * restrict rgb);
+void color_get_hsv(const Color * restrict color, ColorHSV * restrict hsv);
+void color_set_hsv(Color * restrict color, const ColorHSV * restrict hsv);
+void color_mix(Color *dest, const Color *source);
+void colorf_mix(ColorFloat *dest, const ColorFloat *source);
 
 #ifdef __cplusplus
 }

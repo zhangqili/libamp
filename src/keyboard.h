@@ -100,8 +100,6 @@ extern volatile bool g_keyboard_send_report_enable;
 extern KEYBOARD_STATE g_keyboard_state;
 extern volatile uint_fast8_t g_keyboard_report_flags;
 
-extern uint8_t g_current_config_index;
-
 void keyboard_event_handler(KeyboardEvent event);
 void keyboard_operation_event_handler(KeyboardEvent event);
 void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event);

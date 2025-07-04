@@ -53,20 +53,23 @@ typedef struct __DynamicKeyStroke4x4Normalized
     uint8_t key_state;
 } DynamicKeyStroke4x4Normalized;
 
-extern lfs_t g_lfs;
-extern const struct lfs_config g_lfs_config;
+extern uint8_t g_current_config_index;
 
-void advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, AdvancedKeyConfiguration* config);
-void advanced_key_config_anti_normalize(AdvancedKeyConfiguration* config, AdvancedKeyConfigurationNormalized* buffer);
+#ifdef LFS_ENABLE
+lfs_t * storage_get_lfs(void);
+#endif
+
+void advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, const AdvancedKeyConfiguration* config);
+void advanced_key_config_anti_normalize(AdvancedKeyConfiguration* config, const AdvancedKeyConfigurationNormalized* buffer);
 void dynamic_key_stroke_normalize(DynamicKeyStroke4x4Normalized* buffer, DynamicKeyStroke4x4* dks);
 void dynamic_key_stroke_anti_normalize(DynamicKeyStroke4x4* dks, DynamicKeyStroke4x4Normalized* buffer);
 
 int storage_mount(void);
 void storage_unmount(void);
 uint8_t storage_read_config_index(void);
-void storage_save_config_index(uint8_t index);
-void storage_read_config(uint8_t index);
-void storage_save_config(uint8_t index);
+void storage_save_config_index(void);
+void storage_read_config(void);
+void storage_save_config(void);
 
 #ifdef __cplusplus
 }

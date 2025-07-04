@@ -86,3 +86,29 @@ __WEAK int send_midi(uint8_t *report, uint16_t len)
     printf("send_midi needs to be implemented.\n");
     return 0;
 }
+
+__WEAK int flash_read(uint32_t addr, uint32_t size, uint8_t *data)
+{
+    UNUSED(addr);
+    UNUSED(size);
+    UNUSED(data);
+    printf("flash_read needs to be implemented.\n");
+    return 0;
+}
+
+__WEAK int flash_write(uint32_t addr, uint32_t size, const uint8_t *data)
+{
+    UNUSED(addr);
+    UNUSED(size);
+    UNUSED(data);
+    printf("flash_write needs to be implemented.\n");
+    return 0;
+}
+
+__WEAK int flash_erase(uint32_t addr, uint32_t size)
+{
+    UNUSED(addr);
+    UNUSED(size);
+    printf("flash_erase needs to be implemented.\n");
+    return 0;
+}
