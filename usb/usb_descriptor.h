@@ -99,13 +99,11 @@ typedef struct {
     USB_Descriptor_Interface_t Keyboard_Interface;
     USB_HID_Descriptor_HID_t   Keyboard_HID;
     USB_Descriptor_Endpoint_t  Keyboard_INEndpoint;
-    USB_Descriptor_Endpoint_t  Keyboard_OUTEndpoint;
 #else
     // Shared Interface
     USB_Descriptor_Interface_t Shared_Interface;
     USB_HID_Descriptor_HID_t   Shared_HID;
     USB_Descriptor_Endpoint_t  Shared_INEndpoint;
-    USB_Descriptor_Endpoint_t  Shared_OUTEndpoint;
 #endif
 
 #ifdef RAW_ENABLE
@@ -246,7 +244,6 @@ enum usb_endpoints {
 
 #ifndef KEYBOARD_SHARED_EP
     KEYBOARD_IN_EPNUM = NEXT_EPNUM,
-    KEYBOARD_OUT_EPNUM = KEYBOARD_IN_EPNUM,
 #else
 #    define KEYBOARD_IN_EPNUM SHARED_IN_EPNUM
 #endif
@@ -262,15 +259,12 @@ enum usb_endpoints {
 #    ifdef USB_ENDPOINTS_ARE_REORDERABLE
 #        define RAW_OUT_EPNUM RAW_IN_EPNUM
 #    else
-    RAW_OUT_EPNUM = RAW_IN_EPNUM,
+    RAW_OUT_EPNUM         = NEXT_EPNUM,
 #    endif
 #endif
 
 #ifdef SHARED_EP_ENABLE
     SHARED_IN_EPNUM = NEXT_EPNUM,
-#ifdef KEYBOARD_SHARED_EP
-    SHARED_OUT_EPNUM = SHARED_IN_EPNUM,
-#endif
 #endif
 
 #ifdef CONSOLE_ENABLE
@@ -621,6 +615,24 @@ static const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[] = {
 #    endif
             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
 
+#    ifdef POINTING_DEVICE_HIRES_SCROLL_ENABLE
+            HID_RI_COLLECTION(8, 0x02),
+            // Feature report and padding (1 byte)
+            HID_RI_USAGE(8, 0x48),     // Resolution Multiplier
+            HID_RI_REPORT_COUNT(8, 0x01),
+            HID_RI_REPORT_SIZE(8, 0x02),
+            HID_RI_LOGICAL_MINIMUM(8, 0x00),
+            HID_RI_LOGICAL_MAXIMUM(8, 0x01),
+            HID_RI_PHYSICAL_MINIMUM(8, 1),
+            HID_RI_PHYSICAL_MAXIMUM(8, POINTING_DEVICE_HIRES_SCROLL_MULTIPLIER),
+            HID_RI_UNIT_EXPONENT(8, POINTING_DEVICE_HIRES_SCROLL_EXPONENT),
+            HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+            HID_RI_PHYSICAL_MINIMUM(8, 0x00),
+            HID_RI_PHYSICAL_MAXIMUM(8, 0x00),
+            HID_RI_REPORT_SIZE(8, 0x06),
+            HID_RI_FEATURE(8, HID_IOF_CONSTANT),
+#    endif
+
             // Vertical wheel (1 or 2 bytes)
             HID_RI_USAGE(8, 0x38),     // Wheel
 #    ifndef WHEEL_EXTENDED_REPORT
@@ -650,6 +662,11 @@ static const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[] = {
             HID_RI_REPORT_SIZE(8, 0x10),
 #    endif
             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
+
+#    ifdef POINTING_DEVICE_HIRES_SCROLL_ENABLE
+            HID_RI_END_COLLECTION(0),
+#    endif
+
         HID_RI_END_COLLECTION(0),
     HID_RI_END_COLLECTION(0),
 #    ifndef MOUSE_SHARED_EP
@@ -991,7 +1008,7 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         },
         .InterfaceNumber        = KEYBOARD_INTERFACE,
         .AlternateSetting       = 0x00,
-        .TotalEndpoints         = 2,
+        .TotalEndpoints         = 1,
         .Class                  = HID_CSCP_HIDClass,
         .SubClass               = HID_CSCP_BootSubclass,
         .Protocol               = HID_CSCP_KeyboardBootProtocol,
@@ -1014,16 +1031,6 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
             .Type               = DTYPE_Endpoint
         },
         .EndpointAddress        = KEYBOARD_EPIN_ADDR,
-        .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
-        .EndpointSize           = KEYBOARD_EPSIZE,
-        .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
-    },
-    .Keyboard_OUTEndpoint = {
-        .Header = {
-            .Size               = sizeof(USB_Descriptor_Endpoint_t),
-            .Type               = DTYPE_Endpoint
-        },
-        .EndpointAddress        = KEYBOARD_EPOUT_ADDR,
         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
         .EndpointSize           = KEYBOARD_EPSIZE,
         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
@@ -1131,11 +1138,7 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         },
         .InterfaceNumber        = SHARED_INTERFACE,
         .AlternateSetting       = 0x00,
-#    ifdef KEYBOARD_SHARED_EP
-        .TotalEndpoints         = 2,
-#    else
         .TotalEndpoints         = 1,
-#    endif
         .Class                  = HID_CSCP_HIDClass,
 #    ifdef KEYBOARD_SHARED_EP
         .SubClass               = HID_CSCP_BootSubclass,
@@ -1167,18 +1170,6 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         .EndpointSize           = SHARED_EPSIZE,
         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
     },
-#ifdef KEYBOARD_SHARED_EP
-    .Shared_OUTEndpoint = {
-        .Header = {
-            .Size               = sizeof(USB_Descriptor_Endpoint_t),
-            .Type               = DTYPE_Endpoint
-        },
-        .EndpointAddress        = SHARED_EPOUT_ADDR,
-        .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
-        .EndpointSize           = SHARED_EPSIZE,
-        .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
-    },
-#endif
 #endif
 
 #ifdef CONSOLE_ENABLE
