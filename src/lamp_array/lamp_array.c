@@ -29,8 +29,8 @@ uint16_t lamp_array_get_lamp_array_attributes_report(uint8_t* buffer) {
 
 static inline Position get_lamp_position(uint16_t lamp_id)
 {
-    return (Position){g_rgb_locations[lamp_id].x * KEY_SWITCH_DISTANCE, 
-                      g_rgb_locations[lamp_id].y * KEY_SWITCH_DISTANCE,
+    return (Position){(g_rgb_locations[lamp_id].x - RGB_LEFT) * KEY_SWITCH_DISTANCE, 
+                      (g_rgb_locations[lamp_id].y - RGB_TOP) * KEY_SWITCH_DISTANCE,
                       0};
 }
 
