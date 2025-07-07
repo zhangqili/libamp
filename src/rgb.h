@@ -83,7 +83,7 @@ extern "C" {
 #endif
 
 #ifndef RGB_TOP
-#define RGB_TOP 4.5f
+#define RGB_TOP -0.5f
 #endif
 
 #ifndef RGB_RIGHT
@@ -91,8 +91,15 @@ extern "C" {
 #endif
 
 #ifndef RGB_BOTTOM
-#define RGB_BOTTOM -0.5f
+#define RGB_BOTTOM 4.5f
 #endif
+
+#ifndef RGB_DEPTH
+#define RGB_DEPTH 0.0f
+#endif
+
+#define RGB_WIDTH  ((RGB_RIGHT)-(RGB_LEFT))
+#define RGB_HEIGHT ((RGB_BOTTOM)-(RGB_TOP))
 
 #ifndef RGB_GAMMA
 #define RGB_GAMMA 2.2f
@@ -101,6 +108,9 @@ extern "C" {
 #ifndef RGB_ARGUMENT_BUFFER_LENGTH
 #define RGB_ARGUMENT_BUFFER_LENGTH 64
 #endif
+
+//um
+#define KEY_SWITCH_DISTANCE 19050
 
 #define GAMMA_CORRECT(value, max) (powf(((float)value)/(max), RGB_GAMMA)*(max))
 typedef enum __RGBBaseMode
@@ -197,6 +207,7 @@ void rgb_forward_list_push_front(RGBArgumentList* list, RGBArgument t);
 
 extern uint8_t g_rgb_buffer[RGB_BUFFER_LENGTH];
 extern ColorRGB g_rgb_colors[RGB_NUM];
+extern volatile bool g_rgb_hid_mode;
 extern RGBBaseConfig g_rgb_base_config;
 extern RGBConfig g_rgb_configs[RGB_NUM];
 
@@ -210,8 +221,8 @@ void rgb_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b);
 void rgb_init_flash(void);
 void rgb_flash(void);
 void rgb_turn_off(void);
+void rgb_flush(void);
 void rgb_factory_reset(void);
-void rgb_save(void);
 void rgb_activate(uint16_t id);
 
 #ifdef __cplusplus

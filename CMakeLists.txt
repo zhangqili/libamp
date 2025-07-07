@@ -8,6 +8,7 @@ file(GLOB COMPONENT_SRCS
     ${PROJECT_SOURCE_DIR}/lib/littlefs/*.c
     ${PROJECT_SOURCE_DIR}/src/midi/*.c
     ${PROJECT_SOURCE_DIR}/src/midi/bytequeue/*.c
+    ${PROJECT_SOURCE_DIR}/src/lamp_array/*.c
 )
 # Add a library with the above sources
 add_library(${PROJECT_NAME} ${COMPONENT_SRCS})
@@ -26,6 +27,7 @@ target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/usb
     ${PROJECT_SOURCE_DIR}/src/midi
     ${PROJECT_SOURCE_DIR}/src/midi/bytequeue
+    ${PROJECT_SOURCE_DIR}/src/lamp_array
     ${PROJECT_SOURCE_DIR}/lib/littlefs
     ${PROJECT_SOURCE_DIR}/lib/lufa
 )

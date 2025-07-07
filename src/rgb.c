@@ -19,6 +19,7 @@ __WEAK const uint8_t g_rgb_mapping[ADVANCED_KEY_NUM];
 __WEAK const RGBLocation g_rgb_locations[RGB_NUM];
 
 uint8_t g_rgb_buffer[RGB_BUFFER_LENGTH];
+volatile bool g_rgb_hid_mode;
 RGBBaseConfig g_rgb_base_config;
 RGBConfig g_rgb_configs[RGB_NUM];
 ColorRGB g_rgb_colors[RGB_NUM];
@@ -49,6 +50,10 @@ void rgb_update(void)
     if (!g_rgb_base_config.mode)
     {
         rgb_turn_off();
+        return;
+    }
+    if (g_rgb_hid_mode)
+    {
         return;
     }
     ColorHSV temp_hsv;
@@ -293,11 +298,7 @@ void rgb_update(void)
             break;
         }
     }
-    rgb_update_callback();
-    for (uint8_t i = 0; i < RGB_NUM; i++)
-    {
-        rgb_set(i, g_rgb_colors[i].r, g_rgb_colors[i].g, g_rgb_colors[i].b);
-    }
+    rgb_flush();
 }
 
 __WEAK void rgb_update_callback(void)
@@ -428,12 +429,13 @@ void rgb_factory_reset(void)
     }
 }
 
-void rgb_enqueue(void)
+void rgb_flush(void)
 {
-}
-
-void rgb_save(void)
-{
+    rgb_update_callback();
+    for (uint8_t i = 0; i < RGB_NUM; i++)
+    {
+        rgb_set(i, g_rgb_colors[i].r, g_rgb_colors[i].g, g_rgb_colors[i].b);
+    }
 }
 
 void rgb_activate(uint16_t id)
