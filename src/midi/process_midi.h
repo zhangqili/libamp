@@ -33,8 +33,6 @@
 #define MIDI_CHANNEL_MIN    MIDI_CHANNEL_1
 #define MIDI_CHANNEL_MAX    MIDI_CHANNEL_16
 
-#ifdef MIDI_ENABLE
-
 void midi_task(void);
 
 typedef union {
@@ -58,4 +56,3 @@ bool midi_event_handler(KeyboardEvent event);
 
 uint8_t midi_compute_note(uint16_t keycode);
 
-#endif // MIDI_ENABLE

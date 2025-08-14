@@ -87,6 +87,12 @@ __WEAK int send_midi(uint8_t *report, uint16_t len)
     return 0;
 }
 
+__WEAK int send_remote_wakeup(void)
+{
+    printf("send_remote_wakeup needs to be implemented.\n");
+    return 0;
+}
+
 __WEAK int flash_read(uint32_t addr, uint32_t size, uint8_t *data)
 {
     UNUSED(addr);

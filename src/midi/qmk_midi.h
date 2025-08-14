@@ -1,7 +1,6 @@
 #pragma once
 
 #include "keyboard_conf.h"
-#ifdef MIDI_ENABLE
 #include "stdint.h"
 #include "keyboard_def.h"
 /** \brief MIDI Class Driver Event Packet.
@@ -24,4 +23,3 @@ extern MIDIDevice midi_device;
 void              setup_midi(void);
 void              send_midi_packet(MIDIEventPacket* event);
 bool              recv_midi_packet(MIDIEventPacket* const event);
-#endif

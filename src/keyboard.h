@@ -104,6 +104,7 @@ extern uint8_t g_keyboard_knob_flag;
 extern volatile bool g_keyboard_send_report_enable;
 
 extern KEYBOARD_STATE g_keyboard_state;
+extern volatile uint_fast8_t g_keyboard_is_suspend;
 extern volatile uint_fast8_t g_keyboard_report_flags;
 
 void keyboard_event_handler(KeyboardEvent event);

@@ -22,6 +22,7 @@ int hid_send_digitizer(uint8_t *report, uint16_t len);
 int hid_send_programmable_button(uint8_t *report, uint16_t len);
 int hid_send_raw(uint8_t *report, uint16_t len);
 int send_midi(uint8_t *report, uint16_t len);
+int send_remote_wakeup(void);
 
 int flash_read(uint32_t addr, uint32_t size, uint8_t *data);
 int flash_write(uint32_t addr, uint32_t size, const uint8_t *data);

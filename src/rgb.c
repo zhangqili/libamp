@@ -47,7 +47,11 @@ void rgb_init(void)
 
 void rgb_update(void)
 {
-    if (!g_rgb_base_config.mode)
+    if (!g_rgb_base_config.mode 
+#ifdef SUSPEND_ENABLE
+        || g_keyboard_is_suspend
+#endif
+    )
     {
         rgb_turn_off();
         return;

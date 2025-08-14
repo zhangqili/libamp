@@ -50,6 +50,7 @@ uint8_t g_keyboard_knob_flag;
 volatile bool g_keyboard_send_report_enable = true;
 
 KEYBOARD_STATE g_keyboard_state;
+volatile uint_fast8_t g_keyboard_is_suspend;
 volatile uint_fast8_t g_keyboard_report_flags;
 
 #ifdef NKRO_ENABLE
@@ -518,6 +519,20 @@ __WEAK void keyboard_task(void)
         }
         break;
     default:
+#ifdef SUSPEND_ENABLE
+        if (g_keyboard_is_suspend)
+        {
+            if (g_keyboard_report_flags)
+            {
+                g_keyboard_is_suspend = false;
+                send_remote_wakeup();
+            }
+            else
+            {
+                return;
+            }
+        }
+#endif
         if (g_keyboard_send_report_enable 
 #ifndef CONTINOUS_POLL
             && g_keyboard_report_flags
