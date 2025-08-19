@@ -19,7 +19,7 @@ TEST(Keyboard, KeyboardTask)
     {
         for (int i = 0; i < ANALOG_BUFFER_LENGTH; i++)
         {
-            ringbuf_push(&adc_ringbuf[i], (cos(tick/100.f)+1)*1024);   
+            ringbuf_push(&g_adc_ringbufs[i], (cos(tick/100.f)+1)*1024);   
         }
         keyboard_task();
     }

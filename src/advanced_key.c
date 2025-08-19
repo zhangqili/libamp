@@ -190,3 +190,8 @@ void advanced_key_set_deadzone(AdvancedKey* advanced_key, AnalogValue upper, Ana
     advanced_key->config.lower_deadzone = lower;
 }
 
+__WEAK AnalogRawValue advanced_key_read(AdvancedKey *advanced_key)
+{
+    advanced_key->raw = 0;
+    return advanced_key->raw;
+}

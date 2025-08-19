@@ -9,12 +9,9 @@
 #include "analog.h"
 #include "advanced_key.h"
 
-uint16_t g_ADC_Conversion_Count;
-AnalogRawValue g_ADC_Averages[ANALOG_BUFFER_LENGTH];
-
 AdaptiveSchimidtFilter g_analog_filters[ANALOG_BUFFER_LENGTH];
 
-RingBuf adc_ringbuf[ANALOG_BUFFER_LENGTH];
+RingBuf g_adc_ringbufs[ANALOG_BUFFER_LENGTH];
 
 uint8_t g_analog_active_channel;
 
@@ -29,45 +26,31 @@ __WEAK void analog_channel_select(uint8_t x)
     UNUSED(x);
 }
 
-void analog_scan(void)
+__WEAK void analog_scan(void)
 {
-}
-
-__WEAK void analog_average(void)
-{
-    for (uint8_t i = 0; i < ANALOG_BUFFER_LENGTH; i++)
+    for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        g_ADC_Averages[i] = ringbuf_avg(&adc_ringbuf[i]);
-#ifdef FILTER_ENABLE
-        g_ADC_Averages[i] = adaptive_schimidt_filter(&g_analog_filters[i],g_ADC_Averages[i]);
-#endif
+        AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
+        advanced_key_read(advanced_key);
     }
 }
 
 void analog_check(void)
 {
-    for (uint16_t i = 0; i < ANALOG_BUFFER_LENGTH; i++)
+    for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        if ((uint16_t)~g_analog_map[i])
-        {
-            AdvancedKey*advanced_key = &g_keyboard_advanced_keys[g_analog_map[i]];
-            if (advanced_key->config.mode != KEY_DIGITAL_MODE)
-            {
-                advanced_key_update_raw(advanced_key, g_ADC_Averages[i]);
-            }
-        }
+        AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
+        advanced_key_update_raw(advanced_key, advanced_key_read(advanced_key));
     }
 }
 
 void analog_reset_range(void)
 {
-    analog_average();
-    for (uint16_t i = 0; i < ANALOG_BUFFER_LENGTH; i++)
+    analog_scan();
+    for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        if ((uint16_t)~g_analog_map[i])
-        {
-            advanced_key_reset_range(&g_keyboard_advanced_keys[g_analog_map[i]], g_ADC_Averages[i]);
-        }
+        AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
+        advanced_key_reset_range(advanced_key, advanced_key_read(advanced_key));
     }
 }
 
