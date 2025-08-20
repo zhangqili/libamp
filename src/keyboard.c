@@ -48,6 +48,8 @@ uint32_t g_keyboard_tick;
 
 uint8_t g_keyboard_knob_flag;
 volatile bool g_keyboard_send_report_enable = true;
+volatile bool g_keyboard_winlock;
+
 
 KEYBOARD_STATE g_keyboard_state;
 volatile uint_fast8_t g_keyboard_is_suspend;
@@ -117,8 +119,13 @@ void keyboard_event_handler(KeyboardEvent event)
             KEYBOARD_REPORT_FLAG_SET(KEYBOARD_REPORT_FLAG);
             break;
         case KEYBOARD_EVENT_KEY_TRUE:
-            if (KEYCODE(event.keycode) <= KEY_EXSEL)
+            const uint8_t keycode = KEYCODE(event.keycode);
+            if (keycode <= KEY_EXSEL)
             {
+                if (g_keyboard_winlock && (keycode == KEY_LEFT_GUI || keycode == KEY_RIGHT_GUI))
+                {
+                    break;
+                }
 #ifdef NKRO_ENABLE
                 if (g_keyboard_nkro_enable)
                 {
@@ -192,6 +199,9 @@ void keyboard_operation_event_handler(KeyboardEvent event)
             }
             break;
 #endif
+        case KEYBOARD_TOGGLE_WINLOCK:
+            g_keyboard_winlock = !g_keyboard_winlock;
+            break;
         case KEYBOARD_CONFIG0:
         case KEYBOARD_CONFIG1:
         case KEYBOARD_CONFIG2:

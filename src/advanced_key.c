@@ -6,6 +6,8 @@
 #include "advanced_key.h"
 #include "keyboard.h"
 #include "keyboard_def.h"
+#include "analog.h"
+#include "filter.h"
 
 static inline bool advanced_key_update_digital_mode(AdvancedKey* advanced_key)
 {
@@ -192,6 +194,14 @@ void advanced_key_set_deadzone(AdvancedKey* advanced_key, AnalogValue upper, Ana
 
 __WEAK AnalogRawValue advanced_key_read(AdvancedKey *advanced_key)
 {
-    advanced_key->raw = 0;
-    return advanced_key->raw;
+    AnalogRawValue raw = advanced_key_read_raw(advanced_key);
+#ifdef FILTER_ENABLE
+    raw = adaptive_schimidt_filter(&g_analog_filters[advanced_key->key.id], raw);
+#endif
+    return raw;
+}
+
+__WEAK AnalogRawValue advanced_key_read_raw(AdvancedKey *advanced_key)
+{
+    return ringbuf_avg(&g_adc_ringbufs[g_analog_map[advanced_key->key.id]]);;
 }

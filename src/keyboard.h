@@ -102,6 +102,7 @@ extern bool g_keyboard_nkro_enable;
 
 extern uint8_t g_keyboard_knob_flag;
 extern volatile bool g_keyboard_send_report_enable;
+extern volatile bool g_keyboard_winlock;
 
 extern KEYBOARD_STATE g_keyboard_state;
 extern volatile uint_fast8_t g_keyboard_is_suspend;
