@@ -12,7 +12,7 @@ TEST(Keyboard, KeyboardTask)
 {
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        g_keyboard_advanced_keys[i].config.calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED;
+        g_keyboard_advanced_keys[i].config.calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED;
         advanced_key_reset_range(&g_keyboard_advanced_keys[i], 2048);
     }
     for (int tick = 0; tick < 1000; tick++)
@@ -29,7 +29,7 @@ TEST(Keyboard, Layer)
 {
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        g_keyboard_advanced_keys[i].config.calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED;
+        g_keyboard_advanced_keys[i].config.calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED;
         advanced_key_reset_range(&g_keyboard_advanced_keys[i], 2048);
     }
 
@@ -61,7 +61,7 @@ TEST(Keyboard, LayerWithSpecificKeycode)
     layer_cache_refresh();
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        g_keyboard_advanced_keys[i].config.calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED;
+        g_keyboard_advanced_keys[i].config.calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED;
         advanced_key_reset_range(&g_keyboard_advanced_keys[i], 2048);
     }
 

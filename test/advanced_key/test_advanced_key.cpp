@@ -9,7 +9,7 @@ TEST(AdvancedKeyTest, DigitalMode)
     {
         .config = 
         {
-            .mode = KEY_DIGITAL_MODE,
+            .mode = ADVANCED_KEY_DIGITAL_MODE,
         }
     };
     advanced_key_update(&advanced_key, true);
@@ -24,7 +24,7 @@ TEST(AdvancedKeyTest, NormalMode)
     {
         .config = 
         {
-            .mode = KEY_ANALOG_NORMAL_MODE,
+            .mode = ADVANCED_KEY_ANALOG_NORMAL_MODE,
             .activation_value = A_ANIT_NORM(0.50),
             .deactivation_value = A_ANIT_NORM(0.49),
         },
@@ -45,7 +45,7 @@ TEST(AdvancedKeyTest, RapidTriggerMode)
     {
         .config =
         {
-            .mode = KEY_ANALOG_RAPID_MODE,
+            .mode = ADVANCED_KEY_ANALOG_RAPID_MODE,
             .trigger_distance = A_ANIT_NORM(0.08),
             .release_distance = A_ANIT_NORM(0.08),
             .upper_deadzone = A_ANIT_NORM(0.10),
@@ -83,7 +83,7 @@ TEST(AdvancedKeyTest, SpeedMode)
     {
         .config =
         {
-            .mode = KEY_ANALOG_SPEED_MODE,
+            .mode = ADVANCED_KEY_ANALOG_SPEED_MODE,
             .trigger_speed = A_ANIT_NORM(0.04),
             .release_speed = A_ANIT_NORM(0.04),
             .upper_deadzone = A_ANIT_NORM(0.10),
@@ -125,7 +125,7 @@ TEST(AdvancedKeyTest, SpeedMode)
 TEST(AdvancedKeyTest, Value)
 {
     static AdvancedKey advanced_key;
-    for (int i = 0; i <= KEY_ANALOG_SPEED_MODE; i++)
+    for (int i = 0; i <= ADVANCED_KEY_ANALOG_SPEED_MODE; i++)
     {
         advanced_key.config.mode = i;
         for (int j = 0; j < 1000; j++)
@@ -146,8 +146,8 @@ TEST(AdvancedKeyTest, Calibration)
         {
             .config = 
             {
-                .mode = KEY_ANALOG_NORMAL_MODE,
-                .calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED,
+                .mode = ADVANCED_KEY_ANALOG_NORMAL_MODE,
+                .calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED,
                 .activation_value = A_ANIT_NORM(0.50),
                 .deactivation_value = A_ANIT_NORM(0.49),
                 .upper_bound = (AnalogRawValue)default_upper_bound,
@@ -155,10 +155,10 @@ TEST(AdvancedKeyTest, Calibration)
         };
         advanced_key_update_raw(&advanced_key, default_upper_bound+DEFAULT_ESTIMATED_RANGE-100);
         advanced_key_update_raw(&advanced_key, default_upper_bound+DEFAULT_ESTIMATED_RANGE+100);
-        EXPECT_EQ(advanced_key.config.calibration_mode, KEY_AUTO_CALIBRATION_POSITIVE);
+        EXPECT_EQ(advanced_key.config.calibration_mode, ADVANCED_KEY_AUTO_CALIBRATION_POSITIVE);
         EXPECT_FLOAT_EQ(advanced_key.config.lower_bound, default_upper_bound+DEFAULT_ESTIMATED_RANGE+100);
         advanced_key_update_raw(&advanced_key, default_upper_bound+DEFAULT_ESTIMATED_RANGE+500);
-        EXPECT_EQ(advanced_key.config.calibration_mode, KEY_AUTO_CALIBRATION_POSITIVE);
+        EXPECT_EQ(advanced_key.config.calibration_mode, ADVANCED_KEY_AUTO_CALIBRATION_POSITIVE);
         EXPECT_FLOAT_EQ(advanced_key.config.lower_bound, default_upper_bound+DEFAULT_ESTIMATED_RANGE+500);
     }
     {
@@ -166,8 +166,8 @@ TEST(AdvancedKeyTest, Calibration)
         {
             .config = 
             {
-                .mode = KEY_ANALOG_NORMAL_MODE,
-                .calibration_mode = KEY_AUTO_CALIBRATION_UNDEFINED,
+                .mode = ADVANCED_KEY_ANALOG_NORMAL_MODE,
+                .calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED,
                 .activation_value = A_ANIT_NORM(0.50),
                 .deactivation_value = A_ANIT_NORM(0.49),
                 .upper_bound = (AnalogRawValue)default_upper_bound,
@@ -175,10 +175,10 @@ TEST(AdvancedKeyTest, Calibration)
         };
         advanced_key_update_raw(&advanced_key, default_upper_bound-DEFAULT_ESTIMATED_RANGE+100);
         advanced_key_update_raw(&advanced_key, default_upper_bound-DEFAULT_ESTIMATED_RANGE-100);
-        EXPECT_EQ(advanced_key.config.calibration_mode, KEY_AUTO_CALIBRATION_NEGATIVE);
+        EXPECT_EQ(advanced_key.config.calibration_mode, ADVANCED_KEY_AUTO_CALIBRATION_NEGATIVE);
         EXPECT_FLOAT_EQ(advanced_key.config.lower_bound, default_upper_bound-DEFAULT_ESTIMATED_RANGE-100);
         advanced_key_update_raw(&advanced_key, default_upper_bound-DEFAULT_ESTIMATED_RANGE-500);
-        EXPECT_EQ(advanced_key.config.calibration_mode, KEY_AUTO_CALIBRATION_NEGATIVE);
+        EXPECT_EQ(advanced_key.config.calibration_mode, ADVANCED_KEY_AUTO_CALIBRATION_NEGATIVE);
         EXPECT_FLOAT_EQ(advanced_key.config.lower_bound, default_upper_bound-DEFAULT_ESTIMATED_RANGE-500);
     }
 }
