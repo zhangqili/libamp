@@ -15,7 +15,7 @@ RingBuf g_adc_ringbufs[ANALOG_BUFFER_LENGTH];
 
 uint8_t g_analog_active_channel;
 
-__WEAK const uint16_t g_analog_map[ANALOG_BUFFER_LENGTH];
+__WEAK const uint16_t g_analog_map[ADVANCED_KEY_NUM];
 
 void analog_init(void)
 {
