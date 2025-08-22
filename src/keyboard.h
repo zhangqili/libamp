@@ -27,6 +27,7 @@ extern "C" {
 #define KEYBINDING(keycode, modifier) (((modifier) << 8) | (keycode))
 #define KEYCODE(binding) ((binding) & 0xFF)
 #define MODIFIER(binding) (((binding) >> 8) & 0xFF)
+#define KEYBOARD_CONFIG(index, action) ((((KEYBOARD_CONFIG_BASE + (index)) | ((action) << 6)) << 8) | KEYBOARD_OPERATION)
 
 #define KEYBOARD_REPORT_FLAG_SET(flag) BIT_SET(g_keyboard_report_flags, flag)
 #define KEYBOARD_REPORT_FLAG_CLEAR(flag) BIT_RESET(g_keyboard_report_flags, flag)
@@ -54,7 +55,6 @@ typedef enum
 {
     KEYBOARD_STATE_IDLE,
     KEYBOARD_STATE_DEBUG,
-    KEYBOARD_STATE_UPLOAD_CONFIG
 } KEYBOARD_STATE;
 
 enum KeyboardReportFlag
@@ -65,6 +65,30 @@ enum KeyboardReportFlag
     SYSTEM_REPORT_FLAG = 3,
     JOYSTICK_REPORT_FLAG = 4,
 };
+
+enum
+{
+    KEYBOARD_CONFIG_DEBUG           = 0,
+    KEYBOARD_CONFIG_NKRO            = 1,
+    KEYBOARD_CONFIG_WINLOCK         = 2,
+    KEYBOARD_CONFIG_CONTINOUS_POLL  = 3,
+    KEYBOARD_CONFIG_NUM             = 4,
+};
+
+enum
+{
+    KEYBOARD_CONFIG_ON      = 0,
+    KEYBOARD_CONFIG_OFF     = 1,
+    KEYBOARD_CONFIG_TOGGLE  = 2,
+};
+
+typedef struct
+{
+    bool debug : 1;
+    bool nkro : 1;
+    bool winlock : 1;
+    bool continous_poll : 1;
+} __PACKED KeyboardConfig;
 
 enum ReportID { 
     REPORT_ID_ALL = 0,
@@ -96,15 +120,10 @@ extern uint8_t g_keyboard_led_state;
 
 extern uint32_t g_keyboard_tick;
 
-#ifdef NKRO_ENABLE
-extern bool g_keyboard_nkro_enable;
-#endif
-
 extern uint8_t g_keyboard_knob_flag;
 extern volatile bool g_keyboard_send_report_enable;
-extern volatile bool g_keyboard_winlock;
+extern volatile KeyboardConfig g_keyboard_config;
 
-extern KEYBOARD_STATE g_keyboard_state;
 extern volatile uint_fast8_t g_keyboard_is_suspend;
 extern volatile uint_fast8_t g_keyboard_report_flags;
 

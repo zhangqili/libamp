@@ -119,10 +119,20 @@ static void fallthrough_callback(MIDIDevice* device, uint16_t cnt, uint8_t byte0
     if (byte0 == MIDI_STOP) {
         stop_all_notes();
     }
+#else
+    UNUSED(device);
+    UNUSED(cnt);
+    UNUSED(byte0);
+    UNUSED(byte1);
+    UNUSED(byte2);
 #endif
 }
 
 static void cc_callback(MIDIDevice* device, uint8_t chan, uint8_t num, uint8_t val) {
+    UNUSED(device);
+    UNUSED(chan);
+    UNUSED(num);
+    UNUSED(val);
     // sending it back on the next channel
     // midi_send_cc(device, (chan + 1) % 16, num, val);
 }

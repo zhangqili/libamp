@@ -11,7 +11,7 @@
 #include "record.h"
 #include "process_midi.h"
 #include "driver.h"
-#include "command.h"
+#include "packet.h"
 
 #include "stdio.h"
 #include "string.h"
@@ -48,15 +48,12 @@ uint32_t g_keyboard_tick;
 
 uint8_t g_keyboard_knob_flag;
 volatile bool g_keyboard_send_report_enable = true;
-volatile bool g_keyboard_winlock;
+volatile KeyboardConfig g_keyboard_config;
 
-
-KEYBOARD_STATE g_keyboard_state;
 volatile uint_fast8_t g_keyboard_is_suspend;
 volatile uint_fast8_t g_keyboard_report_flags;
 
 #ifdef NKRO_ENABLE
-bool g_keyboard_nkro_enable;
 static Keyboard_NKROBuffer keyboard_nkro_buffer;
 #endif
 static Keyboard_6KROBuffer keyboard_6kro_buffer;
@@ -122,12 +119,8 @@ void keyboard_event_handler(KeyboardEvent event)
             const uint8_t keycode = KEYCODE(event.keycode);
             if (keycode <= KEY_EXSEL)
             {
-                if (g_keyboard_winlock && (keycode == KEY_LEFT_GUI || keycode == KEY_RIGHT_GUI))
-                {
-                    break;
-                }
 #ifdef NKRO_ENABLE
-                if (g_keyboard_nkro_enable)
+                if (g_keyboard_config.nkro)
                 {
                     keyboard_NKRObuffer_add(&keyboard_nkro_buffer, event.keycode);
                 }
@@ -154,62 +147,74 @@ void keyboard_operation_event_handler(KeyboardEvent event)
     case KEYBOARD_EVENT_KEY_UP:
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
-        switch (MODIFIER(event.keycode))
+        uint8_t modifier = MODIFIER(event.keycode);
+        if ((modifier & 0x3F) < KEYBOARD_CONFIG_BASE)
         {
-        case KEYBOARD_REBOOT:
-            keyboard_reboot();
-            break;
-        case KEYBOARD_FACTORY_RESET:
-            keyboard_factory_reset();
-            break;
-        case KEYBOARD_SAVE:
-            keyboard_save();
-            break;
-        case KEYBOARD_BOOTLOADER:
-            keyboard_jump_to_bootloader();
-            break;
-        case KEYBOARD_DEBUG_TOGGLE:
-            g_keyboard_state = (g_keyboard_state != KEYBOARD_STATE_DEBUG);
-            break;
-        case KEYBOARD_RESET_TO_DEFAULT:
-            keyboard_reset_to_default();
-            break;
-        case KEYBOARD_NKRO_TOGGLE:
-            g_keyboard_nkro_enable = !g_keyboard_nkro_enable;
-            break;
+            switch (modifier & 0x3F)
+            {
+            case KEYBOARD_REBOOT:
+                keyboard_reboot();
+                break;
+            case KEYBOARD_FACTORY_RESET:
+                keyboard_factory_reset();
+                break;
+            case KEYBOARD_SAVE:
+                keyboard_save();
+                break;
+            case KEYBOARD_BOOTLOADER:
+                keyboard_jump_to_bootloader();
+                break;
+            case KEYBOARD_RESET_TO_DEFAULT:
+                keyboard_reset_to_default();
+                break;
 #ifdef RGB_ENABLE
-        case KEYBOARD_RGB_BRIGHTNESS_UP:
-            if ((int16_t)g_rgb_base_config.brightness + 16 < 255)
-            {
-                g_rgb_base_config.brightness+=16;
-            }
-            else
-            {
-                g_rgb_base_config.brightness = 255;
-            }
-            break;
-        case KEYBOARD_RGB_BRIGHTNESS_DOWN:
-            if ((int16_t)g_rgb_base_config.brightness - 16 > 0)
-            {
-                g_rgb_base_config.brightness-=16;
-            }
-            else
-            {
-                g_rgb_base_config.brightness = 0;
-            }
-            break;
+            case KEYBOARD_RGB_BRIGHTNESS_UP:
+                if ((int16_t)g_rgb_base_config.brightness + 16 < 255)
+                {
+                    g_rgb_base_config.brightness+=16;
+                }
+                else
+                {
+                    g_rgb_base_config.brightness = 255;
+                }
+                break;
+            case KEYBOARD_RGB_BRIGHTNESS_DOWN:
+                if ((int16_t)g_rgb_base_config.brightness - 16 > 0)
+                {
+                    g_rgb_base_config.brightness-=16;
+                }
+                else
+                {
+                    g_rgb_base_config.brightness = 0;
+                }
+                break;
 #endif
-        case KEYBOARD_TOGGLE_WINLOCK:
-            g_keyboard_winlock = !g_keyboard_winlock;
-            break;
-        case KEYBOARD_CONFIG0:
-        case KEYBOARD_CONFIG1:
-        case KEYBOARD_CONFIG2:
-        case KEYBOARD_CONFIG3:
-            keyboard_set_config_index((event.keycode >> 8) & 0x0F);
-            break;
-        default:
-            break;
+            case KEYBOARD_CONFIG0:
+            case KEYBOARD_CONFIG1:
+            case KEYBOARD_CONFIG2:
+            case KEYBOARD_CONFIG3:
+                keyboard_set_config_index((event.keycode >> 8) & 0x0F);
+                break;
+            default:
+                break;
+            }
+        }
+        else
+        {
+            switch ((modifier >> 6) & 0x03)
+            {
+            case 0:
+                BIT_RESET(*((uint8_t*)&g_keyboard_config), ((modifier & 0x3F) - KEYBOARD_CONFIG_BASE));
+                break;
+            case 1:
+                BIT_SET(*((uint8_t*)&g_keyboard_config), ((modifier & 0x3F) - KEYBOARD_CONFIG_BASE));
+                break;
+            case 2:
+                BIT_TOGGLE(*((uint8_t*)&g_keyboard_config), ((modifier & 0x3F) - KEYBOARD_CONFIG_BASE));
+                break;
+            default:
+                break;
+            }  
         }
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
@@ -251,12 +256,20 @@ void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event)
 int keyboard_buffer_send(void)
 {
 #ifdef NKRO_ENABLE
-    if (g_keyboard_nkro_enable)
+    if (g_keyboard_config.nkro)
     {
         keyboard_nkro_buffer.report_id = REPORT_ID_NKRO;
+        if (g_keyboard_config.winlock)
+        {
+            keyboard_nkro_buffer.modifier &= (~(KEY_LEFT_GUI | KEY_RIGHT_GUI)); 
+        }
         return keyboard_NKRObuffer_send(&keyboard_nkro_buffer);
     }
 #endif
+    if (g_keyboard_config.winlock)
+    {
+        keyboard_6kro_buffer.modifier &= (~(KEY_LEFT_GUI | KEY_RIGHT_GUI)); 
+    }
 #ifdef KEYBOARD_SHARED_EP
     keyboard_6kro_buffer.report_id = REPORT_ID_KEYBOARD;
 #endif
@@ -266,7 +279,7 @@ int keyboard_buffer_send(void)
 void keyboard_clear_buffer(void)
 {
 #ifdef NKRO_ENABLE
-    if (g_keyboard_nkro_enable)
+    if (g_keyboard_config.nkro)
     {
         keyboard_NKRObuffer_clear(&keyboard_nkro_buffer);
     }
@@ -452,10 +465,7 @@ void keyboard_fill_buffer(void)
 }
 
 void keyboard_send_report(void)
-{
-#ifdef CONTINOUS_POLL
-    KEYBOARD_REPORT_FLAG_SET(KEYBOARD_REPORT_FLAG);
-#endif
+{   
 #ifdef MOUSE_ENABLE
     if (KEYBOARD_REPORT_FLAG_GET(MOUSE_REPORT_FLAG))
     {
@@ -503,43 +513,29 @@ __WEAK void keyboard_task(void)
 {
     keyboard_scan();
     analog_check();
-    switch (g_keyboard_state)
-    {
-    case KEYBOARD_STATE_DEBUG:
-        send_debug_info();
-        break;
-    case KEYBOARD_STATE_UPLOAD_CONFIG:
-        if (!load_cargo())
-        {
-          g_keyboard_state = KEYBOARD_STATE_IDLE;
-        }
-        break;
-    default:
 #ifdef SUSPEND_ENABLE
-        if (g_keyboard_is_suspend)
+    if (g_keyboard_is_suspend)
+    {
+        if (g_keyboard_report_flags)
         {
-            if (g_keyboard_report_flags)
-            {
-                g_keyboard_is_suspend = false;
-                send_remote_wakeup();
-            }
-            else
-            {
-                return;
-            }
+            g_keyboard_is_suspend = false;
+            send_remote_wakeup();
         }
-#endif
-        if (g_keyboard_send_report_enable 
-#ifndef CONTINOUS_POLL
-            && g_keyboard_report_flags
-#endif
-        )
+        else
         {
-            keyboard_clear_buffer();
-            keyboard_fill_buffer();
-            keyboard_send_report();
+            return;
         }
-        break;
+    }
+#endif
+    if (g_keyboard_config.continous_poll)
+    {
+        KEYBOARD_REPORT_FLAG_SET(KEYBOARD_REPORT_FLAG);
+    }
+    if (g_keyboard_send_report_enable)
+    {
+        keyboard_clear_buffer();
+        keyboard_fill_buffer();
+        keyboard_send_report();
     }
 }
 

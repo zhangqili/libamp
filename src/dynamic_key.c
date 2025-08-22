@@ -6,7 +6,6 @@
 
 
 #include "dynamic_key.h"
-#include "command.h"
 #include "keyboard.h"
 
 #define DK_TAP_DURATION 5
