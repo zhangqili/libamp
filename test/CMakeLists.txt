@@ -18,7 +18,7 @@ add_executable(libamp_tests
     mouse/test_mouse.cpp
     extra_key/test_extra_key.cpp
     joystick/test_joystick.cpp
-    command/test_command.cpp
+    packet/test_packet.cpp
 )
 
 target_link_libraries(libamp_tests

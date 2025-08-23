@@ -9,7 +9,7 @@
 #include "analog.h"
 #include "advanced_key.h"
 
-AdaptiveSchimidtFilter g_analog_filters[ANALOG_BUFFER_LENGTH];
+AdaptiveSchimidtFilter g_analog_filters[ADVANCED_KEY_NUM];
 
 RingBuf g_adc_ringbufs[ANALOG_BUFFER_LENGTH];
 

@@ -31,8 +31,8 @@ const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM] = {
     },
     {
         KEYBOARD_OPERATION | (KEYBOARD_BOOTLOADER << 8),  KEYBOARD_OPERATION | (KEYBOARD_CONFIG0 << 8), KEYBOARD_OPERATION | (KEYBOARD_CONFIG1 << 8), KEYBOARD_OPERATION | (KEYBOARD_CONFIG2 << 8),     KEYBOARD_OPERATION | (KEYBOARD_CONFIG3 << 8),       KEY_TRANSPARENT,                                    KEY_TRANSPARENT,               KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,    KEY_TRANSPARENT,    KEY_TRANSPARENT,    KEYBOARD_OPERATION | (KEYBOARD_RESET_TO_DEFAULT << 8),
-        KEY_TRANSPARENT,                                  KEY_TRANSPARENT,                              KEY_TRANSPARENT,                              KEY_TRANSPARENT,                                  KEYBOARD_OPERATION | (KEYBOARD_REBOOT << 8),        KEYBOARD_OPERATION | (KEYBOARD_NKRO_TOGGLE << 8),   KEY_TRANSPARENT,               KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,    KEY_TRANSPARENT,    KEY_TRANSPARENT,    KEY_TRANSPARENT,
-        KEY_TRANSPARENT,                                  KEY_TRANSPARENT,                              KEYBOARD_OPERATION | (KEYBOARD_SAVE << 8),    KEYBOARD_OPERATION | (KEYBOARD_DEBUG_TOGGLE << 8),KEYBOARD_OPERATION | (KEYBOARD_FACTORY_RESET << 8), KEY_TRANSPARENT,                                    KEY_TRANSPARENT,               KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,    KEY_TRANSPARENT,    KEY_TRANSPARENT,
+        KEY_TRANSPARENT,                                  KEY_TRANSPARENT,                              KEY_TRANSPARENT,                              KEY_TRANSPARENT,                                  KEYBOARD_OPERATION | (KEYBOARD_REBOOT << 8),        KEY_TRANSPARENT,                                    KEY_TRANSPARENT,               KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,    KEY_TRANSPARENT,    KEY_TRANSPARENT,    KEY_TRANSPARENT,
+        KEY_TRANSPARENT,                                  KEY_TRANSPARENT,                              KEYBOARD_OPERATION | (KEYBOARD_SAVE << 8),    KEY_TRANSPARENT,                                  KEYBOARD_OPERATION | (KEYBOARD_FACTORY_RESET << 8), KEY_TRANSPARENT,                                    KEY_TRANSPARENT,               KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,    KEY_TRANSPARENT,    KEY_TRANSPARENT,
         KEY_TRANSPARENT,                                  KEY_TRANSPARENT,                              KEY_TRANSPARENT,                              KEY_TRANSPARENT,                                  KEY_TRANSPARENT,                                    KEY_TRANSPARENT,                                    KEY_TRANSPARENT,               KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,KEY_TRANSPARENT,    KEY_TRANSPARENT,    KEY_TRANSPARENT,        KEY_TRANSPARENT,
         KEY_TRANSPARENT,                                  KEY_TRANSPARENT,                              KEY_TRANSPARENT,                              KEY_TRANSPARENT,                                  KEY_TRANSPARENT,                                    KEY_TRANSPARENT,                                    KEY_TRANSPARENT,               KEY_TRANSPARENT,KEY_TRANSPARENT,
     }
@@ -1188,7 +1188,6 @@ void keyboard_user_event_handler(KeyboardEvent event)
     switch (MODIFIER(event.keycode))
     {
     default:
-        g_keyboard_state = KEYBOARD_STATE_IDLE;
         break;
     }
 }

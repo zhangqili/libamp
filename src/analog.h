@@ -34,7 +34,7 @@ typedef struct
     uint16_t pointer;
 }RingBuf;
 
-extern AdaptiveSchimidtFilter g_analog_filters[ANALOG_BUFFER_LENGTH];
+extern AdaptiveSchimidtFilter g_analog_filters[ADVANCED_KEY_NUM];
 
 extern RingBuf g_adc_ringbufs[ANALOG_BUFFER_LENGTH];
 

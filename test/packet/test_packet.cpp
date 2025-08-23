@@ -2,20 +2,19 @@
 
 #include "rgb.h"
 #include "packet.h"
-#include "command.h"
 
-TEST(Command, PacketKeymap)
+TEST(Packet, PacketKeymap)
 {
     static PacketKeymap packet = 
     {
-        .code = 0xFF,
+        .code = PACKET_CODE_SET,
         .type = PACKET_DATA_KEYMAP,
         .layer = 1,
         .start = 3,
         .length = 5,
         .keymap = {4,5,6,7,8}
     };
-    command_parse((uint8_t*)&packet,sizeof(packet));
+    packet_process((uint8_t*)&packet,sizeof(packet));
     EXPECT_EQ(g_keymap[1][3], 4);
     EXPECT_EQ(g_keymap[1][4], 5);
     EXPECT_EQ(g_keymap[1][5], 6);
@@ -23,11 +22,11 @@ TEST(Command, PacketKeymap)
     EXPECT_EQ(g_keymap[1][7], 8);
 }
 
-TEST(Command, PacketAdvancedKey)
+TEST(Packet, SetPacketAdvancedKey)
 {
     static PacketAdvancedKey packet = 
     {
-        .code = 0xFF,
+        .code = PACKET_CODE_SET,
         .type = PACKET_DATA_ADVANCED_KEY,
         .index = 3,
         .data =
@@ -46,7 +45,7 @@ TEST(Command, PacketAdvancedKey)
             .lower_bound = 0,
         }
     };
-    command_parse((uint8_t*)&packet,sizeof(packet));
+    packet_process((uint8_t*)&packet,sizeof(packet));
     EXPECT_EQ(g_keyboard_advanced_keys[3].config.mode, DEFAULT_ADVANCED_KEY_MODE);
     //EXPECT_EQ(g_keyboard_advanced_keys[3].config.calibration_mode, DEFAULT_CALIBRATION_MODE);
     EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.activation_value, A_ANIT_NORM(DEFAULT_ACTIVATION_VALUE));
@@ -61,11 +60,11 @@ TEST(Command, PacketAdvancedKey)
     //EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.lower_bound, 0);
 }
 
-TEST(Command, PacketRGBConfigs)
+TEST(Packet, SetPacketRGBConfigs)
 {
     static PacketRGBConfigs packet = 
     {
-        .code = 0xFF,
+        .code = PACKET_CODE_SET,
         .type = PACKET_DATA_RGB_CONFIG,
         .length = 2,
         .data =
@@ -89,7 +88,7 @@ TEST(Command, PacketRGBConfigs)
             }
         }
     };
-    command_parse((uint8_t*)&packet,sizeof(packet));
+    packet_process((uint8_t*)&packet,sizeof(packet));
 
     uint16_t key_index;
     key_index = g_rgb_mapping[3];
@@ -118,7 +117,7 @@ TEST(Command, PacketRGBConfigs)
 }
 
 
-TEST(Command, PacketDynamicKey)
+TEST(Packet, SetPacketDynamicKey)
 {
     static DynamicKeyStroke4x4Normalized dynamic_key = 
     {
@@ -146,20 +145,20 @@ TEST(Command, PacketDynamicKey)
     uint8_t buffer[64];
     memset(buffer, 0, sizeof(buffer));
     PacketDynamicKey* packet = (PacketDynamicKey*)buffer;
-    packet->code = 0xff;
+    packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_DYNAMIC_KEY,
     packet->index = 1,
     memcpy(packet->dynamic_key,&dynamic_key,sizeof(DynamicKeyStroke4x4Normalized));
-    command_parse((uint8_t*)packet,sizeof(packet));
+    packet_process((uint8_t*)packet,sizeof(packet));
     EXPECT_EQ(g_keyboard_dynamic_keys[1].type, DYNAMIC_KEY_STROKE);
     EXPECT_FLOAT_EQ(g_keyboard_dynamic_keys[1].dks.press_fully_distance, A_ANIT_NORM(dynamic_key.press_fully_distance));
 
     memset(buffer, 0, sizeof(buffer));
-    packet->code = 0xff;
+    packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_DYNAMIC_KEY,
     packet->index = 0,
     memcpy(packet->dynamic_key,&dynamic_key1,sizeof(DynamicKey));
-    command_parse((uint8_t*)packet,sizeof(packet));
+    packet_process((uint8_t*)packet,sizeof(packet));
     EXPECT_EQ(g_keyboard_dynamic_keys[1].type, DYNAMIC_KEY_STROKE);
     EXPECT_TRUE(!memcmp(&g_keyboard_dynamic_keys[0], &dynamic_key1, sizeof(DynamicKey)));
 }
