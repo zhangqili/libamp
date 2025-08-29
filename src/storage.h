@@ -57,6 +57,7 @@ extern uint8_t g_current_config_index;
 
 #ifdef LFS_ENABLE
 lfs_t * storage_get_lfs(void);
+struct lfs_config * storage_get_lfs_config(void);
 #endif
 
 void advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, const AdvancedKeyConfiguration* config);

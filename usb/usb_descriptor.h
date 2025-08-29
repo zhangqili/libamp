@@ -79,11 +79,13 @@
 #define __INCLUDE_FROM_CDC_DRIVER
 #define __INCLUDE_FROM_AUDIO_DRIVER
 #define __INCLUDE_FROM_MIDI_DRIVER
+#define __INCLUDE_FROM_MS_DRIVER
 #include "LUFA/Drivers/USB/Class/Common/HIDClassCommon.h"
 #include "LUFA/Drivers/USB/Class/Common/HIDReportData.h"
 #include "LUFA/Drivers/USB/Class/Common/CDCClassCommon.h"
 #include "LUFA/Drivers/USB/Class/Common/AudioClassCommon.h"
 #include "LUFA/Drivers/USB/Class/Common/MIDIClassCommon.h"
+#include "LUFA/Drivers/USB/Class/Common/MassStorageClassCommon.h"
 #include "LUFA/Drivers/USB/Core/USBController.h"
 
 #define MAX_ENDPOINTS 8
@@ -180,6 +182,12 @@ typedef struct {
     USB_HID_Descriptor_HID_t   Digitizer_HID;
     USB_Descriptor_Endpoint_t  Digitizer_INEndpoint;
 #endif
+
+#ifdef MSC_ENABLE
+	USB_Descriptor_Interface_t MS_Interface;
+	USB_Descriptor_Endpoint_t  MS_DataInEndpoint;
+	USB_Descriptor_Endpoint_t  MS_DataOutEndpoint;
+#endif
 } USB_Descriptor_Configuration_t;
 
 /*
@@ -228,6 +236,9 @@ enum usb_interfaces {
 
 #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
     DIGITIZER_INTERFACE,
+#endif
+#ifdef MSC_ENABLE
+    MSC_INTERFACE,
 #endif
     TOTAL_INTERFACES
 };
@@ -305,6 +316,15 @@ enum usb_endpoints {
 #        define DIGITIZER_IN_EPNUM SHARED_IN_EPNUM
 #    endif
 #endif
+
+#ifdef MSC_ENABLE
+     MSC_IN_EPNUM = NEXT_EPNUM,
+#    ifdef USB_ENDPOINTS_ARE_REORDERABLE
+#        define MSC_OUT_EPNUM MSC_IN_EPNUM
+#    else
+     MSC_OUT_EPNUM = NEXT_EPNUM,
+#    endif
+#endif
 };
 
 #ifdef PROTOCOL_LUFA
@@ -329,6 +349,7 @@ enum usb_endpoints {
 #define CDC_EPSIZE 16
 #define JOYSTICK_EPSIZE 8
 #define DIGITIZER_EPSIZE 8
+#define MSC_EPSIZE 64
 
 #ifdef EXTERN_DESCRIPTOR
 /*
@@ -446,6 +467,11 @@ extern const USB_Descriptor_String_t PROGMEM SerialNumberString;
 
 #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
 #define DIGITIZER_EPIN_ADDR  (ENDPOINT_DIR_IN | DIGITIZER_IN_EPNUM)
+#endif
+
+#ifdef MSC_ENABLE
+#define MSC_EPIN_ADDR  (ENDPOINT_DIR_IN | MSC_IN_EPNUM)
+#define MSC_EPOUT_ADDR  (ENDPOINT_DIR_OUT | MSC_OUT_EPNUM)
 #endif
 
 //usb_descripotor.c before
@@ -1710,6 +1736,44 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         .EndpointSize           = DIGITIZER_EPSIZE,
         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
     },
+#endif
+
+#ifdef MSC_ENABLE
+	.MS_Interface =
+		{
+			.Header                 = {.Size = sizeof(USB_Descriptor_Interface_t), .Type = DTYPE_Interface},
+
+			.InterfaceNumber        = MSC_INTERFACE,
+			.AlternateSetting       = 0,
+
+			.TotalEndpoints         = 2,
+
+			.Class                  = MS_CSCP_MassStorageClass,
+			.SubClass               = MS_CSCP_SCSITransparentSubclass,
+			.Protocol               = MS_CSCP_BulkOnlyTransportProtocol,
+
+			.InterfaceStrIndex      = NO_DESCRIPTOR
+		},
+
+	.MS_DataInEndpoint =
+		{
+			.Header                 = {.Size = sizeof(USB_Descriptor_Endpoint_t), .Type = DTYPE_Endpoint},
+
+			.EndpointAddress        = MSC_EPIN_ADDR,
+			.Attributes             = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+			.EndpointSize           = MSC_EPSIZE,
+			.PollingIntervalMS      = USB_POLLING_INTERVAL_MS
+		},
+
+	.MS_DataOutEndpoint =
+		{
+			.Header                 = {.Size = sizeof(USB_Descriptor_Endpoint_t), .Type = DTYPE_Endpoint},
+
+			.EndpointAddress        = MSC_EPOUT_ADDR,
+			.Attributes             = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+			.EndpointSize           = MSC_EPSIZE,
+			.PollingIntervalMS      = USB_POLLING_INTERVAL_MS
+		}
 #endif
 };
 

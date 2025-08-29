@@ -111,6 +111,11 @@ lfs_t * storage_get_lfs(void)
 {
     return &lfs;
 }
+
+struct lfs_config * storage_get_lfs_config(void)
+{
+    return &_lfs_config;
+}
 #endif
 
 #ifndef LFS_ENABLE
