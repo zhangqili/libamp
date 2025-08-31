@@ -7,6 +7,7 @@
 #include "keyboard_def.h"
 #include "string.h"
 #include "math.h"
+#include "driver.h"
 
 #define rgb_loop_queue_foreach(q, type, item) for (uint16_t __index = (q)->front; __index != (q)->rear; __index = (__index + 1) % (q)->len)\
                                               for (type *item = &((q)->data[__index]); item; item = NULL)
@@ -18,7 +19,6 @@
 __WEAK const uint8_t g_rgb_mapping[ADVANCED_KEY_NUM];
 __WEAK const RGBLocation g_rgb_locations[RGB_NUM];
 
-uint8_t g_rgb_buffer[RGB_BUFFER_LENGTH];
 volatile bool g_rgb_hid_mode;
 RGBBaseConfig g_rgb_base_config;
 RGBConfig g_rgb_configs[RGB_NUM];
@@ -37,10 +37,6 @@ void rgb_init(void)
     rgb_forward_list_init(&rgb_argument_list, RGB_Argument_List_Buffer, RGB_ARGUMENT_BUFFER_LENGTH);
 #endif
     rgb_loop_queue_init(&rgb_argument_queue, RGB_Argument_Buffer, RGB_ARGUMENT_BUFFER_LENGTH);
-    for (uint16_t i = 0; i < RGB_BUFFER_LENGTH; i++)
-    {
-        g_rgb_buffer[i] = NONE_PULSE;
-    }
 }
 
 #define COLOR_INTERVAL(key, low, up) (uint8_t)((key) < 0 ? (low) : ((key) > ANALOG_VALUE_MAX ? (up) : (key) * (up)))
@@ -321,12 +317,7 @@ void rgb_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b)
     g = (g * g_rgb_base_config.brightness) >> 8;
     b = (b * g_rgb_base_config.brightness) >> 8;
 #endif
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        g_rgb_buffer[RGB_RESET_LENGTH + index * 24 + i] = (g << i) & (0x80) ? ONE_PULSE : ZERO_PULSE;
-        g_rgb_buffer[RGB_RESET_LENGTH + index * 24 + i + 8] = (r << i) & (0x80) ? ONE_PULSE : ZERO_PULSE;
-        g_rgb_buffer[RGB_RESET_LENGTH + index * 24 + i + 16] = (b << i) & (0x80) ? ONE_PULSE : ZERO_PULSE;
-    }
+    led_set(index, r, g, b);
 }
 
 void rgb_init_flash(void)

@@ -265,11 +265,11 @@ void packet_process_config(PacketData*data)
         {
             if (packet->data[i].value)
             {
-                BIT_SET(*((uint8_t*)&g_keyboard_config), packet->data[i].index);
+                BIT_SET(g_keyboard_config.raw, packet->data[i].index);
             }
             else
             {
-                BIT_RESET(*((uint8_t*)&g_keyboard_config), packet->data[i].index);
+                BIT_RESET(g_keyboard_config.raw, packet->data[i].index);
             }
         }
     }
@@ -277,7 +277,7 @@ void packet_process_config(PacketData*data)
     {
         for (int i = 0; i < packet->length; i++)
         {
-            packet->data[i].value = (bool)BIT_GET(*((uint8_t*)&g_keyboard_config), packet->data[i].index);
+            packet->data[i].value = (bool)BIT_GET(g_keyboard_config.raw, packet->data[i].index);
         }
     }
 }

@@ -29,9 +29,9 @@ extern "C" {
 #define MODIFIER(binding) (((binding) >> 8) & 0xFF)
 #define KEYBOARD_CONFIG(index, action) ((((KEYBOARD_CONFIG_BASE + (index)) | ((action) << 6)) << 8) | KEYBOARD_OPERATION)
 
-#define KEYBOARD_REPORT_FLAG_SET(flag) BIT_SET(g_keyboard_report_flags, flag)
-#define KEYBOARD_REPORT_FLAG_CLEAR(flag) BIT_RESET(g_keyboard_report_flags, flag)
-#define KEYBOARD_REPORT_FLAG_GET(flag) BIT_GET(g_keyboard_report_flags, flag)
+#define KEYBOARD_REPORT_FLAG_SET(flag)      BIT_SET(g_keyboard_report_flags.raw, flag)
+#define KEYBOARD_REPORT_FLAG_CLEAR(flag)    BIT_RESET(g_keyboard_report_flags.raw, flag)
+#define KEYBOARD_REPORT_FLAG_GET(flag)      BIT_GET(g_keyboard_report_flags.raw, flag)
 
 typedef struct
 {
@@ -57,15 +57,6 @@ typedef enum
     KEYBOARD_STATE_DEBUG,
 } KEYBOARD_STATE;
 
-enum KeyboardReportFlag
-{
-    KEYBOARD_REPORT_FLAG = 0,
-    MOUSE_REPORT_FLAG = 1,
-    CONSUMER_REPORT_FLAG = 2,
-    SYSTEM_REPORT_FLAG = 3,
-    JOYSTICK_REPORT_FLAG = 4,
-};
-
 enum
 {
     KEYBOARD_CONFIG_DEBUG           = 0,
@@ -84,11 +75,53 @@ enum
 
 typedef struct
 {
-    bool debug : 1;
-    bool nkro : 1;
-    bool winlock : 1;
-    bool continous_poll : 1;
+    uint8_t raw;
+    struct
+    {
+        bool debug : 1;
+        bool nkro : 1;
+        bool winlock : 1;
+        bool continous_poll : 1;
+        uint8_t reserved : 4;
+    };
 } __PACKED KeyboardConfig;
+
+typedef union
+{
+    uint8_t raw;
+    struct
+    {
+        bool    num_lock : 1;
+        bool    caps_lock : 1;
+        bool    scroll_lock : 1;
+        bool    compose : 1;
+        bool    kana : 1;
+        uint8_t reserved : 3;
+    };
+} KeyboardLED;
+
+typedef union
+{
+    uint8_t raw;
+    struct
+    {
+        bool    keyboard : 1;
+        bool    mouse : 1;
+        bool    consumer : 1;
+        bool    system : 1;
+        bool    joystick : 1;
+        uint8_t reserved : 3;
+    };
+} KeyboardReportFlag;
+
+enum
+{
+    KEYBOARD_REPORT_FLAG = 0,
+    MOUSE_REPORT_FLAG = 1,
+    CONSUMER_REPORT_FLAG = 2,
+    SYSTEM_REPORT_FLAG = 3,
+    JOYSTICK_REPORT_FLAG = 4,
+};
 
 enum ReportID { 
     REPORT_ID_ALL = 0,
@@ -116,7 +149,7 @@ extern Keycode g_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
 
 extern DynamicKey g_keyboard_dynamic_keys[DYNAMIC_KEY_NUM];
 
-extern uint8_t g_keyboard_led_state;
+extern KeyboardLED g_keyboard_led_state;
 
 extern uint32_t g_keyboard_tick;
 
@@ -124,8 +157,8 @@ extern uint8_t g_keyboard_knob_flag;
 extern volatile bool g_keyboard_send_report_enable;
 extern volatile KeyboardConfig g_keyboard_config;
 
-extern volatile uint_fast8_t g_keyboard_is_suspend;
-extern volatile uint_fast8_t g_keyboard_report_flags;
+extern volatile bool g_keyboard_is_suspend;
+extern volatile KeyboardReportFlag g_keyboard_report_flags;
 
 void keyboard_event_handler(KeyboardEvent event);
 void keyboard_operation_event_handler(KeyboardEvent event);

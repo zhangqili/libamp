@@ -121,6 +121,11 @@ static inline int config_file_read(uint8_t *buffer, uint32_t size, uint32_t offs
 
 static inline int config_file_write(const uint8_t *buffer, uint32_t size, uint32_t offset)
 {
+    int res = flash_erase(STORAGE_CONFIG_FILE_ADDRESS(g_current_config_index) + offset, size);
+    if (res)
+    {
+        return res;
+    }
     return flash_write(STORAGE_CONFIG_FILE_ADDRESS(g_current_config_index) + offset, size, buffer);
 }
 #endif

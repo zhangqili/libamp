@@ -42,7 +42,7 @@ __WEAK Key g_keyboard_keys[KEY_NUM];
 
 uint16_t g_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
 
-uint8_t g_keyboard_led_state;
+KeyboardLED g_keyboard_led_state;
 
 uint32_t g_keyboard_tick;
 
@@ -50,8 +50,8 @@ uint8_t g_keyboard_knob_flag;
 volatile bool g_keyboard_send_report_enable = true;
 volatile KeyboardConfig g_keyboard_config;
 
-volatile uint_fast8_t g_keyboard_is_suspend;
-volatile uint_fast8_t g_keyboard_report_flags;
+volatile bool g_keyboard_is_suspend;
+volatile KeyboardReportFlag g_keyboard_report_flags;
 
 #ifdef NKRO_ENABLE
 static Keyboard_NKROBuffer keyboard_nkro_buffer;
@@ -516,7 +516,7 @@ __WEAK void keyboard_task(void)
 #ifdef SUSPEND_ENABLE
     if (g_keyboard_is_suspend)
     {
-        if (g_keyboard_report_flags)
+        if (g_keyboard_report_flags.raw)
         {
             g_keyboard_is_suspend = false;
             send_remote_wakeup();
