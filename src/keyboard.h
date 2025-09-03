@@ -24,14 +24,9 @@ extern "C" {
 
 #define NKRO_REPORT_BITS 30
 
-#define KEYBINDING(keycode, modifier) (((modifier) << 8) | (keycode))
-#define KEYCODE(binding) ((binding) & 0xFF)
-#define MODIFIER(binding) (((binding) >> 8) & 0xFF)
 #define KEYBOARD_CONFIG(index, action) ((((KEYBOARD_CONFIG_BASE + (index)) | ((action) << 6)) << 8) | KEYBOARD_OPERATION)
-
-#define KEYBOARD_REPORT_FLAG_SET(flag)      BIT_SET(g_keyboard_report_flags.raw, flag)
-#define KEYBOARD_REPORT_FLAG_CLEAR(flag)    BIT_RESET(g_keyboard_report_flags.raw, flag)
-#define KEYBOARD_REPORT_FLAG_GET(flag)      BIT_GET(g_keyboard_report_flags.raw, flag)
+#define KEYBOARD_GET_KEY_ANALOG_VALUE(key) (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->value : ((((Key*)(key))->state) * ANALOG_VALUE_MAX))
+#define KEYBOARD_GET_KEY_EFFECTIVE_ANALOG_VALUE(key) (IS_ADVANCED_KEY((key)) ? advanced_key_get_effective_value(((AdvancedKey*)(key))) : ((((Key*)(key))->state) * ANALOG_VALUE_MAX))
 
 typedef struct
 {

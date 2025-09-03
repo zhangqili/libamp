@@ -52,7 +52,7 @@ uint8_t midi_compute_note(uint16_t keycode) {
 
 bool midi_event_handler(KeyboardEvent event)
 {
-    uint8_t keycode = MODIFIER(event.keycode);
+    uint8_t keycode = KEYCODE_GET_SUB(event.keycode);
     uint8_t velocity = 0;
     if (IS_ADVANCED_KEY(event.key))
     {
@@ -68,7 +68,7 @@ bool midi_event_handler(KeyboardEvent event)
         velocity = midi_config.velocity;
     }
     
-    if (KEYCODE(event.keycode) == MIDI_NOTE)
+    if (KEYCODE_GET_MAIN(event.keycode) == MIDI_NOTE)
     {
         uint8_t channel  = midi_config.channel;
         if ((event.event == KEYBOARD_EVENT_KEY_DOWN))

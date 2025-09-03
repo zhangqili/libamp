@@ -218,3 +218,17 @@ __WEAK AnalogRawValue advanced_key_read_raw(AdvancedKey *advanced_key)
 {
     return ringbuf_avg(&g_adc_ringbufs[g_analog_map[advanced_key->key.id]]);;
 }
+
+AnalogValue advanced_key_get_effective_value(AdvancedKey *advanced_key)
+{
+    AnalogValue value = (advanced_key->value - advanced_key->config.upper_deadzone) / (float)(ANALOG_VALUE_RANGE - advanced_key->config.upper_deadzone - advanced_key->config.lower_deadzone);
+    if (value > ANALOG_VALUE_MAX)
+    {
+        value = ANALOG_VALUE_MAX;
+    }
+    if (value < ANALOG_VALUE_MIN)
+    {
+        value = ANALOG_VALUE_MIN;
+    }
+    return value;
+}

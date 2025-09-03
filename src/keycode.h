@@ -10,6 +10,10 @@
 
 typedef uint16_t Keycode;
 
+#define KEYCODE(keycode, modifier) (((modifier) << 8) | (keycode))
+#define KEYCODE_GET_MAIN(binding) ((binding) & 0xFF)
+#define KEYCODE_GET_SUB(binding) (((binding) >> 8) & 0xFF)
+
 enum LayerControlKeycode {
   LAYER_MOMENTARY = 0x00,
   LAYER_TURN_ON = 0x01,

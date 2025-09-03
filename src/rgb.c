@@ -245,11 +245,7 @@ void rgb_update(void)
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         uint8_t rgb_index = g_rgb_mapping[g_keyboard_advanced_keys[i].key.id];
-        intensity = g_keyboard_advanced_keys[i].value < g_keyboard_advanced_keys[i].config.upper_deadzone
-                        ? 0
-                    : g_keyboard_advanced_keys[i].value > ANALOG_VALUE_MAX
-                        ? 1.0
-                        : A_NORM(g_keyboard_advanced_keys[i].value);
+        intensity = advanced_key_get_effective_value(&g_keyboard_advanced_keys[i]);
         switch (g_rgb_configs[rgb_index].mode)
         {
         case RGB_MODE_LINEAR:
@@ -285,7 +281,7 @@ void rgb_update(void)
         case RGB_MODE_JELLY:
             for (int8_t j = 0; j < ADVANCED_KEY_NUM; j++)
             {
-                intensity = (JELLY_DISTANCE * A_NORM(g_keyboard_advanced_keys[i].value) - MANHATTAN_DISTANCE(&g_rgb_locations[j], &g_rgb_locations[rgb_index]));
+                intensity = (JELLY_DISTANCE * advanced_key_get_effective_value(&g_keyboard_advanced_keys[i]) - MANHATTAN_DISTANCE(&g_rgb_locations[j], &g_rgb_locations[rgb_index]));
                 intensity = intensity > 0 ? intensity > 1 ? 1 : intensity : 0;
 
                 temp_rgb.r = ((uint8_t)(intensity * ((float)(g_rgb_configs[j].rgb.r)))) >> 1;

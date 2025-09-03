@@ -44,7 +44,7 @@ void dynamic_key_event_handler(KeyboardEvent event)
     case KEYBOARD_EVENT_KEY_DOWN:
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
-        dynamic_key_add_buffer(event, &g_keyboard_dynamic_keys[MODIFIER(event.keycode)]);
+        dynamic_key_add_buffer(event, &g_keyboard_dynamic_keys[KEYCODE_GET_SUB(event.keycode)]);
         break;
     case KEYBOARD_EVENT_KEY_FALSE:
         break;

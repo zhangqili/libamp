@@ -30,6 +30,8 @@ typedef int8_t MouseInt;
 #define MOUSE_MAX_SPEED 1000
 #endif
 
+#define MOUSE_KEYCODE_IS_MOVE(keycode) (KEYCODE_GET_SUB((keycode)) >= MOUSE_MOVE_UP)
+
 typedef struct __Mouse {
 #ifdef MOUSE_SHARED_EP
     uint8_t report_id;

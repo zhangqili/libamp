@@ -1185,7 +1185,7 @@ void keyboard_user_event_handler(KeyboardEvent event)
     {
         return;
     }
-    switch (MODIFIER(event.keycode))
+    switch (KEYCODE_GET_SUB(event.keycode))
     {
     default:
         break;
