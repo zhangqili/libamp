@@ -31,6 +31,7 @@ void extra_key_event_handler(KeyboardEvent event)
         default:
             break;
         }
+        //fallthrough
     case KEYBOARD_EVENT_KEY_FALSE:
         ((Key*)event.key)->report_state = false;
         break;
@@ -48,6 +49,7 @@ void extra_key_event_handler(KeyboardEvent event)
         default:
             break;
         }
+        //fallthrough
     case KEYBOARD_EVENT_KEY_TRUE:
         ((Key*)event.key)->report_state = true;
         break;

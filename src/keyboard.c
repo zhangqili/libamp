@@ -113,11 +113,13 @@ void keyboard_event_handler(KeyboardEvent event)
         {
         case KEYBOARD_EVENT_KEY_DOWN:
             g_keyboard_report_flags.keyboard = true;
+            //fallthrough
         case KEYBOARD_EVENT_KEY_TRUE:
             ((Key*)event.key)->report_state = true;
             break;
         case KEYBOARD_EVENT_KEY_UP:
             g_keyboard_report_flags.keyboard = true;
+            //fallthrough
         case KEYBOARD_EVENT_KEY_FALSE:
             ((Key*)event.key)->report_state = false;
             break;
