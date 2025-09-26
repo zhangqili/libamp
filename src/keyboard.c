@@ -68,13 +68,21 @@ void keyboard_event_handler(KeyboardEvent event)
         {
             keyboard_advanced_key_event_down_callback((AdvancedKey*)event.key);
         }
+        //fall through
+    case KEYBOARD_EVENT_KEY_TRUE:
+        if (KEYCODE_GET_MAIN(event.keycode) != DYNAMIC_KEY)
+        {
+            ((Key*)event.key)->report_state = true;
+        }
         break;
     case KEYBOARD_EVENT_KEY_UP:
         layer_unlock(((Key*)event.key)->id);
-        break;
-    case KEYBOARD_EVENT_KEY_TRUE:
-        break;
+        //fall through
     case KEYBOARD_EVENT_KEY_FALSE:
+        if (KEYCODE_GET_MAIN(event.keycode) != DYNAMIC_KEY)
+        {
+            ((Key*)event.key)->report_state = false;
+        }
         break;
     default:
         break;
@@ -117,15 +125,13 @@ void keyboard_event_handler(KeyboardEvent event)
         {
         case KEYBOARD_EVENT_KEY_DOWN:
             g_keyboard_report_flags.keyboard = true;
-            //fallthrough
+            break;
         case KEYBOARD_EVENT_KEY_TRUE:
-            ((Key*)event.key)->report_state = true;
             break;
         case KEYBOARD_EVENT_KEY_UP:
             g_keyboard_report_flags.keyboard = true;
-            //fallthrough
+            break;
         case KEYBOARD_EVENT_KEY_FALSE:
-            ((Key*)event.key)->report_state = false;
             break;
         default:
             break;
@@ -189,10 +195,8 @@ void keyboard_operation_event_handler(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_UP:
-        ((Key*)event.key)->report_state = false;
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
-        ((Key*)event.key)->report_state = true;
         uint8_t modifier = KEYCODE_GET_SUB(event.keycode);
         if ((modifier & 0x3F) < KEYBOARD_CONFIG_BASE)
         {

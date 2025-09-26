@@ -54,19 +54,6 @@ bool midi_event_handler(KeyboardEvent event)
 {
     uint8_t keycode = KEYCODE_GET_SUB(event.keycode);
     uint8_t velocity = 0;
-    switch (event.event)
-    {
-    case KEYBOARD_EVENT_KEY_DOWN:
-    case KEYBOARD_EVENT_KEY_TRUE:
-        ((Key*)event.key)->report_state = true;
-        break;
-    case KEYBOARD_EVENT_KEY_UP:
-    case KEYBOARD_EVENT_KEY_FALSE:
-        ((Key*)event.key)->report_state = false;
-        break;
-    default:
-        break;
-    }
     if (IS_ADVANCED_KEY(event.key))
     {
         float intensity = fabs(((AdvancedKey*)event.key)->difference/(float)MIDI_REF_VELOCITY);
