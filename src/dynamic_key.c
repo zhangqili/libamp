@@ -17,7 +17,6 @@ DynamicKey g_keyboard_dynamic_keys[DYNAMIC_KEY_NUM];
 void dynamic_key_event_handler(KeyboardEvent event)
 {
     DynamicKey * dynamic_key = &g_keyboard_dynamic_keys[KEYCODE_GET_SUB(event.keycode)];
-    AdvancedKey * key = (AdvancedKey*)event.key;
     switch (dynamic_key->type)
     {
     case DYNAMIC_KEY_STROKE:
@@ -209,6 +208,8 @@ void dynamic_key_s_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
         {
             keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_s->key_binding[i], KEYBOARD_EVENT_KEY_UP, key));
         }
+        keyboard_event_handler(MK_EVENT(dynamic_key_s->key_binding[i], 
+            CALC_EVENT(BIT_GET(last_key_state, i), BIT_GET(dynamic_key_s->key_state, i)), key));
     }
     key->key.report_state = dynamic_key_s->key_state > 0;
     dynamic_key_s->value = current_value;
@@ -218,6 +219,8 @@ void dynamic_key_mt_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
 {
     AdvancedKey * key = (AdvancedKey*)event.key;
     DynamicKeyModTap*dynamic_key_mt=(DynamicKeyModTap*)dynamic_key;
+    bool last_report_state = key->key.report_state;
+    bool next_report_state = key->key.report_state;
     if (event.event == KEYBOARD_EVENT_KEY_DOWN)
     {
         dynamic_key_mt->begin_time = g_keyboard_tick;
@@ -228,13 +231,11 @@ void dynamic_key_mt_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
         {
             dynamic_key_mt->end_time = g_keyboard_tick+DK_TAP_DURATION;
             dynamic_key_mt->state = DYNAMIC_KEY_ACTION_TAP;
-            keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_mt->key_binding[1], KEYBOARD_EVENT_KEY_DOWN, key));
-            key->key.report_state = true;
+            next_report_state = true;
         }
         else
         {
-            keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_mt->key_binding[1], KEYBOARD_EVENT_KEY_UP, key));
-            key->key.report_state = false;
+            next_report_state = false;
         }
         dynamic_key_mt->begin_time = g_keyboard_tick;
     }
@@ -242,32 +243,31 @@ void dynamic_key_mt_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
     {
         dynamic_key_mt->end_time = 0xFFFFFFFF;
         dynamic_key_mt->state = DYNAMIC_KEY_ACTION_HOLD;
-        keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_mt->key_binding[1], KEYBOARD_EVENT_KEY_DOWN, key));
-        key->key.report_state = true;
+        next_report_state = true;
     }
     if (g_keyboard_tick > dynamic_key_mt->end_time && key->key.report_state)
     {
-        keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_mt->key_binding[1], KEYBOARD_EVENT_KEY_UP, key));
-        key->key.report_state = false;
+        next_report_state = false;
     }
+    keyboard_event_handler(MK_EVENT(dynamic_key_mt->key_binding[DYNAMIC_KEY_ACTION_TAP], 
+        CALC_EVENT(dynamic_key_mt->state == DYNAMIC_KEY_ACTION_TAP && last_report_state, dynamic_key_mt->state == DYNAMIC_KEY_ACTION_TAP && next_report_state), key));
+    keyboard_event_handler(MK_EVENT(dynamic_key_mt->key_binding[DYNAMIC_KEY_ACTION_HOLD], 
+        CALC_EVENT(dynamic_key_mt->state == DYNAMIC_KEY_ACTION_HOLD && last_report_state, dynamic_key_mt->state == DYNAMIC_KEY_ACTION_HOLD && next_report_state), key));
+    key->key.report_state = last_report_state;
+    keyboard_key_update_report_state((Key*)key, next_report_state);
 }
 
 void dynamic_key_tk_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
 {
     AdvancedKey * key = (AdvancedKey*)event.key;
     DynamicKeyToggleKey*dynamic_key_tk=(DynamicKeyToggleKey*)dynamic_key;
+    bool next_state = dynamic_key_tk->state;
     if (event.event == KEYBOARD_EVENT_KEY_DOWN)
     {
-        dynamic_key_tk->state = !dynamic_key_tk->state;
-        if (dynamic_key_tk->state)
-        {
-            keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_tk->key_binding, KEYBOARD_EVENT_KEY_DOWN, key));
-        }
-        else
-        {
-            keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_tk->key_binding, KEYBOARD_EVENT_KEY_UP, key));
-        }
+        next_state = !dynamic_key_tk->state;
     }
+    keyboard_event_handler(MK_EVENT(dynamic_key_tk->key_binding, CALC_EVENT(dynamic_key_tk->state, next_state), key));
+    dynamic_key_tk->state = next_state;
 }
 
 void dynamic_key_m_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
@@ -386,22 +386,6 @@ void dynamic_key_m_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
         }
     }
     call_event:
-    if (key0_state && !last_key0_state)
-    {
-        keyboard_advanced_key_event_handler(key0, MK_EVENT(dynamic_key_m->key_binding[0], KEYBOARD_EVENT_KEY_DOWN, key));
-    }
-    if (!key0_state && last_key0_state)
-    {
-        keyboard_advanced_key_event_handler(key0, MK_EVENT(dynamic_key_m->key_binding[0], KEYBOARD_EVENT_KEY_UP, key));
-    }
-    if (key1_state && !last_key1_state)
-    {
-        keyboard_advanced_key_event_handler(key1, MK_EVENT(dynamic_key_m->key_binding[1], KEYBOARD_EVENT_KEY_DOWN, key));
-    }
-    if (!key1_state && last_key1_state)
-    {
-        keyboard_advanced_key_event_handler(key1, MK_EVENT(dynamic_key_m->key_binding[1], KEYBOARD_EVENT_KEY_UP, key));
-    }
-    key0->key.report_state = key0_state;
-    key1->key.report_state = key1_state;
+    keyboard_event_handler(MK_EVENT(dynamic_key_m->key_binding[0], CALC_EVENT(last_key0_state, key0_state), key0));
+    keyboard_event_handler(MK_EVENT(dynamic_key_m->key_binding[1], CALC_EVENT(last_key1_state, key1_state), key1));
 }

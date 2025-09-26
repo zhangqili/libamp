@@ -15,7 +15,7 @@ void mouse_event_handler(KeyboardEvent event)
     if (MOUSE_KEYCODE_IS_MOVE(event.keycode))
     {
         g_keyboard_report_flags.mouse = true;
-        ((Key*)event.key)->report_state = true;
+        keyboard_key_update_report_state(((Key*)event.key), true);
         return;
     }
     switch (event.event)
@@ -24,13 +24,13 @@ void mouse_event_handler(KeyboardEvent event)
         g_keyboard_report_flags.mouse = true;
         //fallthrough
     case KEYBOARD_EVENT_KEY_TRUE:
-        ((Key*)event.key)->report_state = true;
+        keyboard_key_update_report_state(((Key*)event.key), true);
         break;
     case KEYBOARD_EVENT_KEY_UP:
         g_keyboard_report_flags.mouse = true;
         //fallthrough
     case KEYBOARD_EVENT_KEY_FALSE:
-        ((Key*)event.key)->report_state = false;
+        keyboard_key_update_report_state(((Key*)event.key), false);
         break;
     default:
         break;

@@ -115,13 +115,13 @@ void keyboard_event_handler(KeyboardEvent event)
             g_keyboard_report_flags.keyboard = true;
             //fallthrough
         case KEYBOARD_EVENT_KEY_TRUE:
-            ((Key*)event.key)->report_state = true;
+            keyboard_key_update_report_state(((Key*)event.key), true);
             break;
         case KEYBOARD_EVENT_KEY_UP:
             g_keyboard_report_flags.keyboard = true;
             //fallthrough
         case KEYBOARD_EVENT_KEY_FALSE:
-            ((Key*)event.key)->report_state = false;
+            keyboard_key_update_report_state(((Key*)event.key), false);
             break;
         default:
             break;
@@ -185,8 +185,10 @@ void keyboard_operation_event_handler(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_UP:
+        keyboard_key_update_report_state(((Key*)event.key), false);
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_update_report_state(((Key*)event.key), true);
         uint8_t modifier = KEYCODE_GET_SUB(event.keycode);
         if ((modifier & 0x3F) < KEYBOARD_CONFIG_BASE)
         {
@@ -290,7 +292,6 @@ void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event)
     default:
         break;
     }
-    keyboard_event_handler(event);
 }
 
 int keyboard_buffer_send(void)
@@ -559,7 +560,7 @@ __WEAK void keyboard_task(void)
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
-        keyboard_advanced_key_event_handler(advanced_key, MK_EVENT(layer_cache_get_keycode(advanced_key->key.id), 
+        keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(advanced_key->key.id), 
                                                     advanced_key_update_raw(advanced_key, advanced_key_read(advanced_key)) ? 
                                                    advanced_key->key.state ? KEYBOARD_EVENT_KEY_DOWN : KEYBOARD_EVENT_KEY_UP
                                                    : advanced_key->key.state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE ,
@@ -596,32 +597,34 @@ __WEAK void keyboard_delay(uint32_t ms)
     UNUSED(ms);
 }
 
-void keyboard_key_update(Key *key, bool state)
+bool keyboard_key_update(Key *key, bool state)
 {
-    if (!key->state && state)
-    {
-        keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_KEY_DOWN, key));
-    }
-    if (key->state && !state)
-    {
-        keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_KEY_UP, key));
-    }
-    key_update(key, state);
+    bool changed = key_update(key, state);
+    keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(key->id), 
+                                    changed ? 
+                                    key->state ? KEYBOARD_EVENT_KEY_DOWN : KEYBOARD_EVENT_KEY_UP
+                                    : key->state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE, key
+                                ));
     key->report_state = state;
+    return changed;
 }
 
-
-void keyboard_advanced_key_update_report_state(AdvancedKey *key, bool report_state)
+void keyboard_key_update_report_state(Key *key, bool report_state)
 {
-    if ((!(key->key.report_state)) && report_state)
+    if (!IS_ADVANCED_KEY(key))
     {
-        keyboard_advanced_key_event_handler(key,
-            MK_EVENT(layer_cache_get_keycode(key->key.id), KEYBOARD_EVENT_KEY_DOWN, key));
+        key->report_state = report_state;
+        return;
     }
-    if ((key->key.report_state) && (!report_state))
+    if ((!(key->report_state)) && report_state)
     {
-        keyboard_advanced_key_event_handler(key,
-            MK_EVENT(layer_cache_get_keycode(key->key.id), KEYBOARD_EVENT_KEY_UP, key));
+        keyboard_advanced_key_event_handler((AdvancedKey*)key,
+            MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_KEY_DOWN, key));
     }
-    key->key.report_state = report_state;
+    if ((key->report_state) && (!report_state))
+    {
+        keyboard_advanced_key_event_handler((AdvancedKey*)key,
+            MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_KEY_UP, key));
+    }
+    key->report_state = report_state;
 }

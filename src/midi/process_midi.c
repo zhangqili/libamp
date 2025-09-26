@@ -58,11 +58,11 @@ bool midi_event_handler(KeyboardEvent event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
     case KEYBOARD_EVENT_KEY_TRUE:
-        ((Key*)event.key)->report_state = true;
+        keyboard_key_update_report_state(((Key*)event.key), true);
         break;
     case KEYBOARD_EVENT_KEY_UP:
     case KEYBOARD_EVENT_KEY_FALSE:
-        ((Key*)event.key)->report_state = false;
+        keyboard_key_update_report_state(((Key*)event.key), false);
         break;
     default:
         break;

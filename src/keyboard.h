@@ -172,8 +172,8 @@ int keyboard_NKRObuffer_send(Keyboard_NKROBuffer*buf);
 void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf);
 
 
-void keyboard_key_update(Key *key, bool state);
-void keyboard_advanced_key_update_report_state(AdvancedKey *key, bool report_state);
+bool keyboard_key_update(Key *key, bool state);
+void keyboard_key_update_report_state(Key *key, bool report_state);
 
 void keyboard_init(void);
 void keyboard_reboot(void);
