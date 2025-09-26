@@ -68,7 +68,7 @@ enum
     KEYBOARD_CONFIG_TOGGLE  = 2,
 };
 
-typedef struct
+typedef union
 {
     uint8_t raw;
     struct
@@ -157,7 +157,7 @@ extern volatile KeyboardReportFlag g_keyboard_report_flags;
 
 void keyboard_event_handler(KeyboardEvent event);
 void keyboard_operation_event_handler(KeyboardEvent event);
-void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event);
+void keyboard_advanced_key_event_down_callback(AdvancedKey*key);
 
 void keyboard_add_buffer(KeyboardEvent event);
 int keyboard_buffer_send(void);
@@ -171,9 +171,7 @@ int keyboard_NKRObuffer_add(Keyboard_NKROBuffer*buf,Keycode keycode);
 int keyboard_NKRObuffer_send(Keyboard_NKROBuffer*buf);
 void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf);
 
-
 bool keyboard_key_update(Key *key, bool state);
-void keyboard_key_update_report_state(Key *key, bool report_state);
 
 void keyboard_init(void);
 void keyboard_reboot(void);

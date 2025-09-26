@@ -45,4 +45,12 @@
 #define BIT_GET(value, bit) ((value) & (BIT(bit)))
 #endif
 
+#ifndef IS_POS_EDGE
+#define IS_POS_EDGE(state, next_state) (!(state) && (next_state))
+#endif
+
+#ifndef IS_NEG_EDGE
+#define IS_NEG_EDGE(state, next_state) ((state) && !(next_state))
+#endif
+
 #endif //KEYBOARD_DEF_H

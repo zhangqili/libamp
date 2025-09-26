@@ -200,14 +200,6 @@ void dynamic_key_s_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
         {
             BIT_RESET(dynamic_key_s->key_state, i);
         }
-        if (BIT_GET(dynamic_key_s->key_state, i) && !BIT_GET(last_key_state, i))
-        {
-            keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_s->key_binding[i], KEYBOARD_EVENT_KEY_DOWN, key));
-        }
-        if (!BIT_GET(dynamic_key_s->key_state, i) && BIT_GET(last_key_state, i))
-        {
-            keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_s->key_binding[i], KEYBOARD_EVENT_KEY_UP, key));
-        }
         keyboard_event_handler(MK_EVENT(dynamic_key_s->key_binding[i], 
             CALC_EVENT(BIT_GET(last_key_state, i), BIT_GET(dynamic_key_s->key_state, i)), key));
     }
@@ -253,8 +245,7 @@ void dynamic_key_mt_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
         CALC_EVENT(dynamic_key_mt->state == DYNAMIC_KEY_ACTION_TAP && last_report_state, dynamic_key_mt->state == DYNAMIC_KEY_ACTION_TAP && next_report_state), key));
     keyboard_event_handler(MK_EVENT(dynamic_key_mt->key_binding[DYNAMIC_KEY_ACTION_HOLD], 
         CALC_EVENT(dynamic_key_mt->state == DYNAMIC_KEY_ACTION_HOLD && last_report_state, dynamic_key_mt->state == DYNAMIC_KEY_ACTION_HOLD && next_report_state), key));
-    key->key.report_state = last_report_state;
-    keyboard_key_update_report_state((Key*)key, next_report_state);
+    key->key.report_state = next_report_state;
 }
 
 void dynamic_key_tk_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)

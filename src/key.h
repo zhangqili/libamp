@@ -21,11 +21,17 @@ typedef enum
     KEY_EVENT_NUM
 } KEY_EVENT;
 typedef void (*key_cb_t)(void *);
+typedef struct __KeyBase
+{
+    uint16_t id;
+    uint8_t state;
+    uint8_t report_state;
+} KeyBase;
 typedef struct __Key
 {
     uint16_t id;
-    bool state;
-    bool report_state;
+    uint8_t state;
+    uint8_t report_state;
     key_cb_t key_cb[KEY_EVENT_NUM];
 } Key;
 bool key_update(Key *key, bool state);

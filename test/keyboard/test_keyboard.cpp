@@ -11,7 +11,7 @@ extern uint8_t keyboard_send_buffer[64];
 
 void keyboard_advanced_key_update_state(AdvancedKey *key, bool state)
 {
-    keyboard_advanced_key_event_handler(key, MK_EVENT(layer_cache_get_keycode(key->key.id), 
+    keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(key->key.id), 
                                             advanced_key_update_state(key, state) ? 
                                             key->key.state ? KEYBOARD_EVENT_KEY_DOWN : KEYBOARD_EVENT_KEY_UP
                                             : key->key.state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE ,

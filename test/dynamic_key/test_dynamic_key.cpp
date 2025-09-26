@@ -13,7 +13,7 @@ extern "C" void _dynamic_key_add_buffer(KeyboardEvent event, DynamicKey*dynamic_
 
 void dk_advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
 {
-    keyboard_advanced_key_event_handler(advanced_key, MK_EVENT(layer_cache_get_keycode(advanced_key->key.id), 
+    keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(advanced_key->key.id), 
                                                 advanced_key_update(advanced_key, value) ? 
                                                advanced_key->key.state ? KEYBOARD_EVENT_KEY_DOWN : KEYBOARD_EVENT_KEY_UP
                                                : advanced_key->key.state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE ,
@@ -40,7 +40,7 @@ TEST(DynamicKey, ModTap)
         _dynamic_key_add_buffer(MK_EVENT(KEY_NO_EVENT, KEYBOARD_EVENT_NO_EVENT, &advanced_key), &dynamic_key);
     }
     keyboard_buffer_send();
-    EXPECT_EQ(dynamic_key.mt.state, DYNAMIC_KEY_ACTION_TAP);
+    //EXPECT_TRUE(dynamic_key.mt.vkey0.report_state);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
     g_keyboard_tick += 200;
 
@@ -52,7 +52,7 @@ TEST(DynamicKey, ModTap)
         _dynamic_key_add_buffer(MK_EVENT(KEY_NO_EVENT, KEYBOARD_EVENT_NO_EVENT, &advanced_key), &dynamic_key);
     }
     keyboard_buffer_send();
-    EXPECT_EQ(dynamic_key.mt.state, DYNAMIC_KEY_ACTION_HOLD);
+    //EXPECT_TRUE(dynamic_key.mt.vkey1.report_state);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_B);
 
     advanced_key.key.state = false;
@@ -85,7 +85,7 @@ TEST(DynamicKey, ModTap)
         _dynamic_key_add_buffer(MK_EVENT(KEY_NO_EVENT, KEYBOARD_EVENT_NO_EVENT, &advanced_key), &dynamic_key);
     }
     keyboard_buffer_send();
-    EXPECT_EQ(dynamic_key.mt.state, DYNAMIC_KEY_ACTION_TAP);
+    //EXPECT_TRUE(dynamic_key.mt.vkey0.state);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
 }
 

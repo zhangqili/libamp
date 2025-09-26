@@ -15,7 +15,7 @@ void joystick_event_handler(KeyboardEvent event)
     if (JOYSTICK_KEYCODE_IS_AXIS(event.keycode))
     {
         g_keyboard_report_flags.joystick = true;
-        keyboard_key_update_report_state(((Key*)event.key), true);
+        ((Key*)event.key)->report_state = true;
         return;
     }
     switch (event.event)
@@ -24,13 +24,13 @@ void joystick_event_handler(KeyboardEvent event)
         g_keyboard_report_flags.joystick = true;
         //fallthrough
     case KEYBOARD_EVENT_KEY_TRUE:
-        keyboard_key_update_report_state(((Key*)event.key), true);
+        ((Key*)event.key)->report_state = true;
         break;
     case KEYBOARD_EVENT_KEY_UP:
         g_keyboard_report_flags.joystick = true;
         //fallthrough
     case KEYBOARD_EVENT_KEY_FALSE:
-        keyboard_key_update_report_state(((Key*)event.key), false);
+        ((Key*)event.key)->report_state = false;
         break;
     default:
         break;

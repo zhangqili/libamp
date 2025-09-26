@@ -33,7 +33,7 @@ void extra_key_event_handler(KeyboardEvent event)
         }
         //fallthrough
     case KEYBOARD_EVENT_KEY_FALSE:
-        keyboard_key_update_report_state(((Key*)event.key), false);
+        ((Key*)event.key)->report_state = false;
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
         switch (KEYCODE_GET_MAIN(event.keycode))
@@ -51,7 +51,7 @@ void extra_key_event_handler(KeyboardEvent event)
         }
         //fallthrough
     case KEYBOARD_EVENT_KEY_TRUE:
-        keyboard_key_update_report_state(((Key*)event.key), true);
+        ((Key*)event.key)->report_state = true;
         break;
     default:
         break;

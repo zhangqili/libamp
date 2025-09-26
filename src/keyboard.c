@@ -64,6 +64,10 @@ void keyboard_event_handler(KeyboardEvent event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
         layer_lock(((Key*)event.key)->id);
+        if (IS_ADVANCED_KEY(event.key) && KEYCODE_GET_MAIN(event.keycode) != DYNAMIC_KEY)
+        {
+            keyboard_advanced_key_event_down_callback((AdvancedKey*)event.key);
+        }
         break;
     case KEYBOARD_EVENT_KEY_UP:
         layer_unlock(((Key*)event.key)->id);
@@ -115,13 +119,13 @@ void keyboard_event_handler(KeyboardEvent event)
             g_keyboard_report_flags.keyboard = true;
             //fallthrough
         case KEYBOARD_EVENT_KEY_TRUE:
-            keyboard_key_update_report_state(((Key*)event.key), true);
+            ((Key*)event.key)->report_state = true;
             break;
         case KEYBOARD_EVENT_KEY_UP:
             g_keyboard_report_flags.keyboard = true;
             //fallthrough
         case KEYBOARD_EVENT_KEY_FALSE:
-            keyboard_key_update_report_state(((Key*)event.key), false);
+            ((Key*)event.key)->report_state = false;
             break;
         default:
             break;
@@ -185,10 +189,10 @@ void keyboard_operation_event_handler(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_UP:
-        keyboard_key_update_report_state(((Key*)event.key), false);
+        ((Key*)event.key)->report_state = false;
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
-        keyboard_key_update_report_state(((Key*)event.key), true);
+        ((Key*)event.key)->report_state = true;
         uint8_t modifier = KEYCODE_GET_SUB(event.keycode);
         if ((modifier & 0x3F) < KEYBOARD_CONFIG_BASE)
         {
@@ -268,30 +272,17 @@ void keyboard_operation_event_handler(KeyboardEvent event)
     }
 }
 
-void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event)
+void keyboard_advanced_key_event_down_callback(AdvancedKey*key)
 {
-    switch (event.event)
-    {
-    case KEYBOARD_EVENT_KEY_DOWN:
 #ifdef RGB_ENABLE
-        rgb_activate(key->key.id);
+    rgb_activate(key->key.id);
 #endif
 #ifdef KPS_ENABLE
-        record_kps_tick();
+    record_kps_tick();
 #endif
 #ifdef COUNTER_ENABLE
-        g_key_counts[key->key.id]++;
+    g_key_counts[key->key.id]++;
 #endif
-        break;
-    case KEYBOARD_EVENT_KEY_UP:
-        break;
-    case KEYBOARD_EVENT_KEY_TRUE:
-        break;
-    case KEYBOARD_EVENT_KEY_FALSE:
-        break;
-    default:
-        break;
-    }
 }
 
 int keyboard_buffer_send(void)
@@ -607,24 +598,4 @@ bool keyboard_key_update(Key *key, bool state)
                                 ));
     key->report_state = state;
     return changed;
-}
-
-void keyboard_key_update_report_state(Key *key, bool report_state)
-{
-    if (!IS_ADVANCED_KEY(key))
-    {
-        key->report_state = report_state;
-        return;
-    }
-    if ((!(key->report_state)) && report_state)
-    {
-        keyboard_advanced_key_event_handler((AdvancedKey*)key,
-            MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_KEY_DOWN, key));
-    }
-    if ((key->report_state) && (!report_state))
-    {
-        keyboard_advanced_key_event_handler((AdvancedKey*)key,
-            MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_KEY_UP, key));
-    }
-    key->report_state = report_state;
 }
