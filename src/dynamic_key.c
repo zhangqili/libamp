@@ -14,39 +14,23 @@
 DynamicKey g_keyboard_dynamic_keys[DYNAMIC_KEY_NUM];
 #endif
 
-void dynamic_key_update(DynamicKey*dynamic_key,AdvancedKey*advanced_key, bool state)
+void dynamic_key_event_handler(KeyboardEvent event)
 {
+    DynamicKey * dynamic_key = &g_keyboard_dynamic_keys[KEYCODE_GET_SUB(event.keycode)];
+    AdvancedKey * key = (AdvancedKey*)event.key;
     switch (dynamic_key->type)
     {
     case DYNAMIC_KEY_STROKE:
-        dynamic_key_s_update(dynamic_key, advanced_key, state);
+        dynamic_key_s_event_handler(dynamic_key, event);
         break;
     case DYNAMIC_KEY_MOD_TAP:
-        dynamic_key_mt_update(dynamic_key, advanced_key, state);
+        dynamic_key_mt_event_handler(dynamic_key, event);
         break;
     case DYNAMIC_KEY_TOGGLE_KEY:
-        dynamic_key_tk_update(dynamic_key, advanced_key, state);
+        dynamic_key_tk_event_handler(dynamic_key, event);
         break;
     case DYNAMIC_KEY_MUTEX:
-        dynamic_key_m_update(dynamic_key, advanced_key, state);
-        break;
-    default:
-        break;
-    }
-}
-
-void dynamic_key_event_handler(KeyboardEvent event)
-{
-    switch (event.event)
-    {
-    case KEYBOARD_EVENT_KEY_UP:
-        break;
-    case KEYBOARD_EVENT_KEY_DOWN:
-        break;
-    case KEYBOARD_EVENT_KEY_TRUE:
-        dynamic_key_add_buffer(event, &g_keyboard_dynamic_keys[KEYCODE_GET_SUB(event.keycode)]);
-        break;
-    case KEYBOARD_EVENT_KEY_FALSE:
+        dynamic_key_m_event_handler(dynamic_key, event);
         break;
     default:
         break;
@@ -54,7 +38,7 @@ void dynamic_key_event_handler(KeyboardEvent event)
 }
 
 
-void dynamic_key_add_buffer(KeyboardEvent event, DynamicKey*dynamic_key)
+void _dynamic_key_add_buffer(KeyboardEvent event, DynamicKey*dynamic_key)
 {
     switch (dynamic_key->type)
     {
@@ -63,16 +47,16 @@ void dynamic_key_add_buffer(KeyboardEvent event, DynamicKey*dynamic_key)
         for (int i = 0; i < 4; i++)
         {
             if (BIT_GET(dynamic_key_s->key_state,i))
-                keyboard_event_handler(MK_EVENT(dynamic_key_s->key_binding[i], KEYBOARD_EVENT_KEY_TRUE, event.key));
+                keyboard_add_buffer(MK_EVENT(dynamic_key_s->key_binding[i], KEYBOARD_EVENT_NO_EVENT, event.key));
         }
         break;
     case DYNAMIC_KEY_MOD_TAP:
         DynamicKeyModTap*dynamic_key_mt=(DynamicKeyModTap*)dynamic_key;
-        keyboard_event_handler(MK_EVENT(dynamic_key_mt->key_binding[dynamic_key_mt->state], KEYBOARD_EVENT_KEY_TRUE, event.key));
+        keyboard_add_buffer(MK_EVENT(dynamic_key_mt->key_binding[dynamic_key_mt->state], KEYBOARD_EVENT_NO_EVENT, event.key));
         break;
     case DYNAMIC_KEY_TOGGLE_KEY:
         DynamicKeyToggleKey*dynamic_key_tk=(DynamicKeyToggleKey*)dynamic_key;
-        keyboard_event_handler(MK_EVENT(dynamic_key_tk->key_binding, KEYBOARD_EVENT_KEY_TRUE, event.key));
+        keyboard_add_buffer(MK_EVENT(dynamic_key_tk->key_binding, KEYBOARD_EVENT_NO_EVENT, event.key));
         break;
     case DYNAMIC_KEY_MUTEX:
         {
@@ -80,9 +64,9 @@ void dynamic_key_add_buffer(KeyboardEvent event, DynamicKey*dynamic_key)
             AdvancedKey*key0 = &g_keyboard_advanced_keys[dynamic_key_m->key_id[0]];
             AdvancedKey*key1 = &g_keyboard_advanced_keys[dynamic_key_m->key_id[1]];
             if (key0->key.report_state)
-                keyboard_event_handler(MK_EVENT(dynamic_key_m->key_binding[0], KEYBOARD_EVENT_KEY_TRUE, event.key));
+                keyboard_add_buffer(MK_EVENT(dynamic_key_m->key_binding[0], KEYBOARD_EVENT_NO_EVENT, event.key));
             if (key1->key.report_state)
-                keyboard_event_handler(MK_EVENT(dynamic_key_m->key_binding[1], KEYBOARD_EVENT_KEY_TRUE, event.key));
+                keyboard_add_buffer(MK_EVENT(dynamic_key_m->key_binding[1], KEYBOARD_EVENT_NO_EVENT, event.key));
         }
         break;
     default:
@@ -90,14 +74,20 @@ void dynamic_key_add_buffer(KeyboardEvent event, DynamicKey*dynamic_key)
     }
 }
 
+void dynamic_key_add_buffer(KeyboardEvent event)
+{
+    DynamicKey*dynamic_key = &g_keyboard_dynamic_keys[KEYCODE_GET_SUB(event.keycode)];
+    _dynamic_key_add_buffer(event, dynamic_key);
+}
+
 #define DKS_PRESS_BEGIN 0
 #define DKS_PRESS_FULLY 2
 #define DKS_RELEASE_BEGIN 4
 #define DKS_RELEASE_FULLY 6
 #define DKS_GET_KEY_CONTROL(key_ctrl, n) (((key_ctrl) >> (n)) & 0x03)
-void dynamic_key_s_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
+void dynamic_key_s_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
 {
-    UNUSED(state);
+    AdvancedKey * key = (AdvancedKey*)event.key;
     DynamicKeyStroke4x4*dynamic_key_s=(DynamicKeyStroke4x4*)dynamic_key;
     AnalogValue last_value = dynamic_key_s->value;
     AnalogValue current_value = key->value;
@@ -220,19 +210,19 @@ void dynamic_key_s_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
             keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_s->key_binding[i], KEYBOARD_EVENT_KEY_UP, key));
         }
     }
-    advanced_key_update_state(key, dynamic_key_s->key_state > 0);
-    key->key.report_state = key->key.state;
+    key->key.report_state = dynamic_key_s->key_state > 0;
     dynamic_key_s->value = current_value;
 }
 
-void dynamic_key_mt_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
+void dynamic_key_mt_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
 {
+    AdvancedKey * key = (AdvancedKey*)event.key;
     DynamicKeyModTap*dynamic_key_mt=(DynamicKeyModTap*)dynamic_key;
-    if (!(key->key.state) && state)
+    if (event.event == KEYBOARD_EVENT_KEY_DOWN)
     {
         dynamic_key_mt->begin_time = g_keyboard_tick;
     }
-    if ((key->key.state) && !state)
+    if (event.event == KEYBOARD_EVENT_KEY_UP)
     {
         if (g_keyboard_tick - dynamic_key_mt->begin_time < dynamic_key_mt->duration)
         {
@@ -248,7 +238,7 @@ void dynamic_key_mt_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
         }
         dynamic_key_mt->begin_time = g_keyboard_tick;
     }
-    if (state && !key->key.report_state && (g_keyboard_tick - dynamic_key_mt->begin_time > dynamic_key_mt->duration))
+    if (key->key.state && !key->key.report_state && (g_keyboard_tick - dynamic_key_mt->begin_time > dynamic_key_mt->duration))
     {
         dynamic_key_mt->end_time = 0xFFFFFFFF;
         dynamic_key_mt->state = DYNAMIC_KEY_ACTION_HOLD;
@@ -260,16 +250,15 @@ void dynamic_key_mt_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
         keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_mt->key_binding[1], KEYBOARD_EVENT_KEY_UP, key));
         key->key.report_state = false;
     }
-    advanced_key_update_state(key, state);
 }
 
-void dynamic_key_tk_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
+void dynamic_key_tk_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
 {
+    AdvancedKey * key = (AdvancedKey*)event.key;
     DynamicKeyToggleKey*dynamic_key_tk=(DynamicKeyToggleKey*)dynamic_key;
-    if (!(key->key.state) && state)
+    if (event.event == KEYBOARD_EVENT_KEY_DOWN)
     {
         dynamic_key_tk->state = !dynamic_key_tk->state;
-        key->key.report_state = dynamic_key_tk->state;
         if (dynamic_key_tk->state)
         {
             keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_tk->key_binding, KEYBOARD_EVENT_KEY_DOWN, key));
@@ -279,17 +268,19 @@ void dynamic_key_tk_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
             keyboard_advanced_key_event_handler(key, MK_EVENT(dynamic_key_tk->key_binding, KEYBOARD_EVENT_KEY_UP, key));
         }
     }
-    advanced_key_update_state(key, state);
 }
 
-void dynamic_key_m_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
+void dynamic_key_m_event_handler(DynamicKey*dynamic_key, KeyboardEvent event)
 {
+    AdvancedKey * key = (AdvancedKey*)event.key;
     DynamicKeyMutex*dynamic_key_m=(DynamicKeyMutex*)dynamic_key;
     AdvancedKey*key0 = &g_keyboard_advanced_keys[dynamic_key_m->key_id[0]];
     AdvancedKey*key1 = &g_keyboard_advanced_keys[dynamic_key_m->key_id[1]];
 
     const bool last_key0_state = key0->key.report_state;
     const bool last_key1_state = key1->key.report_state;
+    bool key0_state = last_key0_state;
+    bool key1_state = last_key1_state;
 
     if ((dynamic_key_m->mode & 0x0F) == DK_MUTEX_DISTANCE_PRIORITY)
     {
@@ -303,22 +294,22 @@ void dynamic_key_m_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
         ((dynamic_key_m->mode & 0x80) && (key0->value>= (ANALOG_VALUE_MAX - key0->config.lower_deadzone))&&
         (key1->value>= (ANALOG_VALUE_MAX - key1->config.lower_deadzone))))
         {
-            key0->key.report_state = true;
+            key0_state = true;
         }
         else if (key0->value != key1->value)
         {
-            key0->key.report_state = false;
+            key0_state = false;
         }
 
         if (((key0->value < key1->value) && (key1->value > key1->config.upper_deadzone))||
         ((dynamic_key_m->mode & 0x80) && (key0->value>= (ANALOG_VALUE_MAX - key0->config.lower_deadzone))&&
         (key1->value>= (ANALOG_VALUE_MAX - key1->config.lower_deadzone))))
         {
-            key1->key.report_state = true;
+            key1_state = true;
         }
         else if (key0->value != key1->value)
         {
-            key1->key.report_state = false;
+            key1_state = false;
         }
 
         if (dynamic_key_m->mode & 0xF0)
@@ -326,12 +317,12 @@ void dynamic_key_m_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
             if ((key0->value>= (ANALOG_VALUE_MAX - key0->config.lower_deadzone))&&
             (key1->value>= (ANALOG_VALUE_MAX - key1->config.lower_deadzone)))
             {
-                key0->key.report_state = true;
-                key1->key.report_state = true;
+                key0_state = true;
+                key1_state = true;
             }
         }
-        advanced_key_update_state(key0, key0->key.report_state);
-        advanced_key_update_state(key1, key1->key.report_state);
+        //advanced_key_update_state(key0, key0_state);
+        //advanced_key_update_state(key1, key1_state);
         goto call_event;
     }
 
@@ -340,50 +331,46 @@ void dynamic_key_m_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
     case DK_MUTEX_LAST_PRIORITY:
         if (key->key.id == dynamic_key_m->key_id[0])
         {
-            if (state && !key->key.state)
+            if (event.event == KEYBOARD_EVENT_KEY_DOWN)
             {
-                key0->key.report_state = true;
-                key1->key.report_state = false;
+                key0_state = true;
+                key1_state = false;
             }
-            if (!state && key->key.state)
+            if (event.event == KEYBOARD_EVENT_KEY_UP)
             {
-                key0->key.report_state = false;
-                key1->key.report_state = key1->key.state;
+                key0_state = false;
+                key1_state = key1->key.state;
             }
         }
         else if (key->key.id == dynamic_key_m->key_id[1])
         {
-            if (state && !key->key.state)
+            if (event.event == KEYBOARD_EVENT_KEY_DOWN)
             {
-                key0->key.report_state = false;
-                key1->key.report_state = true;
+                key0_state = false;
+                key1_state = true;
             }
-            if (!state && key->key.state)
+            if (event.event == KEYBOARD_EVENT_KEY_UP)
             {
-                key0->key.report_state = key0->key.state;
-                key1->key.report_state = false;
+                key0_state = key0->key.state;
+                key1_state = false;
             }
         }
-        advanced_key_update_state(key, state);
         break;
     case DK_MUTEX_KEY1_PRIORITY:
-        advanced_key_update_state(key, state);
-        key0->key.report_state = key0->key.state;
-        key1->key.report_state = key0->key.state ? false : key1->key.state;
+        key0_state = key0->key.state;
+        key1_state = key0->key.state ? false : key1->key.state;
         break;
     case DK_MUTEX_KEY2_PRIORITY:
-        advanced_key_update_state(key, state);
-        key0->key.report_state = key1->key.state ? false : key0->key.state;
-        key1->key.report_state = key1->key.state;
+        key0_state = key1->key.state ? false : key0->key.state;
+        key1_state = key1->key.state;
         break;
     case DK_MUTEX_NEUTRAL:
-        advanced_key_update_state(key, state);
-        key0->key.report_state = key0->key.state;
-        key1->key.report_state = key1->key.state;
+        key0_state = key0->key.state;
+        key1_state = key1->key.state;
         if (key0->key.state && key1->key.state)
         {
-            key0->key.report_state = false;
-            key1->key.report_state = false;
+            key0_state = false;
+            key1_state = false;
         }
         break;
     default:
@@ -394,25 +381,27 @@ void dynamic_key_m_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state)
         if ((key0->value>= (ANALOG_VALUE_MAX - key0->config.lower_deadzone))&&
         (key1->value>= (ANALOG_VALUE_MAX - key1->config.lower_deadzone)))
         {
-            key0->key.report_state = true;
-            key1->key.report_state = true;
+            key0_state = true;
+            key1_state = true;
         }
     }
     call_event:
-    if (key0->key.report_state && !last_key0_state)
+    if (key0_state && !last_key0_state)
     {
         keyboard_advanced_key_event_handler(key0, MK_EVENT(dynamic_key_m->key_binding[0], KEYBOARD_EVENT_KEY_DOWN, key));
     }
-    if (!key0->key.report_state && last_key0_state)
+    if (!key0_state && last_key0_state)
     {
         keyboard_advanced_key_event_handler(key0, MK_EVENT(dynamic_key_m->key_binding[0], KEYBOARD_EVENT_KEY_UP, key));
     }
-    if (key1->key.report_state && !last_key1_state)
+    if (key1_state && !last_key1_state)
     {
         keyboard_advanced_key_event_handler(key1, MK_EVENT(dynamic_key_m->key_binding[1], KEYBOARD_EVENT_KEY_DOWN, key));
     }
-    if (!key1->key.report_state && last_key1_state)
+    if (!key1_state && last_key1_state)
     {
         keyboard_advanced_key_event_handler(key1, MK_EVENT(dynamic_key_m->key_binding[1], KEYBOARD_EVENT_KEY_UP, key));
     }
+    key0->key.report_state = key0_state;
+    key1->key.report_state = key1_state;
 }

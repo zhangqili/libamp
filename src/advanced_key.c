@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "advanced_key.h"
-#include "keyboard.h"
 #include "keyboard_def.h"
 #include "analog.h"
 #include "filter.h"
@@ -86,7 +85,7 @@ static inline bool advanced_key_update_analog_speed_mode(AdvancedKey* advanced_k
     return state;
 }
 
-void advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
+bool advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
 {
     advanced_key->difference = value - advanced_key->value;
     advanced_key->value = value;
@@ -107,10 +106,10 @@ void advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
         default:
             break;
     }
-    keyboard_advanced_key_update_state(advanced_key, state);
+    return advanced_key_update_state(advanced_key, state);
 }
 
-void advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue value)
+bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue value)
 {
 #ifdef CALIBRATION_LPF_ENABLE
     static AnalogRawValue low_pass_raws[ADVANCED_KEY_NUM];
@@ -149,20 +148,19 @@ void advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue value)
             advanced_key_set_range(advanced_key, advanced_key->config.upper_bound, lpf_value);
             break;
         }
-        advanced_key_update(advanced_key, ANALOG_VALUE_MIN);
-        return;
+        return advanced_key_update(advanced_key, ANALOG_VALUE_MIN);
     default:
         break;
     }
     if (advanced_key->config.mode == ADVANCED_KEY_DIGITAL_MODE)
-        advanced_key_update(advanced_key, value);
+        return advanced_key_update(advanced_key, value);
     else
-        advanced_key_update(advanced_key, advanced_key_normalize(advanced_key, value));
+        return advanced_key_update(advanced_key, advanced_key_normalize(advanced_key, value));
 }
 
-void advanced_key_update_state(AdvancedKey* advanced_key, bool state)
+bool advanced_key_update_state(AdvancedKey* advanced_key, bool state)
 {
-    key_update(&(advanced_key->key), state);
+    return key_update(&(advanced_key->key), state);
 }
 
 __WEAK AnalogValue advanced_key_normalize(AdvancedKey* advanced_key, AnalogRawValue value)

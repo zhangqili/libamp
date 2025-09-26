@@ -89,7 +89,7 @@ typedef struct __Joystick {
 
 void joystick_event_handler(KeyboardEvent event);
 void joystick_buffer_clear(void);
-void joystick_add_buffer(Keycode keycode);
+void joystick_add_buffer(KeyboardEvent event);
 void joystick_set_axis(Keycode keycode, AnalogValue value);
 int joystick_buffer_send(void);
 

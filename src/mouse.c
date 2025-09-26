@@ -12,22 +12,22 @@ static Mouse mouse;
 
 void mouse_event_handler(KeyboardEvent event)
 {
+    if (MOUSE_KEYCODE_IS_MOVE(event.keycode))
+    {
+        g_keyboard_report_flags.mouse = true;
+        ((Key*)event.key)->report_state = true;
+        return;
+    }
     switch (event.event)
     {
-    case KEYBOARD_EVENT_KEY_UP:
     case KEYBOARD_EVENT_KEY_DOWN:
         g_keyboard_report_flags.mouse = true;
-        break;
     case KEYBOARD_EVENT_KEY_TRUE:
-        if (MOUSE_KEYCODE_IS_MOVE(event.keycode))
-        {
-            g_keyboard_report_flags.mouse = true;
-            mouse_set_axis(event.keycode, KEYBOARD_GET_KEY_EFFECTIVE_ANALOG_VALUE(event.key));
-            break;
-        }
-        mouse_add_buffer(event.keycode);
+        ((Key*)event.key)->report_state = true;
         break;
+    case KEYBOARD_EVENT_KEY_UP:
     case KEYBOARD_EVENT_KEY_FALSE:
+        ((Key*)event.key)->report_state = false;
         break;
     default:
         break;
@@ -40,9 +40,15 @@ void mouse_buffer_clear(void)
     memset(&mouse, 0, sizeof(Mouse));
 }
 
-void mouse_add_buffer(Keycode keycode)
+void mouse_add_buffer(KeyboardEvent event)
 {
-    switch (KEYCODE_GET_SUB(keycode))
+    if (MOUSE_KEYCODE_IS_MOVE(event.keycode))
+    {
+        g_keyboard_report_flags.mouse = true;
+        mouse_set_axis(event.keycode, KEYBOARD_GET_KEY_EFFECTIVE_ANALOG_VALUE(event.key));
+        return;
+    }
+    switch (KEYCODE_GET_SUB(event.keycode))
     {
     case MOUSE_LBUTTON:
         mouse.buttons |= BIT(0);

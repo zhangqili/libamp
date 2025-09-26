@@ -103,13 +103,12 @@ typedef union __DynamicKey
     uint32_t aligned_buffer[15];
 } DynamicKey;
 
-void dynamic_key_update(DynamicKey*dynamic_key, AdvancedKey*advanced_key, bool state);
 void dynamic_key_event_handler(KeyboardEvent event);
-void dynamic_key_add_buffer(KeyboardEvent event, DynamicKey*dynamic_key);
-void dynamic_key_s_update (DynamicKey*dynamic_key, AdvancedKey*key, bool state);
-void dynamic_key_mt_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state);
-void dynamic_key_tk_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state);
-void dynamic_key_m_update(DynamicKey*dynamic_key, AdvancedKey*key, bool state);
+void dynamic_key_add_buffer(KeyboardEvent event);
+void dynamic_key_s_event_handler (DynamicKey*dynamic_key, KeyboardEvent event);
+void dynamic_key_mt_event_handler(DynamicKey*dynamic_key, KeyboardEvent event);
+void dynamic_key_tk_event_handler(DynamicKey*dynamic_key, KeyboardEvent event);
+void dynamic_key_m_event_handler(DynamicKey*dynamic_key, KeyboardEvent event);
 
 #ifdef __cplusplus
 }

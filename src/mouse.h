@@ -50,7 +50,7 @@ typedef struct __Mouse {
 //void mouse_buffer_clear(Mouse*mouse);
 void mouse_event_handler(KeyboardEvent event);
 void mouse_buffer_clear(void);
-void mouse_add_buffer(uint16_t keycode);
+void mouse_add_buffer(KeyboardEvent event);
 void mouse_set_axis(Keycode keycode, AnalogValue value);
 int mouse_buffer_send(void);
 

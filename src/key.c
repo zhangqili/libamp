@@ -6,19 +6,24 @@
 
 #include "key.h"
 
-void key_update(Key* key,bool state)
+bool key_update(Key* key,bool state)
 {
     if ((!(key->state)) && state)
     {
         if (key->key_cb[KEY_EVENT_DOWN])
             key->key_cb[KEY_EVENT_DOWN](key);
+        key->state = state;
+        return true;
     }
     if ((key->state) && (!state))
     {
         if (key->key_cb[KEY_EVENT_UP])
             key->key_cb[KEY_EVENT_UP](key);
+        key->state = state;
+        return true;
     }
     key->state = state;
+    return false;
 }
 
 void key_attach(Key* key, KEY_EVENT e, key_cb_t cb)

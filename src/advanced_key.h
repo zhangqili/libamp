@@ -94,9 +94,9 @@ typedef struct __AdvancedKey
 } AdvancedKey;
 
 void advanced_key_init(AdvancedKey *advanced_key);
-void advanced_key_update(AdvancedKey *advanced_key, AnalogValue value);
-void advanced_key_update_raw(AdvancedKey *advanced_key, AnalogValue value);
-void advanced_key_update_state(AdvancedKey *advanced_key, bool state);
+bool advanced_key_update(AdvancedKey *advanced_key, AnalogValue value);
+bool advanced_key_update_raw(AdvancedKey *advanced_key, AnalogValue value);
+bool advanced_key_update_state(AdvancedKey *advanced_key, bool state);
 AnalogValue advanced_key_normalize(AdvancedKey *advanced_key, AnalogRawValue value);
 void advanced_key_set_range(AdvancedKey *advanced_key, AnalogRawValue upper, AnalogRawValue lower);
 void advanced_key_reset_range(AdvancedKey* advanced_key, AnalogRawValue value);

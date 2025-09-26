@@ -31,6 +31,8 @@ void extra_key_event_handler(KeyboardEvent event)
         default:
             break;
         }
+    case KEYBOARD_EVENT_KEY_FALSE:
+        ((Key*)event.key)->report_state = false;
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
         switch (KEYCODE_GET_MAIN(event.keycode))
@@ -46,30 +48,33 @@ void extra_key_event_handler(KeyboardEvent event)
         default:
             break;
         }
-        break;
     case KEYBOARD_EVENT_KEY_TRUE:
-        switch (KEYCODE_GET_MAIN(event.keycode))
-        {
-        case CONSUMER_COLLECTION:
-            if (!consumer_buffer.usage)
-            {
-                consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(KEYCODE_GET_SUB(event.keycode));
-            }
-                break;
-        case SYSTEM_COLLECTION:
-            if (!system_buffer.usage)
-            {
-                system_buffer.usage = KEYCODE_GET_SUB(event.keycode);
-            }
-        default:
-            break;
-        }
-        break;
-    case KEYBOARD_EVENT_KEY_FALSE:
+        ((Key*)event.key)->report_state = true;
         break;
     default:
         break;
     }
+}
+
+void extra_key_add_buffer(KeyboardEvent event)
+{
+    switch (KEYCODE_GET_MAIN(event.keycode))
+    {
+    case CONSUMER_COLLECTION:
+        if (!consumer_buffer.usage)
+        {
+            consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(KEYCODE_GET_SUB(event.keycode));
+        }
+            break;
+    case SYSTEM_COLLECTION:
+        if (!system_buffer.usage)
+        {
+            system_buffer.usage = KEYCODE_GET_SUB(event.keycode);
+        }
+    default:
+        break;
+    }
+
 }
 
 int consumer_key_buffer_send(void)

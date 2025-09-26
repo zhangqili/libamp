@@ -159,6 +159,7 @@ void keyboard_event_handler(KeyboardEvent event);
 void keyboard_operation_event_handler(KeyboardEvent event);
 void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event);
 
+void keyboard_add_buffer(KeyboardEvent event);
 int keyboard_buffer_send(void);
 void keyboard_clear_buffer(void);
 
@@ -172,7 +173,7 @@ void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf);
 
 
 void keyboard_key_update(Key *key, bool state);
-void keyboard_advanced_key_update_state(AdvancedKey *key, bool state);
+void keyboard_advanced_key_update_report_state(AdvancedKey *key, bool report_state);
 
 void keyboard_init(void);
 void keyboard_reboot(void);

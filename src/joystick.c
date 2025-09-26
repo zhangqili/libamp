@@ -12,22 +12,22 @@ static Joystick joystick;
 
 void joystick_event_handler(KeyboardEvent event)
 {
+    if (JOYSTICK_KEYCODE_IS_AXIS(event.keycode))
+    {
+        g_keyboard_report_flags.joystick = true;
+        ((Key*)event.key)->report_state = true;
+        return;
+    }
     switch (event.event)
     {
-    case KEYBOARD_EVENT_KEY_UP:
     case KEYBOARD_EVENT_KEY_DOWN:
         g_keyboard_report_flags.joystick = true;
-        break;
     case KEYBOARD_EVENT_KEY_TRUE:
-        if (JOYSTICK_KEYCODE_IS_AXIS(event.keycode))
-        {
-            g_keyboard_report_flags.joystick = true;
-            joystick_set_axis(event.keycode, KEYBOARD_GET_KEY_ANALOG_VALUE(event.key));
-            break;
-        }
-        joystick_add_buffer(event.keycode);
+        ((Key*)event.key)->report_state = true;
         break;
+    case KEYBOARD_EVENT_KEY_UP:
     case KEYBOARD_EVENT_KEY_FALSE:
+        ((Key*)event.key)->report_state = false;
         break;
     default:
         break;
@@ -39,9 +39,15 @@ void joystick_buffer_clear(void)
     memset(&joystick, 0, sizeof(Joystick));
 }
 
-void joystick_add_buffer(Keycode keycode)
+void joystick_add_buffer(KeyboardEvent event)
 {
-    uint8_t button = KEYCODE_GET_SUB(keycode);
+    if (JOYSTICK_KEYCODE_IS_AXIS(event.keycode))
+    {
+        g_keyboard_report_flags.joystick = true;
+        joystick_set_axis(event.keycode, KEYBOARD_GET_KEY_ANALOG_VALUE(event.key));
+        return;
+    }
+    uint8_t button = KEYCODE_GET_SUB(event.keycode);
     if (button >= JOYSTICK_BUTTON_COUNT) return;
 
     joystick.buttons[button / 8] |= 1 << (button % 8);
