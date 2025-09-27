@@ -579,7 +579,7 @@ __WEAK void keyboard_task(void)
     {
         g_keyboard_report_flags.keyboard = true;
     }
-    if (g_keyboard_send_report_enable)
+    if (g_keyboard_send_report_enable && g_keyboard_report_flags.raw)
     {
         keyboard_clear_buffer();
         keyboard_fill_buffer();
