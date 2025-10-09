@@ -4,12 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "keyboard.h"
-#include "analog.h"
 #include "keyboard_conf.h"
-#include "mouse.h"
 #include "layer.h"
 #include "record.h"
-#include "process_midi.h"
 #include "driver.h"
 #include "packet.h"
 
@@ -23,6 +20,9 @@
 #ifdef STORAGE_ENABLE
 #include "storage.h"
 #endif
+#ifdef MOUSE_ENABLE
+#include "mouse.h"
+#endif
 #ifdef DYNAMICKEY_ENABLE
 #include "dynamic_key.h"
 #endif
@@ -34,6 +34,7 @@
 #endif
 #ifdef MIDI_ENABLE
 #include "qmk_midi.h"
+#include "process_midi.h"
 #endif
 
 __WEAK const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];

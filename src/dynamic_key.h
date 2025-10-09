@@ -9,7 +9,7 @@
 #include "stdint.h"
 #include "stddef.h"
 #include "stdbool.h"
-#include "key.h"
+
 #include "keycode.h"
 #include "event.h"
 #include "advanced_key.h"

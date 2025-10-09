@@ -214,7 +214,7 @@ __WEAK AnalogRawValue advanced_key_read(AdvancedKey *advanced_key)
 
 __WEAK AnalogRawValue advanced_key_read_raw(AdvancedKey *advanced_key)
 {
-    return ringbuf_avg(&g_adc_ringbufs[g_analog_map[advanced_key->key.id]]);;
+    return ringbuf_avg(&g_adc_ringbufs[g_analog_map[advanced_key->key.id]]);
 }
 
 AnalogValue advanced_key_get_effective_value(AdvancedKey *advanced_key)

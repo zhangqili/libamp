@@ -5,7 +5,7 @@
  */
 #ifndef ANALOG_H_
 #define ANALOG_H_
-#include "keyboard.h"
+
 #include "filter.h"
 
 #ifdef __cplusplus

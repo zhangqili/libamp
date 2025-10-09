@@ -83,7 +83,7 @@ static int _sync(const struct lfs_config *c)
 static uint8_t read_buffer[LFS_CACHE_SIZE];
 static uint8_t prog_buffer[LFS_CACHE_SIZE];
 static uint8_t lookahead_buffer[LFS_CACHE_SIZE];
-static lfs_t lfs;
+static lfs_t _lfs;
 static const struct lfs_config _lfs_config =
 {
     // block device operations
@@ -109,7 +109,7 @@ static const struct lfs_config _lfs_config =
 
 lfs_t * storage_get_lfs(void)
 {
-    return &lfs;
+    return &_lfs;
 }
 #endif
 
@@ -203,13 +203,13 @@ int storage_mount(void)
 {
 #ifdef LFS_ENABLE
     // mount the filesystem
-    int err = lfs_mount(&lfs, &_lfs_config);
+    int err = lfs_mount(&_lfs, &_lfs_config);
     // reformat if we can't mount the filesystem
     // this should only happen on the first boot
     if (err)
     {
-        lfs_format(&lfs, &_lfs_config);
-        lfs_mount(&lfs, &_lfs_config);
+        lfs_format(&_lfs, &_lfs_config);
+        lfs_mount(&_lfs, &_lfs_config);
     }
     return err;
 #endif
@@ -218,7 +218,7 @@ int storage_mount(void)
 void storage_unmount(void)
 {
 #ifdef LFS_ENABLE
-    lfs_unmount(&lfs);
+    lfs_unmount(&_lfs);
 #endif
 }
 
@@ -227,10 +227,10 @@ uint8_t storage_read_config_index(void)
 #ifdef LFS_ENABLE
     lfs_file_t lfs_file;
     uint8_t index = 0;
-    lfs_file_open(&lfs, &lfs_file, "config_index", LFS_O_RDWR | LFS_O_CREAT);
-    lfs_file_rewind(&lfs, &lfs_file);
-    lfs_file_read(&lfs, &lfs_file, &index, sizeof(index));
-    lfs_file_close(&lfs, &lfs_file);
+    lfs_file_open(&_lfs, &lfs_file, "config_index", LFS_O_RDWR | LFS_O_CREAT);
+    lfs_file_rewind(&_lfs, &lfs_file);
+    lfs_file_read(&_lfs, &lfs_file, &index, sizeof(index));
+    lfs_file_close(&_lfs, &lfs_file);
     if (index >= STORAGE_CONFIG_FILE_NUM)
     {
         index = 0;
@@ -246,10 +246,10 @@ void storage_save_config_index(void)
 {
 #ifdef LFS_ENABLE
     lfs_file_t lfs_file;
-    lfs_file_open(&lfs, &lfs_file, "config_index", LFS_O_RDWR | LFS_O_CREAT);
-    lfs_file_rewind(&lfs, &lfs_file);
-    lfs_file_write(&lfs, &lfs_file, &g_current_config_index, sizeof(g_current_config_index));
-    lfs_file_close(&lfs, &lfs_file);
+    lfs_file_open(&_lfs, &lfs_file, "config_index", LFS_O_RDWR | LFS_O_CREAT);
+    lfs_file_rewind(&_lfs, &lfs_file);
+    lfs_file_write(&_lfs, &lfs_file, &g_current_config_index, sizeof(g_current_config_index));
+    lfs_file_close(&_lfs, &lfs_file);
 #else
     flash_write(STORAGE_FLASH_BASE_ADDRESS, sizeof(g_current_config_index), (uint8_t *)&g_current_config_index);
 #endif
@@ -262,23 +262,23 @@ void storage_read_config(void)
     char config_file_name[8] = "config0";
     config_file_name[6] = g_current_config_index + '0';
 
-    lfs_file_open(&lfs, &lfs_file, config_file_name, LFS_O_RDWR | LFS_O_CREAT);
-    lfs_file_rewind(&lfs, &lfs_file);
+    lfs_file_open(&_lfs, &lfs_file, config_file_name, LFS_O_RDWR | LFS_O_CREAT);
+    lfs_file_rewind(&_lfs, &lfs_file);
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        read_advanced_key_config(&lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
+        read_advanced_key_config(&_lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
     }
-    lfs_file_read(&lfs, &lfs_file, g_keymap, sizeof(g_keymap));
+    lfs_file_read(&_lfs, &lfs_file, g_keymap, sizeof(g_keymap));
     layer_cache_refresh();
 #ifdef RGB_ENABLE
-    lfs_file_read(&lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
-    lfs_file_read(&lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
+    lfs_file_read(&_lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
+    lfs_file_read(&_lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
 #endif
 #ifdef DYNAMICKEY_ENABLE
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
     {
         DynamicKey buffer;
-        lfs_file_read(&lfs, &lfs_file, &buffer, sizeof(DynamicKey));
+        lfs_file_read(&_lfs, &lfs_file, &buffer, sizeof(DynamicKey));
         switch (buffer.type)
         {
         case DYNAMIC_KEY_STROKE:
@@ -291,7 +291,7 @@ void storage_read_config(void)
     }
 #endif
     // remember the storage is not updated until the file is closed successfully
-    lfs_file_close(&lfs, &lfs_file);
+    lfs_file_close(&_lfs, &lfs_file);
 #else
     uint32_t offset = 0;
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
@@ -344,16 +344,16 @@ void storage_save_config(void)
     char config_file_name[8] = "config0";
     config_file_name[6] = g_current_config_index + '0';
 
-    lfs_file_open(&lfs, &lfs_file, config_file_name, LFS_O_RDWR | LFS_O_CREAT);
-    lfs_file_rewind(&lfs, &lfs_file);
+    lfs_file_open(&_lfs, &lfs_file, config_file_name, LFS_O_RDWR | LFS_O_CREAT);
+    lfs_file_rewind(&_lfs, &lfs_file);
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        save_advanced_key_config(&lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
+        save_advanced_key_config(&_lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
     }
-    lfs_file_write(&lfs, &lfs_file, g_keymap, sizeof(g_keymap));
+    lfs_file_write(&_lfs, &lfs_file, g_keymap, sizeof(g_keymap));
 #ifdef RGB_ENABLE
-    lfs_file_write(&lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
-    lfs_file_write(&lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
+    lfs_file_write(&_lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
+    lfs_file_write(&_lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
 #endif
 #ifdef DYNAMICKEY_ENABLE
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
@@ -363,16 +363,16 @@ void storage_save_config(void)
         case DYNAMIC_KEY_STROKE:
             DynamicKeyStroke4x4Normalized buffer;
             dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[i]);
-            lfs_file_write(&lfs, &lfs_file, &buffer, sizeof(DynamicKey));
+            lfs_file_write(&_lfs, &lfs_file, &buffer, sizeof(DynamicKey));
             break;
         default:
-            lfs_file_write(&lfs, &lfs_file, &g_keyboard_dynamic_keys[i], sizeof(DynamicKey));
+            lfs_file_write(&_lfs, &lfs_file, &g_keyboard_dynamic_keys[i], sizeof(DynamicKey));
             break;
         }
     }
 #endif
     // remember the storage is not updated until the file is closed successfully
-    lfs_file_close(&lfs, &lfs_file);
+    lfs_file_close(&_lfs, &lfs_file);
 #else
     uint32_t offset = 0;
 

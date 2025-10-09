@@ -7,7 +7,6 @@
 #define EVENT_H
 #include "stdint.h"
 #include "keycode.h"
-#include "advanced_key.h"
 
 typedef enum
 {

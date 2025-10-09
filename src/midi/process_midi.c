@@ -248,7 +248,7 @@ bool midi_event_handler(KeyboardEvent event)
                 //dprintf("midi pitchbend channel:%d amount:%d\n", midi_config.channel, 0);
             }
             return false;
-    };
+    }
 
     return true;
 }
