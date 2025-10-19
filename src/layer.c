@@ -22,6 +22,7 @@ void layer_control(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_event_down_callback((Key*)event.key);
         switch ((event.keycode >> 12) & 0x0F)
         {
         case LAYER_MOMENTARY:

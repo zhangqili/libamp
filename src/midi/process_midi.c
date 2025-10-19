@@ -67,17 +67,24 @@ bool midi_event_handler(KeyboardEvent event)
     {
         velocity = midi_config.velocity;
     }
-    
+    if (event.event == KEYBOARD_EVENT_KEY_DOWN)
+    {
+        /* code */
+    }
     if (KEYCODE_GET_MAIN(event.keycode) == MIDI_NOTE)
     {
         uint8_t channel  = midi_config.channel;
-        if ((event.event == KEYBOARD_EVENT_KEY_DOWN))
+        switch (event.event)
         {
+        case KEYBOARD_EVENT_KEY_DOWN:
+            keyboard_key_event_down_callback((Key*)event.key);
             midi_send_noteon(&midi_device, channel, keycode, velocity);
-        }
-        else
-        {
+            break;
+        case KEYBOARD_EVENT_KEY_UP:
             midi_send_noteoff(&midi_device, channel, keycode, velocity);
+            break;
+        default:
+            break;
         }
         return false;
     }

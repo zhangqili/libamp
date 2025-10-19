@@ -65,10 +65,6 @@ void keyboard_event_handler(KeyboardEvent event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
         layer_lock(((Key*)event.key)->id);
-        if (IS_ADVANCED_KEY(event.key) && KEYCODE_GET_MAIN(event.keycode) != DYNAMIC_KEY)
-        {
-            keyboard_advanced_key_event_down_callback((AdvancedKey*)event.key);
-        }
         //fall through
     case KEYBOARD_EVENT_KEY_TRUE:
         if (KEYCODE_GET_MAIN(event.keycode) != DYNAMIC_KEY)
@@ -106,6 +102,12 @@ void keyboard_event_handler(KeyboardEvent event)
         joystick_event_handler(event);
         break;
 #endif
+#ifdef MIDI_ENABLE
+    case MIDI_COLLECTION:
+    case MIDI_NOTE:
+        midi_event_handler(event);
+        break;
+#endif
 #ifdef DYNAMICKEY_ENABLE
     case DYNAMIC_KEY:
         dynamic_key_event_handler(event);
@@ -125,6 +127,7 @@ void keyboard_event_handler(KeyboardEvent event)
         switch (event.event)
         {
         case KEYBOARD_EVENT_KEY_DOWN:
+            keyboard_key_event_down_callback((Key*)event.key);
             g_keyboard_report_flags.keyboard = true;
             break;
         case KEYBOARD_EVENT_KEY_TRUE:
@@ -198,6 +201,7 @@ void keyboard_operation_event_handler(KeyboardEvent event)
     case KEYBOARD_EVENT_KEY_UP:
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_event_down_callback((Key*)event.key);
         uint8_t modifier = KEYCODE_GET_SUB(event.keycode);
         if ((modifier & 0x3F) < KEYBOARD_CONFIG_BASE)
         {
@@ -277,17 +281,20 @@ void keyboard_operation_event_handler(KeyboardEvent event)
     }
 }
 
-void keyboard_advanced_key_event_down_callback(AdvancedKey*key)
+void keyboard_key_event_down_callback(Key*key)
 {
+    if (IS_ADVANCED_KEY(key))
+    {
 #ifdef RGB_ENABLE
-    rgb_activate(key->key.id);
+        rgb_activate(key->id);
 #endif
 #ifdef KPS_ENABLE
-    record_kps_tick();
+        record_kps_tick();
 #endif
 #ifdef COUNTER_ENABLE
-    g_key_counts[key->key.id]++;
+        g_key_counts[key->id]++;
 #endif
+    }
 }
 
 int keyboard_buffer_send(void)

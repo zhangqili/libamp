@@ -157,7 +157,7 @@ extern volatile KeyboardReportFlag g_keyboard_report_flags;
 
 void keyboard_event_handler(KeyboardEvent event);
 void keyboard_operation_event_handler(KeyboardEvent event);
-void keyboard_advanced_key_event_down_callback(AdvancedKey*key);
+void keyboard_key_event_down_callback(Key*key);
 
 void keyboard_add_buffer(KeyboardEvent event);
 int keyboard_buffer_send(void);

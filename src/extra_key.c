@@ -36,6 +36,7 @@ void extra_key_event_handler(KeyboardEvent event)
         ((Key*)event.key)->report_state = false;
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_event_down_callback((Key*)event.key);
         switch (KEYCODE_GET_MAIN(event.keycode))
         {
         case CONSUMER_COLLECTION:

@@ -1185,6 +1185,7 @@ void keyboard_user_event_handler(KeyboardEvent event)
     {
         return;
     }
+    keyboard_key_event_down_callback((Key*)event.key);
     switch (KEYCODE_GET_SUB(event.keycode))
     {
     default:
