@@ -42,11 +42,14 @@ void macro_event_handler(KeyboardEvent event)
             break;
         case MACRO_PLAYING_START_ONCE:
             macro_start_play_once(&g_macros[index]);
+            break;
         case MACRO_PLAYING_START_CIRCULARLY:
             macro_start_play_circularly(&g_macros[index]);
+            break;
         case MACRO_PLAYING_START_ONCE_NO_GAP:
             macro_start_play_once(&g_macros[index]);
             g_macros[index].begin_time = g_keyboard_tick + g_macros[index].actions[0].delay;
+            break;
         case MACRO_PLAYING_START_CIRCULARLY_NO_GAP:
             macro_start_play_circularly(&g_macros[index]);
             g_macros[index].begin_time = g_keyboard_tick + g_macros[index].actions[0].delay;
@@ -165,6 +168,7 @@ void macro_tick(void)
                     else
                     {
                         macro_start_play_circularly(macro);
+                        macro->begin_time = g_keyboard_tick + macro->actions[0].delay;
                     }
                     macro_forward_list_remove_specific_owner(&macro_argument_list, i);
                     break;
