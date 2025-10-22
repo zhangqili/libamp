@@ -36,6 +36,9 @@
 #include "qmk_midi.h"
 #include "process_midi.h"
 #endif
+#ifdef MACRO_ENABLE
+#include "macro.h"
+#endif
 
 __WEAK const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
 __WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
@@ -61,6 +64,9 @@ static Keyboard_6KROBuffer keyboard_6kro_buffer;
 
 void keyboard_event_handler(KeyboardEvent event)
 {
+#ifdef MACRO_ENABLE
+    macro_event_handler(event);
+#endif
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
@@ -401,6 +407,9 @@ void keyboard_init(void)
 #ifdef MIDI_ENABLE
     setup_midi();
 #endif
+#ifdef MACRO_ENABLE
+    macro_init();
+#endif
     keyboard_recovery();
 }
 
@@ -510,6 +519,9 @@ void keyboard_fill_buffer(void)
             keyboard_add_buffer(MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_NO_EVENT, key));
         }
     }
+#ifdef MACRO_ENABLE
+    macro_add_buffer();
+#endif
 }
 
 void keyboard_send_report(void)
@@ -560,6 +572,9 @@ void keyboard_send_report(void)
 __WEAK void keyboard_task(void)
 {
     keyboard_scan();
+#ifdef MACRO_ENABLE
+    macro_tick();
+#endif
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];

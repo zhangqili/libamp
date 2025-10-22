@@ -211,6 +211,7 @@ enum KeycodeEnum {
   JOYSTICK_COLLECTION          = 0xaa,
   MIDI_COLLECTION              = 0xab,
   MIDI_NOTE                    = 0xac,
+  MACRO_COLLECTION             = 0xad,
   KEY_USER                     = 0xFD,
   KEYBOARD_OPERATION           = 0xFE,
   KEY_TRANSPARENT              = 0xFF,
