@@ -73,19 +73,13 @@ void keyboard_event_handler(KeyboardEvent event)
         layer_lock(((Key*)event.key)->id);
         //fall through
     case KEYBOARD_EVENT_KEY_TRUE:
-        if (KEYCODE_GET_MAIN(event.keycode) != DYNAMIC_KEY)
-        {
-            ((Key*)event.key)->report_state = true;
-        }
+        ((Key*)event.key)->report_state = true;
         break;
     case KEYBOARD_EVENT_KEY_UP:
         layer_unlock(((Key*)event.key)->id);
         //fall through
     case KEYBOARD_EVENT_KEY_FALSE:
-        if (KEYCODE_GET_MAIN(event.keycode) != DYNAMIC_KEY)
-        {
-            ((Key*)event.key)->report_state = false;
-        }
+        ((Key*)event.key)->report_state = false;
         break;
     default:
         break;
@@ -112,11 +106,6 @@ void keyboard_event_handler(KeyboardEvent event)
     case MIDI_COLLECTION:
     case MIDI_NOTE:
         midi_event_handler(event);
-        break;
-#endif
-#ifdef DYNAMICKEY_ENABLE
-    case DYNAMIC_KEY:
-        dynamic_key_event_handler(event);
         break;
 #endif
     case LAYER_CONTROL:
@@ -168,11 +157,6 @@ void keyboard_add_buffer(KeyboardEvent event)
 #ifdef JOYSTICK_ENABLE
     case JOYSTICK_COLLECTION:
         joystick_add_buffer(event);
-        break;
-#endif
-#ifdef DYNAMICKEY_ENABLE
-    case DYNAMIC_KEY:
-        dynamic_key_add_buffer(event);
         break;
 #endif
     case LAYER_CONTROL:
@@ -519,6 +503,9 @@ void keyboard_fill_buffer(void)
             keyboard_add_buffer(MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_NO_EVENT, key));
         }
     }
+#ifdef DYNAMICKEY_ENABLE
+    dynamic_key_add_buffer();
+#endif
 #ifdef MACRO_ENABLE
     macro_add_buffer();
 #endif
@@ -584,6 +571,9 @@ __WEAK void keyboard_task(void)
                                                    : advanced_key->key.state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE ,
                                                     advanced_key));
     }
+#ifdef DYNAMICKEY_ENABLE
+    dynamic_key_process();
+#endif
 #ifdef SUSPEND_ENABLE
     if (g_keyboard_is_suspend)
     {
@@ -625,4 +615,13 @@ bool keyboard_key_update(Key *key, bool state)
                                 ));
     key->report_state = state;
     return changed;
+}
+
+Key* keyboard_get_key(uint16_t id)
+{
+    if (id >= (ADVANCED_KEY_NUM + KEY_NUM))
+    {
+        return NULL;
+    }
+    return id < ADVANCED_KEY_NUM ? &g_keyboard_advanced_keys[id].key : &g_keyboard_keys[id];    
 }

@@ -172,6 +172,7 @@ int keyboard_NKRObuffer_send(Keyboard_NKROBuffer*buf);
 void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf);
 
 bool keyboard_key_update(Key *key, bool state);
+Key* keyboard_get_key(uint16_t id);
 
 void keyboard_init(void);
 void keyboard_reboot(void);
