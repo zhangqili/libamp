@@ -6,9 +6,13 @@
 
 
 #include "dynamic_key.h"
+#include "layer.h"
 #include "keyboard.h"
 
 #define DK_TAP_DURATION 5
+
+#define DYNAMIC_KEY_NOT_MATCH(dynamic_key, key) (KEYCODE_GET_MAIN(layer_cache_get_keycode((key)->id)) != DYNAMIC_KEY || \
+        &g_keyboard_dynamic_keys[KEYCODE_GET_SUB(layer_cache_get_keycode((key)->id))] != ((DynamicKey*)(dynamic_key)))
 
 #ifdef DYNAMICKEY_ENABLE
 DynamicKey g_keyboard_dynamic_keys[DYNAMIC_KEY_NUM];
@@ -96,9 +100,13 @@ void dynamic_key_add_buffer(void)
 void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
 {
     DynamicKeyStroke4x4*dynamic_key_s=(DynamicKeyStroke4x4*)dynamic_key;
-    AdvancedKey * key = (AdvancedKey*)&g_keyboard_advanced_keys[dynamic_key_s->key_id];
+    Key * key = (Key*)keyboard_get_key(dynamic_key_s->key_id);
+    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key))
+    {
+        return;
+    }
     AnalogValue last_value = dynamic_key_s->value;
-    AnalogValue current_value = key->value;
+    AnalogValue current_value = KEYBOARD_GET_KEY_ANALOG_VALUE(key);
     uint8_t last_key_state = dynamic_key_s->key_state;
     if (current_value > last_value)
     {
@@ -212,7 +220,7 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
         keyboard_event_handler(MK_EVENT(dynamic_key_s->key_binding[i], 
             CALC_EVENT(BIT_GET(last_key_state, i), BIT_GET(dynamic_key_s->key_state, i)), key));
     }
-    key->key.report_state = dynamic_key_s->key_state > 0;
+    key->report_state = dynamic_key_s->key_state > 0;
     dynamic_key_s->value = current_value;
 }
 
@@ -220,6 +228,10 @@ void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
 {
     DynamicKeyModTap*dynamic_key_mt=(DynamicKeyModTap*)dynamic_key;
     Key * key = keyboard_get_key(dynamic_key_mt->key_id);
+    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key))
+    {
+        return;
+    }
     bool last_report_state = dynamic_key_mt->key_report_state;
     bool next_report_state = dynamic_key_mt->key_report_state;
     if (!dynamic_key_mt->key_state && key->state)
@@ -263,6 +275,10 @@ void dynamic_key_tk_process(DynamicKeyToggleKey*dynamic_key)
 {
     DynamicKeyToggleKey*dynamic_key_tk=(DynamicKeyToggleKey*)dynamic_key;
     Key * key = keyboard_get_key(dynamic_key_tk->key_id);
+    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key))
+    {
+        return;
+    }
     bool next_state = dynamic_key_tk->state;
     if (!dynamic_key_tk->key_state && key->state)
     {
@@ -278,7 +294,14 @@ void dynamic_key_m_process(DynamicKeyMutex*dynamic_key)
     DynamicKeyMutex*dynamic_key_m=(DynamicKeyMutex*)dynamic_key;
     Key*key0 = (Key*)keyboard_get_key(dynamic_key_m->key_id[0]);
     Key*key1 = (Key*)keyboard_get_key(dynamic_key_m->key_id[1]);
-
+    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key0))
+    {
+        return;
+    }
+    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key1))
+    {
+        return;
+    }
     bool next_key0_report_state = dynamic_key_m->key_report_state[0];
     bool next_key1_report_state = dynamic_key_m->key_report_state[1];
 
@@ -290,20 +313,21 @@ void dynamic_key_m_process(DynamicKeyMutex*dynamic_key)
         }
         AdvancedKey*advanced_key0 = (AdvancedKey*)key0;
         AdvancedKey*advanced_key1 = (AdvancedKey*)key1;
-        if ((advanced_key0->value > advanced_key1->value) && (advanced_key0->value > advanced_key0->config.upper_deadzone))
+        if (advanced_key0->value > advanced_key1->value)
         {
             next_key0_report_state = true;
+            next_key1_report_state = false;
         }
-        else if (advanced_key0->value != advanced_key1->value)
+        if (advanced_key0->value < advanced_key1->value)
+        {
+            next_key0_report_state = false;
+            next_key1_report_state = true;
+        }
+        if (advanced_key0->value < advanced_key0->config.upper_deadzone)
         {
             next_key0_report_state = false;
         }
-
-        if ((advanced_key0->value < advanced_key1->value) && (advanced_key1->value > advanced_key1->config.upper_deadzone))
-        {
-            next_key1_report_state = true;
-        }
-        else if (advanced_key0->value != advanced_key1->value)
+        if (advanced_key1->value < advanced_key1->config.upper_deadzone)
         {
             next_key1_report_state = false;
         }

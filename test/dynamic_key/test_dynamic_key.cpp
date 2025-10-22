@@ -332,6 +332,13 @@ TEST(DynamicKey, MutexDistancePriority)
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
     keyboard_buffer_send();
+    EXPECT_EQ(dynamic_key->m.key_report_state[0], false);
+    EXPECT_EQ(dynamic_key->m.key_report_state[1], false);
+    EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
+    EXPECT_EQ(keyboard_send_buffer[3], KEY_NO_EVENT);
+    EXPECT_EQ(keyboard_send_buffer[4], KEY_NO_EVENT);
+    EXPECT_EQ(keyboard_send_buffer[5], KEY_NO_EVENT);
+    EXPECT_EQ(keyboard_send_buffer[6], KEY_NO_EVENT);
 
     dynamic_key->m.mode |= 0x80;
     dk_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANIT_NORM(0));
