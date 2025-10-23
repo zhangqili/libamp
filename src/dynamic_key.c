@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-
 #include "dynamic_key.h"
 #include "layer.h"
 #include "keyboard.h"
@@ -12,17 +11,17 @@
 #define DK_TAP_DURATION 5
 
 #define DYNAMIC_KEY_NOT_MATCH(dynamic_key, key) (KEYCODE_GET_MAIN(layer_cache_get_keycode((key)->id)) != DYNAMIC_KEY || \
-        &g_keyboard_dynamic_keys[KEYCODE_GET_SUB(layer_cache_get_keycode((key)->id))] != ((DynamicKey*)(dynamic_key)))
+        &g_dynamic_keys[KEYCODE_GET_SUB(layer_cache_get_keycode((key)->id))] != ((DynamicKey*)(dynamic_key)))
 
 #ifdef DYNAMICKEY_ENABLE
-DynamicKey g_keyboard_dynamic_keys[DYNAMIC_KEY_NUM];
+DynamicKey g_dynamic_keys[DYNAMIC_KEY_NUM];
 #endif
 
 void dynamic_key_process(void)
 {
-    for (int i = 0; i < DYNAMIC_KEY_NUM && g_keyboard_dynamic_keys[i].type != DYNAMIC_KEY_NONE; i++)
+    for (int i = 0; i < DYNAMIC_KEY_NUM && g_dynamic_keys[i].type != DYNAMIC_KEY_NONE; i++)
     {
-        DynamicKey * dynamic_key = &g_keyboard_dynamic_keys[i];
+        DynamicKey * dynamic_key = &g_dynamic_keys[i];
         switch (dynamic_key->type)
         {
         case DYNAMIC_KEY_STROKE:
@@ -85,9 +84,9 @@ void _dynamic_key_add_buffer(DynamicKey*dynamic_key)
 
 void dynamic_key_add_buffer(void)
 {
-    for (int i = 0; i < DYNAMIC_KEY_NUM && g_keyboard_dynamic_keys[i].type != DYNAMIC_KEY_NONE; i++)
+    for (int i = 0; i < DYNAMIC_KEY_NUM && g_dynamic_keys[i].type != DYNAMIC_KEY_NONE; i++)
     {
-        DynamicKey*dynamic_key = &g_keyboard_dynamic_keys[i];
+        DynamicKey*dynamic_key = &g_dynamic_keys[i];
         _dynamic_key_add_buffer(dynamic_key);
     }
 }

@@ -93,7 +93,7 @@ Keycode layer_get_keycode(uint16_t id, int8_t layer)
     Keycode keycode = 0;
     while (layer>=0)
     {
-        keycode = g_keymap[layer][id];
+        keycode = g_keyboard.keymap[layer][id];
         if (KEYCODE_GET_MAIN(keycode) == KEY_TRANSPARENT)
         {
             layer--;

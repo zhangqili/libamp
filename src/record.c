@@ -140,7 +140,7 @@ void record_bit_stream_timer()
             g_bit_stream_datas[i][j] |= (g_bit_stream_datas[i][j - 1] >> ((sizeof(size_t) * 8) - 1));
         }
         g_bit_stream_datas[i][0] <<= 1;
-        g_bit_stream_datas[i][0] |= g_keyboard_advanced_keys[i].key.state;
+        g_bit_stream_datas[i][0] |= g_keyboard.advanced_keys[i].key.state;
     }
 }
 #endif
@@ -150,7 +150,7 @@ void record_analog_timer()
 {
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        loop_array_push_back(g_analog_historys+i, (uint16_t)g_keyboard_advanced_keys[i].raw);
+        loop_array_push_back(g_analog_historys+i, (uint16_t)g_keyboard.advanced_keys[i].raw);
     }
     
 }

@@ -98,11 +98,11 @@ void packet_process_advanced_key(PacketData*data)
     uint16_t key_index = packet->index;
     if (data->code == PACKET_CODE_SET)
     {
-        command_advanced_key_config_anti_normalize(&g_keyboard_advanced_keys[key_index].config, &packet->data);
+        command_advanced_key_config_anti_normalize(&g_keyboard.advanced_keys[key_index].config, &packet->data);
     }
     else if (data->code == PACKET_CODE_GET)
     {
-        command_advanced_key_config_normalize(&packet->data, &g_keyboard_advanced_keys[key_index].config);
+        command_advanced_key_config_normalize(&packet->data, &g_keyboard.advanced_keys[key_index].config);
     }
 }
 
@@ -187,7 +187,7 @@ void packet_process_keymap(PacketData*data)
     {       
         for (uint16_t i = 0; i < packet->length; i++)
         {
-            g_keymap[packet->layer][packet->start + i] = packet->keymap[i];
+            g_keyboard.keymap[packet->layer][packet->start + i] = packet->keymap[i];
             if (!g_keymap_lock[packet->start + i])
             {
                 g_keymap_cache[packet->start + i] = layer_get_keycode(packet->start + i, g_current_layer); 
@@ -198,7 +198,7 @@ void packet_process_keymap(PacketData*data)
     {
         for (uint16_t i = 0; i < packet->length; i++)
         {
-            packet->keymap[i] = g_keymap[packet->layer][packet->start + i];
+            packet->keymap[i] = g_keyboard.keymap[packet->layer][packet->start + i];
         }
     }
 }
@@ -213,11 +213,11 @@ void packet_process_dynamic_key(PacketData*data)
             switch (((DynamicKey*)packet->dynamic_key)->type)
             {
             case DYNAMIC_KEY_STROKE:
-                dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[packet->index],
+                dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_dynamic_keys[packet->index],
                     (DynamicKeyStroke4x4Normalized*)&packet->dynamic_key);
                 break;
             default:
-                memcpy(&g_keyboard_dynamic_keys[packet->index], &packet->dynamic_key, sizeof(DynamicKey));
+                memcpy(&g_dynamic_keys[packet->index], &packet->dynamic_key, sizeof(DynamicKey));
                 break;
             }
         }
@@ -230,14 +230,14 @@ void packet_process_dynamic_key(PacketData*data)
         {
             return;
         }
-        switch (g_keyboard_dynamic_keys[dk_index].type)
+        switch (g_dynamic_keys[dk_index].type)
         {
         case DYNAMIC_KEY_STROKE:
             dynamic_key_stroke_normalize((DynamicKeyStroke4x4Normalized*)&packet->dynamic_key,
-                (DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[dk_index]);
+                (DynamicKeyStroke4x4*)&g_dynamic_keys[dk_index]);
             break;
         default:
-            memcpy(&packet->dynamic_key,&g_keyboard_dynamic_keys[dk_index],sizeof(DynamicKey));
+            memcpy(&packet->dynamic_key,&g_dynamic_keys[dk_index],sizeof(DynamicKey));
             break;
         }
     }
@@ -265,11 +265,11 @@ void packet_process_config(PacketData*data)
         {
             if (packet->data[i].value)
             {
-                BIT_SET(g_keyboard_config.raw, packet->data[i].index);
+                BIT_SET(g_keyboard.config.raw, packet->data[i].index);
             }
             else
             {
-                BIT_RESET(g_keyboard_config.raw, packet->data[i].index);
+                BIT_RESET(g_keyboard.config.raw, packet->data[i].index);
             }
         }
     }
@@ -277,7 +277,7 @@ void packet_process_config(PacketData*data)
     {
         for (int i = 0; i < packet->length; i++)
         {
-            packet->data[i].value = (bool)BIT_GET(g_keyboard_config.raw, packet->data[i].index);
+            packet->data[i].value = (bool)BIT_GET(g_keyboard.config.raw, packet->data[i].index);
         }
     }
 }
@@ -292,10 +292,10 @@ void packet_process_debug(PacketData*data)
             uint8_t key_index =  packet->data[i].index;
             if (key_index < ADVANCED_KEY_NUM)
             {
-                packet->data[i].raw = g_keyboard_advanced_keys[key_index].raw;
-                packet->data[i].value = g_keyboard_advanced_keys[key_index].value;
-                packet->data[i].state = g_keyboard_advanced_keys[key_index].key.state;
-                packet->data[i].report_state = g_keyboard_advanced_keys[key_index].key.report_state;
+                packet->data[i].raw = g_keyboard.advanced_keys[key_index].raw;
+                packet->data[i].value = g_keyboard.advanced_keys[key_index].value;
+                packet->data[i].state = g_keyboard.advanced_keys[key_index].key.state;
+                packet->data[i].report_state = g_keyboard.advanced_keys[key_index].key.report_state;
             }
         }
     }

@@ -12,7 +12,6 @@
 #include "keyboard_def.h"
 #include "event.h"
 #include "keycode.h"
-#include "dynamic_key.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -137,21 +136,20 @@ enum ReportID {
     REPORT_ID_COUNT = REPORT_ID_LIGHTING_LAMP_ARRAY_CONTROL
 };
 
-extern Key g_keyboard_keys[KEY_NUM];
-extern AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
+typedef struct __Keyboard {
+    AdvancedKey advanced_keys[ADVANCED_KEY_NUM];
+    Key keys[KEY_NUM];
+    Keycode keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
+    KeyboardLED led_state;
+    KeyboardConfig config;
+} Keyboard;
+
+extern Keyboard g_keyboard;
+
 extern const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
-extern Keycode g_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
 
-extern DynamicKey g_keyboard_dynamic_keys[DYNAMIC_KEY_NUM];
-
-extern KeyboardLED g_keyboard_led_state;
-
-extern uint32_t g_keyboard_tick;
-
-extern uint8_t g_keyboard_knob_flag;
+extern volatile uint32_t g_keyboard_tick;
 extern volatile bool g_keyboard_send_report_enable;
-extern volatile KeyboardConfig g_keyboard_config;
-
 extern volatile bool g_keyboard_is_suspend;
 extern volatile KeyboardReportFlag g_keyboard_report_flags;
 

@@ -141,7 +141,7 @@ void macro_stop_play(Macro*macro)
     macro->index = 0;
 }
 
-void macro_tick(void)
+void macro_process(void)
 {
     for (int i = 0; i < MACRO_NUMS; i++)
     {

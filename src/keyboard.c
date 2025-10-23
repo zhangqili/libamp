@@ -39,21 +39,16 @@
 #ifdef MACRO_ENABLE
 #include "macro.h"
 #endif
+#ifdef ENCODER_ENABLE
+#include "encoder.h"
+#endif
+
+__WEAK Keyboard g_keyboard;
 
 __WEAK const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
-__WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
-__WEAK Key g_keyboard_keys[KEY_NUM];
 
-uint16_t g_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
-
-KeyboardLED g_keyboard_led_state;
-
-uint32_t g_keyboard_tick;
-
-uint8_t g_keyboard_knob_flag;
+volatile uint32_t g_keyboard_tick;
 volatile bool g_keyboard_send_report_enable = true;
-volatile KeyboardConfig g_keyboard_config;
-
 volatile bool g_keyboard_is_suspend;
 volatile KeyboardReportFlag g_keyboard_report_flags;
 
@@ -170,7 +165,7 @@ void keyboard_add_buffer(KeyboardEvent event)
         if (keycode <= KEY_EXSEL)
         {
 #ifdef NKRO_ENABLE
-            if (g_keyboard_config.nkro)
+            if (g_keyboard.config.nkro)
             {
                 keyboard_NKRObuffer_add(&keyboard_nkro_buffer, event.keycode);
             }
@@ -249,13 +244,13 @@ void keyboard_operation_event_handler(KeyboardEvent event)
             switch ((modifier >> 6) & 0x03)
             {
             case 0:
-                BIT_RESET(*((uint8_t*)&g_keyboard_config), ((modifier & 0x3F) - KEYBOARD_CONFIG_BASE));
+                BIT_RESET(*((uint8_t*)&g_keyboard.config), ((modifier & 0x3F) - KEYBOARD_CONFIG_BASE));
                 break;
             case 1:
-                BIT_SET(*((uint8_t*)&g_keyboard_config), ((modifier & 0x3F) - KEYBOARD_CONFIG_BASE));
+                BIT_SET(*((uint8_t*)&g_keyboard.config), ((modifier & 0x3F) - KEYBOARD_CONFIG_BASE));
                 break;
             case 2:
-                BIT_TOGGLE(*((uint8_t*)&g_keyboard_config), ((modifier & 0x3F) - KEYBOARD_CONFIG_BASE));
+                BIT_TOGGLE(*((uint8_t*)&g_keyboard.config), ((modifier & 0x3F) - KEYBOARD_CONFIG_BASE));
                 break;
             default:
                 break;
@@ -290,17 +285,17 @@ void keyboard_key_event_down_callback(Key*key)
 int keyboard_buffer_send(void)
 {
 #ifdef NKRO_ENABLE
-    if (g_keyboard_config.nkro)
+    if (g_keyboard.config.nkro)
     {
         keyboard_nkro_buffer.report_id = REPORT_ID_NKRO;
-        if (g_keyboard_config.winlock)
+        if (g_keyboard.config.winlock)
         {
             keyboard_nkro_buffer.modifier &= (~(KEY_LEFT_GUI | KEY_RIGHT_GUI)); 
         }
         return keyboard_NKRObuffer_send(&keyboard_nkro_buffer);
     }
 #endif
-    if (g_keyboard_config.winlock)
+    if (g_keyboard.config.winlock)
     {
         keyboard_6kro_buffer.modifier &= (~(KEY_LEFT_GUI | KEY_RIGHT_GUI)); 
     }
@@ -313,7 +308,7 @@ int keyboard_buffer_send(void)
 void keyboard_clear_buffer(void)
 {
 #ifdef NKRO_ENABLE
-    if (g_keyboard_config.nkro)
+    if (g_keyboard.config.nkro)
     {
         keyboard_NKRObuffer_clear(&keyboard_nkro_buffer);
     }
@@ -381,6 +376,17 @@ void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf)
 void keyboard_init(void)
 {
     g_keyboard_tick = 0;
+#ifndef KEYBOARD_CUSTOM_KEY_ID
+    for (int i = 0; i < ADVANCED_KEY_NUM; i++)
+    {
+        g_keyboard.advanced_keys[i].key.id = i;
+    }
+    for (int i = 0; i < KEY_NUM; i++)
+    {
+        g_keyboard.keys[i].id = ADVANCED_KEY_NUM + i;
+    }
+    
+#endif
 #ifdef STORAGE_ENABLE
     storage_mount();
     storage_read_config_index();
@@ -399,17 +405,17 @@ void keyboard_init(void)
 
 __WEAK void keyboard_reset_to_default(void)
 {
-    memcpy(g_keymap, g_default_keymap, sizeof(g_keymap));
+    memcpy(g_keyboard.keymap, g_default_keymap, sizeof(g_keyboard.keymap));
     layer_cache_refresh();
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        g_keyboard_advanced_keys[i].config.mode = DEFAULT_ADVANCED_KEY_MODE;
-        g_keyboard_advanced_keys[i].config.trigger_distance = A_ANIT_NORM(DEFAULT_TRIGGER_DISTANCE);
-        g_keyboard_advanced_keys[i].config.release_distance = A_ANIT_NORM(DEFAULT_RELEASE_DISTANCE);
-        g_keyboard_advanced_keys[i].config.activation_value = A_ANIT_NORM(DEFAULT_ACTIVATION_VALUE);
-        g_keyboard_advanced_keys[i].config.deactivation_value = A_ANIT_NORM(DEFAULT_DEACTIVATION_VALUE);
-        g_keyboard_advanced_keys[i].config.calibration_mode = DEFAULT_CALIBRATION_MODE;
-        advanced_key_set_deadzone(g_keyboard_advanced_keys + i, 
+        g_keyboard.advanced_keys[i].config.mode = DEFAULT_ADVANCED_KEY_MODE;
+        g_keyboard.advanced_keys[i].config.trigger_distance = A_ANIT_NORM(DEFAULT_TRIGGER_DISTANCE);
+        g_keyboard.advanced_keys[i].config.release_distance = A_ANIT_NORM(DEFAULT_RELEASE_DISTANCE);
+        g_keyboard.advanced_keys[i].config.activation_value = A_ANIT_NORM(DEFAULT_ACTIVATION_VALUE);
+        g_keyboard.advanced_keys[i].config.deactivation_value = A_ANIT_NORM(DEFAULT_DEACTIVATION_VALUE);
+        g_keyboard.advanced_keys[i].config.calibration_mode = DEFAULT_CALIBRATION_MODE;
+        advanced_key_set_deadzone(g_keyboard.advanced_keys + i, 
             A_ANIT_NORM(DEFAULT_UPPER_DEADZONE), 
             A_ANIT_NORM(DEFAULT_LOWER_DEADZONE));
     }
@@ -417,7 +423,7 @@ __WEAK void keyboard_reset_to_default(void)
     rgb_factory_reset();
 #endif
 #ifdef DYNAMICKEY_ENABLE
-    memset(g_keyboard_dynamic_keys, 0, sizeof(g_keyboard_dynamic_keys));
+    memset(g_dynamic_keys, 0, sizeof(g_dynamic_keys));
 #endif
 }
 
@@ -489,7 +495,7 @@ void keyboard_fill_buffer(void)
 {
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        AdvancedKey*key = &g_keyboard_advanced_keys[i];
+        AdvancedKey*key = &g_keyboard.advanced_keys[i];
         if (key->key.report_state)
         {
             keyboard_add_buffer(MK_EVENT(layer_cache_get_keycode(key->key.id), KEYBOARD_EVENT_NO_EVENT, key));
@@ -497,7 +503,7 @@ void keyboard_fill_buffer(void)
     }
     for (int i = 0; i < KEY_NUM; i++)
     {        
-        Key*key = &g_keyboard_keys[i];
+        Key*key = &g_keyboard.keys[i];
         if (key->report_state)
         {
             keyboard_add_buffer(MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_NO_EVENT, key));
@@ -559,18 +565,21 @@ void keyboard_send_report(void)
 __WEAK void keyboard_task(void)
 {
     keyboard_scan();
-#ifdef MACRO_ENABLE
-    macro_tick();
+#ifdef ENCODER_ENABLE
+    encoder_process();
 #endif
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
+        AdvancedKey*advanced_key = &g_keyboard.advanced_keys[i];
         keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(advanced_key->key.id), 
                                                     advanced_key_update_raw(advanced_key, advanced_key_read(advanced_key)) ? 
                                                    advanced_key->key.state ? KEYBOARD_EVENT_KEY_DOWN : KEYBOARD_EVENT_KEY_UP
                                                    : advanced_key->key.state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE ,
                                                     advanced_key));
     }
+#ifdef MACRO_ENABLE
+    macro_process();
+#endif
 #ifdef DYNAMICKEY_ENABLE
     dynamic_key_process();
 #endif
@@ -588,7 +597,7 @@ __WEAK void keyboard_task(void)
         }
     }
 #endif
-    if (g_keyboard_config.continous_poll)
+    if (g_keyboard.config.continous_poll)
     {
         g_keyboard_report_flags.keyboard = true;
     }
@@ -623,5 +632,5 @@ Key* keyboard_get_key(uint16_t id)
     {
         return NULL;
     }
-    return id < ADVANCED_KEY_NUM ? &g_keyboard_advanced_keys[id].key : &g_keyboard_keys[id];    
+    return id < ADVANCED_KEY_NUM ? &g_keyboard.advanced_keys[id].key : &g_keyboard.keys[id - ADVANCED_KEY_NUM];    
 }

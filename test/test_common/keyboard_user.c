@@ -52,7 +52,7 @@ const RGBLocation g_rgb_locations[RGB_NUM]={{0.625,0},{1.875,0},{3.125,0},{6.875
 
 volatile uint8_t low_latency_mode = 0;
 
-AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM] =
+AdvancedKey g_keyboard.advanced_keys[ADVANCED_KEY_NUM] =
 {
     {.key.id = 0},
     {.key.id = 1},

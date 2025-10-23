@@ -19,26 +19,26 @@ TEST(Joystick, Buffer)
 
 TEST(Joystick, Axis)
 {
-    g_keymap[0][42] = JOYSTICK_COLLECTION | (0x01 << 13) | 0 << 8; 
-    g_keymap[0][43] = JOYSTICK_COLLECTION | (0x02 << 13) | 1 << 8;
-    g_keymap[0][44] = JOYSTICK_COLLECTION | (0x03 << 13) | 2 << 8;
-    g_keymap[0][45] = JOYSTICK_COLLECTION | (0x07 << 13) | 3 << 8;
+    g_keyboard.keymap[0][42] = JOYSTICK_COLLECTION | (0x01 << 13) | 0 << 8; 
+    g_keyboard.keymap[0][43] = JOYSTICK_COLLECTION | (0x02 << 13) | 1 << 8;
+    g_keyboard.keymap[0][44] = JOYSTICK_COLLECTION | (0x03 << 13) | 2 << 8;
+    g_keyboard.keymap[0][45] = JOYSTICK_COLLECTION | (0x07 << 13) | 3 << 8;
     layer_cache_refresh();
 
-    advanced_key_update(&g_keyboard_advanced_keys[42], A_ANIT_NORM(0.6));
-    advanced_key_update(&g_keyboard_advanced_keys[43], A_ANIT_NORM(0.7));
-    advanced_key_update(&g_keyboard_advanced_keys[44], A_ANIT_NORM(0.8));
-    advanced_key_update(&g_keyboard_advanced_keys[45], A_ANIT_NORM(0.9));
+    advanced_key_update(&g_keyboard.advanced_keys[42], A_ANIT_NORM(0.6));
+    advanced_key_update(&g_keyboard.advanced_keys[43], A_ANIT_NORM(0.7));
+    advanced_key_update(&g_keyboard.advanced_keys[44], A_ANIT_NORM(0.8));
+    advanced_key_update(&g_keyboard.advanced_keys[45], A_ANIT_NORM(0.9));
 
     joystick_buffer_clear();
     joystick_add_buffer(
-        MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[42].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard_advanced_keys[42]));
+        MK_EVENT(layer_cache_get_keycode(g_keyboard.advanced_keys[42].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard.advanced_keys[42]));
     joystick_add_buffer(
-        MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[43].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard_advanced_keys[43]));
+        MK_EVENT(layer_cache_get_keycode(g_keyboard.advanced_keys[43].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard.advanced_keys[43]));
     joystick_add_buffer(
-        MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[44].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard_advanced_keys[44]));
+        MK_EVENT(layer_cache_get_keycode(g_keyboard.advanced_keys[44].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard.advanced_keys[44]));
     joystick_add_buffer(
-        MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[45].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard_advanced_keys[45]));
+        MK_EVENT(layer_cache_get_keycode(g_keyboard.advanced_keys[45].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard.advanced_keys[45]));
     joystick_buffer_send();
 
     Joystick* joystick = (Joystick*)shared_ep_send_buffer;

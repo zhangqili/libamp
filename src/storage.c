@@ -41,7 +41,7 @@
 #endif
 
 #define STORAGE_ADVANCED_KEY_CONFIG_SIZE (sizeof(AdvancedKeyConfigurationNormalized) * ADVANCED_KEY_NUM)
-#define STORAGE_KEYMAP_SIZE (sizeof(g_keymap))
+#define STORAGE_KEYMAP_SIZE (sizeof(g_keyboard.keymap))
 #ifdef RGB_ENABLE
 #define STORAGE_RGB_CONFIG_SIZE (sizeof(g_rgb_base_config) +  sizeof(g_rgb_configs))
 #else
@@ -268,9 +268,9 @@ void storage_read_config(void)
     lfs_file_rewind(&_lfs, &lfs_file);
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        read_advanced_key_config(&_lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
+        read_advanced_key_config(&_lfs, &lfs_file, &g_keyboard.advanced_keys[i]);
     }
-    lfs_file_read(&_lfs, &lfs_file, g_keymap, sizeof(g_keymap));
+    lfs_file_read(&_lfs, &lfs_file, g_keyboard.keymap, sizeof(g_keyboard.keymap));
     layer_cache_refresh();
 #ifdef RGB_ENABLE
     lfs_file_read(&_lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
@@ -284,10 +284,10 @@ void storage_read_config(void)
         switch (buffer.type)
         {
         case DYNAMIC_KEY_STROKE:
-            dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[i], (DynamicKeyStroke4x4Normalized*)&buffer);
+            dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_dynamic_keys[i], (DynamicKeyStroke4x4Normalized*)&buffer);
             break;
         default:
-            memcpy(&g_keyboard_dynamic_keys[i], &buffer, sizeof(DynamicKey));
+            memcpy(&g_dynamic_keys[i], &buffer, sizeof(DynamicKey));
             break;
         }
     }
@@ -298,7 +298,7 @@ void storage_read_config(void)
     uint32_t offset = 0;
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        AdvancedKey *key = &g_keyboard_advanced_keys[i];
+        AdvancedKey *key = &g_keyboard.advanced_keys[i];
         AdvancedKeyConfigurationNormalized buffer;
         config_file_read((uint8_t *)&buffer,
             sizeof(AdvancedKeyConfigurationNormalized), offset);
@@ -307,9 +307,9 @@ void storage_read_config(void)
         offset += sizeof(AdvancedKeyConfigurationNormalized);
     }
 
-    config_file_read((uint8_t*)g_keymap, sizeof(g_keymap), offset);
+    config_file_read((uint8_t*)g_keyboard.keymap, sizeof(g_keyboard.keymap), offset);
     layer_cache_refresh();
-    offset += sizeof(g_keymap);
+    offset += sizeof(g_keyboard.keymap);
 
 #ifdef RGB_ENABLE
     config_file_read((uint8_t*)&g_rgb_base_config, sizeof(g_rgb_base_config), offset);
@@ -327,10 +327,10 @@ void storage_read_config(void)
         switch (buffer.type)
         {
         case DYNAMIC_KEY_STROKE:
-            dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[i], (DynamicKeyStroke4x4Normalized*)&buffer);
+            dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_dynamic_keys[i], (DynamicKeyStroke4x4Normalized*)&buffer);
             break;
         default:
-            memcpy(&g_keyboard_dynamic_keys[i], &buffer, sizeof(DynamicKey));
+            memcpy(&g_dynamic_keys[i], &buffer, sizeof(DynamicKey));
             break;
         }
         offset += sizeof(DynamicKey);
@@ -350,9 +350,9 @@ void storage_save_config(void)
     lfs_file_rewind(&_lfs, &lfs_file);
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        save_advanced_key_config(&_lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
+        save_advanced_key_config(&_lfs, &lfs_file, &g_keyboard.advanced_keys[i]);
     }
-    lfs_file_write(&_lfs, &lfs_file, g_keymap, sizeof(g_keymap));
+    lfs_file_write(&_lfs, &lfs_file, g_keyboard.keymap, sizeof(g_keyboard.keymap));
 #ifdef RGB_ENABLE
     lfs_file_write(&_lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
     lfs_file_write(&_lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
@@ -360,15 +360,15 @@ void storage_save_config(void)
 #ifdef DYNAMICKEY_ENABLE
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
     {
-        switch (g_keyboard_dynamic_keys[i].type)
+        switch (g_dynamic_keys[i].type)
         {
         case DYNAMIC_KEY_STROKE:
             DynamicKeyStroke4x4Normalized buffer;
-            dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[i]);
+            dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_dynamic_keys[i]);
             lfs_file_write(&_lfs, &lfs_file, &buffer, sizeof(DynamicKey));
             break;
         default:
-            lfs_file_write(&_lfs, &lfs_file, &g_keyboard_dynamic_keys[i], sizeof(DynamicKey));
+            lfs_file_write(&_lfs, &lfs_file, &g_dynamic_keys[i], sizeof(DynamicKey));
             break;
         }
     }
@@ -380,7 +380,7 @@ void storage_save_config(void)
 
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        const AdvancedKey *key = &g_keyboard_advanced_keys[i];
+        const AdvancedKey *key = &g_keyboard.advanced_keys[i];
         AdvancedKeyConfigurationNormalized buffer;
         advanced_key_config_normalize(&buffer, &key->config);
         config_file_write(((void *)(&buffer)),
@@ -388,9 +388,9 @@ void storage_save_config(void)
         offset += sizeof(AdvancedKeyConfigurationNormalized);
     }
 
-    config_file_write((uint8_t*)g_keymap, sizeof(g_keymap), offset);
+    config_file_write((uint8_t*)g_keyboard.keymap, sizeof(g_keyboard.keymap), offset);
     layer_cache_refresh();
-    offset += sizeof(g_keymap);
+    offset += sizeof(g_keyboard.keymap);
 
 #ifdef RGB_ENABLE
     config_file_write((uint8_t*)&g_rgb_base_config, sizeof(g_rgb_base_config), offset);
@@ -403,15 +403,15 @@ void storage_save_config(void)
 #ifdef DYNAMICKEY_ENABLE
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
     {
-        switch (g_keyboard_dynamic_keys[i].type)
+        switch (g_dynamic_keys[i].type)
         {
         case DYNAMIC_KEY_STROKE:
             DynamicKeyStroke4x4Normalized buffer;
-            dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[i]);
+            dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_dynamic_keys[i]);
             config_file_write((uint8_t*)&buffer, sizeof(DynamicKey), offset);
             break;
         default:
-            config_file_write((uint8_t*)&g_keyboard_dynamic_keys[i], sizeof(DynamicKey), offset);
+            config_file_write((uint8_t*)&g_dynamic_keys[i], sizeof(DynamicKey), offset);
             break;
         }
         offset += sizeof(DynamicKey);

@@ -100,7 +100,7 @@ void macro_record(Macro*macro,KeyboardEvent event);
 void macro_start_play_once(Macro*macro);
 void macro_start_play_circularly(Macro*macro);
 void macro_stop_play(Macro*macro);
-void macro_tick(void);
+void macro_process(void);
 void macro_add_buffer(void);
 
 void macro_forward_list_init(MacroArgumentList* list, MacroArgumentListNode* data, uint16_t len);
