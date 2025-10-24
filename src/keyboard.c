@@ -64,7 +64,7 @@ static Keyboard_6KROBuffer keyboard_6kro_buffer;
 void keyboard_event_handler(KeyboardEvent event)
 {
 #ifdef MACRO_ENABLE
-    macro_event_handler(event);
+    macro_record_handler(event);
 #endif
     ((Key*)event.key)->report_state = ((Key*)event.key)->state;
     switch (event.event)
@@ -104,6 +104,11 @@ void keyboard_event_handler(KeyboardEvent event)
     case MIDI_COLLECTION:
     case MIDI_NOTE:
         midi_event_handler(event);
+        break;
+#endif
+#ifdef MACRO_ENABLE
+    case MACRO_COLLECTION:
+        macro_event_handler(event);
         break;
 #endif
     case LAYER_CONTROL:

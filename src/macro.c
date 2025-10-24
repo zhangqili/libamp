@@ -15,6 +15,7 @@ void macro_init(void)
 {
     for (int i = 0; i < MACRO_NUMS; i++)
     {
+        actions[i][0].event.keycode = MACRO_COLLECTION|(MACRO_END<<12);
         g_macros[i].actions = actions[i];
     }
     macro_forward_list_init(&macro_argument_list, macro_argument_list_buffer, MACRO_BUFFER_LENGTH);
@@ -73,22 +74,25 @@ void macro_event_handler(KeyboardEvent event)
     default:
         break;
     }
-    if (KEYCODE_GET_MAIN(event.keycode) == MACRO_COLLECTION)
+}
+
+void macro_record_handler(KeyboardEvent event)
+{
+    if (event.event == KEYBOARD_EVENT_KEY_DOWN || event.event == KEYBOARD_EVENT_KEY_UP)
     {
-        return;
-    }
-    for (int i = 0; i < MACRO_NUMS; i++)
-    {
-        Macro *macro = &g_macros[i];
-        switch (macro->state)
+        for (int i = 0; i < MACRO_NUMS; i++)
         {
-        case MACRO_STATE_RECORDING:
-            macro_record(macro,event);
-            break;
-        case MACRO_STATE_PLAYING_ONCE:
-            break;
-        default:
-            break;
+            Macro *macro = &g_macros[i];
+            switch (macro->state)
+            {
+            case MACRO_STATE_RECORDING:
+                macro_record(macro,event);
+                break;
+            case MACRO_STATE_PLAYING_ONCE:
+                break;
+            default:
+                break;
+            }
         }
     }
 }
@@ -110,16 +114,13 @@ void macro_stop_record(Macro*macro)
 
 void macro_record(Macro*macro,KeyboardEvent event)
 {
-    if (event.event == KEYBOARD_EVENT_KEY_DOWN || event.event == KEYBOARD_EVENT_KEY_UP)
+    macro->actions[macro->index].event = event;
+    macro->actions[macro->index].delay = g_keyboard_tick - macro->begin_time;
+    macro->index++;
+    if (macro->index >= MACRO_MAX_ACTIONS)
     {
-        macro->actions[macro->index].event = event;
-        macro->actions[macro->index].delay = g_keyboard_tick - macro->begin_time;
-        macro->index++;
-        if (macro->index >= MACRO_MAX_ACTIONS)
-        {
-            macro->index--;
-            macro_stop_record(macro);
-        }
+        macro->index--;
+        macro_stop_record(macro);
     }
 }
 

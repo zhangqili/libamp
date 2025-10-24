@@ -94,6 +94,7 @@ typedef struct __MacroArgumentList
 void macro_init(void);
 
 void macro_event_handler(KeyboardEvent event);
+void macro_record_handler(KeyboardEvent event);
 void macro_start_record(Macro*macro);
 void macro_stop_record(Macro*macro);
 void macro_record(Macro*macro,KeyboardEvent event);
