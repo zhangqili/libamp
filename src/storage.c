@@ -48,7 +48,7 @@
 #define STORAGE_RGB_CONFIG_SIZE 0
 #endif
 #ifdef DYNAMICKEY_ENABLE
-#define STORAGE_DYNAMIC_KEY_CONFIG_SIZE (sizeof(g_keyboard_dynamic_keys))
+#define STORAGE_DYNAMIC_KEY_CONFIG_SIZE (sizeof(g_dynamic_keys))
 #else
 #define STORAGE_DYNAMIC_KEY_CONFIG_SIZE 0
 #endif

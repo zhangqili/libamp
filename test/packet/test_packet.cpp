@@ -150,8 +150,8 @@ TEST(Packet, SetPacketDynamicKey)
     packet->index = 1,
     memcpy(packet->dynamic_key,&dynamic_key,sizeof(DynamicKeyStroke4x4Normalized));
     packet_process((uint8_t*)packet,sizeof(packet));
-    EXPECT_EQ(g_keyboard_dynamic_keys[1].type, DYNAMIC_KEY_STROKE);
-    EXPECT_FLOAT_EQ(g_keyboard_dynamic_keys[1].dks.press_fully_distance, A_ANIT_NORM(dynamic_key.press_fully_distance));
+    EXPECT_EQ(g_dynamic_keys[1].type, DYNAMIC_KEY_STROKE);
+    EXPECT_FLOAT_EQ(g_dynamic_keys[1].dks.press_fully_distance, A_ANIT_NORM(dynamic_key.press_fully_distance));
 
     memset(buffer, 0, sizeof(buffer));
     packet->code = PACKET_CODE_SET;
@@ -159,6 +159,6 @@ TEST(Packet, SetPacketDynamicKey)
     packet->index = 0,
     memcpy(packet->dynamic_key,&dynamic_key1,sizeof(DynamicKey));
     packet_process((uint8_t*)packet,sizeof(packet));
-    EXPECT_EQ(g_keyboard_dynamic_keys[1].type, DYNAMIC_KEY_STROKE);
-    EXPECT_TRUE(!memcmp(&g_keyboard_dynamic_keys[0], &dynamic_key1, sizeof(DynamicKey)));
+    EXPECT_EQ(g_dynamic_keys[1].type, DYNAMIC_KEY_STROKE);
+    EXPECT_TRUE(!memcmp(&g_dynamic_keys[0], &dynamic_key1, sizeof(DynamicKey)));
 }

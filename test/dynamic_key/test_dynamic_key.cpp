@@ -31,7 +31,7 @@ TEST(DynamicKey, ModTap)
             .duration = 100,
         }
     };
-    memcpy(&g_keyboard_dynamic_keys[0],&dynamic_key,sizeof(DynamicKey));
+    memcpy(&g_dynamic_keys[0],&dynamic_key,sizeof(DynamicKey));
     g_keyboard.keymap[0][0] = DYNAMIC_KEY | ((0) << 8);
     g_keymap_cache[0] = g_keyboard.keymap[0][0];
 
@@ -91,7 +91,7 @@ TEST(DynamicKey, ToggleKey)
             .key_id = 0,
         }
     };
-    memcpy(&g_keyboard_dynamic_keys[0],&dynamic_key,sizeof(DynamicKey));
+    memcpy(&g_dynamic_keys[0],&dynamic_key,sizeof(DynamicKey));
     g_keyboard.keymap[0][0] = DYNAMIC_KEY | ((0) << 8);
     g_keymap_cache[0] = g_keyboard.keymap[0][0];
 
@@ -100,7 +100,7 @@ TEST(DynamicKey, ToggleKey)
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
     keyboard_buffer_send();
-    EXPECT_EQ(g_keyboard_dynamic_keys[0].tk.state, true);
+    EXPECT_EQ(g_dynamic_keys[0].tk.state, true);
     EXPECT_EQ(g_keyboard.advanced_keys[0].key.report_state, true);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
 
@@ -109,7 +109,7 @@ TEST(DynamicKey, ToggleKey)
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
     keyboard_buffer_send();
-    EXPECT_EQ(g_keyboard_dynamic_keys[0].tk.state, true);
+    EXPECT_EQ(g_dynamic_keys[0].tk.state, true);
     EXPECT_EQ(g_keyboard.advanced_keys[0].key.report_state, true);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
 
@@ -118,7 +118,7 @@ TEST(DynamicKey, ToggleKey)
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
     keyboard_buffer_send();
-    EXPECT_EQ(g_keyboard_dynamic_keys[0].tk.state, false);
+    EXPECT_EQ(g_dynamic_keys[0].tk.state, false);
     EXPECT_EQ(g_keyboard.advanced_keys[0].key.report_state, false);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
 
@@ -127,7 +127,7 @@ TEST(DynamicKey, ToggleKey)
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
     keyboard_buffer_send();
-    EXPECT_EQ(g_keyboard_dynamic_keys[0].tk.state, false);
+    EXPECT_EQ(g_dynamic_keys[0].tk.state, false);
     EXPECT_EQ(g_keyboard.advanced_keys[0].key.report_state, false);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
 }
@@ -153,7 +153,7 @@ TEST(DynamicKey, DynamicKeyStroke)
             .release_fully_distance = A_ANIT_NORM(0.25),
         }
     };
-    memcpy(&g_keyboard_dynamic_keys[0], &dynamic_key, sizeof(DynamicKey));
+    memcpy(&g_dynamic_keys[0], &dynamic_key, sizeof(DynamicKey));
     g_keyboard.keymap[0][0] = DYNAMIC_KEY | ((0) << 8);
     g_keymap_cache[0] = g_keyboard.keymap[0][0];
 
@@ -264,7 +264,7 @@ TEST(DynamicKey, MutexDistancePriority)
     g_keyboard.keymap[0][1] = DYNAMIC_KEY | (0 << 8);
     g_keymap_cache[0] = g_keyboard.keymap[0][0];
     g_keymap_cache[1] = g_keyboard.keymap[0][1];
-    DynamicKey*dynamic_key = &g_keyboard_dynamic_keys[0];
+    DynamicKey*dynamic_key = &g_dynamic_keys[0];
     dynamic_key->m.type = DYNAMIC_KEY_MUTEX;
     dynamic_key->m.mode = DK_MUTEX_DISTANCE_PRIORITY;
     dynamic_key->m.key_binding[0] = KEY_A;
@@ -362,7 +362,7 @@ TEST(DynamicKey, MutexLastPriority)
     g_keyboard.keymap[0][1] = DYNAMIC_KEY | (0 << 8);
     g_keymap_cache[0] = g_keyboard.keymap[0][0];
     g_keymap_cache[1] = g_keyboard.keymap[0][1];
-    DynamicKey*dynamic_key = &g_keyboard_dynamic_keys[0];
+    DynamicKey*dynamic_key = &g_dynamic_keys[0];
     dynamic_key->m.type = DYNAMIC_KEY_MUTEX;
     dynamic_key->m.mode = DK_MUTEX_LAST_PRIORITY;
     dynamic_key->m.key_binding[0] = KEY_A;
@@ -434,7 +434,7 @@ TEST(DynamicKey, MutexKey1Priority)
     g_keyboard.keymap[0][1] = DYNAMIC_KEY | (0 << 8);
     g_keymap_cache[0] = g_keyboard.keymap[0][0];
     g_keymap_cache[1] = g_keyboard.keymap[0][1];
-    DynamicKey*dynamic_key = &g_keyboard_dynamic_keys[0];
+    DynamicKey*dynamic_key = &g_dynamic_keys[0];
     dynamic_key->m.type = DYNAMIC_KEY_MUTEX;
     dynamic_key->m.mode = DK_MUTEX_KEY1_PRIORITY;
     dynamic_key->m.key_binding[0] = KEY_A;
@@ -506,7 +506,7 @@ TEST(DynamicKey, MutexKey2Priority)
     g_keyboard.keymap[0][1] = DYNAMIC_KEY | (0 << 8);
     g_keymap_cache[0] = g_keyboard.keymap[0][0];
     g_keymap_cache[1] = g_keyboard.keymap[0][1];
-    DynamicKey*dynamic_key = &g_keyboard_dynamic_keys[0];
+    DynamicKey*dynamic_key = &g_dynamic_keys[0];
     dynamic_key->m.type = DYNAMIC_KEY_MUTEX;
     dynamic_key->m.mode = DK_MUTEX_KEY2_PRIORITY;
     dynamic_key->m.key_binding[0] = KEY_A;
@@ -579,7 +579,7 @@ TEST(DynamicKey, MutexKeyNeural)
     g_keyboard.keymap[0][1] = DYNAMIC_KEY | (0 << 8);
     g_keymap_cache[0] = g_keyboard.keymap[0][0];
     g_keymap_cache[1] = g_keyboard.keymap[0][1];
-    DynamicKey*dynamic_key = &g_keyboard_dynamic_keys[0];
+    DynamicKey*dynamic_key = &g_dynamic_keys[0];
     dynamic_key->m.type = DYNAMIC_KEY_MUTEX;
     dynamic_key->m.mode = DK_MUTEX_NEUTRAL;
     dynamic_key->m.key_binding[0] = KEY_A;

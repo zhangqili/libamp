@@ -62,19 +62,18 @@ void keyboard_event_handler(KeyboardEvent event)
 #ifdef MACRO_ENABLE
     macro_event_handler(event);
 #endif
+    ((Key*)event.key)->report_state = ((Key*)event.key)->state;
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
         layer_lock(((Key*)event.key)->id);
-        //fall through
+        break;
     case KEYBOARD_EVENT_KEY_TRUE:
-        ((Key*)event.key)->report_state = true;
         break;
     case KEYBOARD_EVENT_KEY_UP:
         layer_unlock(((Key*)event.key)->id);
-        //fall through
+        break;
     case KEYBOARD_EVENT_KEY_FALSE:
-        ((Key*)event.key)->report_state = false;
         break;
     default:
         break;
@@ -376,7 +375,6 @@ void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf)
 void keyboard_init(void)
 {
     g_keyboard_tick = 0;
-#ifndef KEYBOARD_CUSTOM_KEY_ID
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         g_keyboard.advanced_keys[i].key.id = i;
@@ -385,8 +383,6 @@ void keyboard_init(void)
     {
         g_keyboard.keys[i].id = ADVANCED_KEY_NUM + i;
     }
-    
-#endif
 #ifdef STORAGE_ENABLE
     storage_mount();
     storage_read_config_index();
