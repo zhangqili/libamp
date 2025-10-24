@@ -30,7 +30,7 @@ __WEAK void analog_scan(void)
 {
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        AdvancedKey*advanced_key = &g_keyboard.advanced_keys[i];
+        AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
         advanced_key->raw = advanced_key_read(advanced_key);
     }
 }
@@ -39,7 +39,7 @@ void analog_check(void)
 {
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        AdvancedKey*advanced_key = &g_keyboard.advanced_keys[i];
+        AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
         advanced_key_update_raw(advanced_key, advanced_key_read(advanced_key));
     }
 }
@@ -49,7 +49,7 @@ void analog_reset_range(void)
     analog_scan();
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        AdvancedKey*advanced_key = &g_keyboard.advanced_keys[i];
+        AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
         advanced_key_reset_range(advanced_key, advanced_key->raw);
     }
 }

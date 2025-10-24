@@ -22,8 +22,8 @@ TEST(Keyboard, KeyboardTask)
 {
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        g_keyboard.advanced_keys[i].config.calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED;
-        advanced_key_reset_range(&g_keyboard.advanced_keys[i], 2048);
+        g_keyboard_advanced_keys[i].config.calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED;
+        advanced_key_reset_range(&g_keyboard_advanced_keys[i], 2048);
     }
     for (int tick = 0; tick < 1000; tick++)
     {
@@ -39,98 +39,98 @@ TEST(Keyboard, Layer)
 {
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        g_keyboard.advanced_keys[i].config.calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED;
-        advanced_key_reset_range(&g_keyboard.advanced_keys[i], 2048);
+        g_keyboard_advanced_keys[i].config.calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED;
+        advanced_key_reset_range(&g_keyboard_advanced_keys[i], 2048);
     }
 
-    EXPECT_EQ(g_keyboard.keymap[0][10], layer_cache_get_keycode(10));
+    EXPECT_EQ(g_keymap[0][10], layer_cache_get_keycode(10));
     // LAYER_MOMENTARY LAYER 1
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[60],true);
-    EXPECT_EQ(g_keyboard.keymap[0][60], layer_cache_get_keycode(60));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[60],true);
+    EXPECT_EQ(g_keymap[0][60], layer_cache_get_keycode(60));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[1],true);
-    EXPECT_EQ(g_keyboard.keymap[1][1], layer_cache_get_keycode(1));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[1],true);
+    EXPECT_EQ(g_keymap[1][1], layer_cache_get_keycode(1));
     
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],true);
-    EXPECT_EQ(g_keyboard.keymap[0][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],true);
+    EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
     // LAYER_MOMENTARY LAYER 2
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[54],true);
-    EXPECT_EQ(g_keyboard.keymap[1][54], layer_cache_get_keycode(54));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[54],true);
+    EXPECT_EQ(g_keymap[1][54], layer_cache_get_keycode(54));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[0],true);
-    EXPECT_EQ(g_keyboard.keymap[2][0], layer_cache_get_keycode(0));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[0],true);
+    EXPECT_EQ(g_keymap[2][0], layer_cache_get_keycode(0));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],false);
-    EXPECT_EQ(g_keyboard.keymap[0][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],false);
+    EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
 }
 
 TEST(Keyboard, LayerWithSpecificKeycode)
 {
-    g_keyboard.keymap[0][15] = (JOYSTICK_COLLECTION) | (0 << 8) | (0x01 << 13); 
-    g_keyboard.keymap[1][15] = (JOYSTICK_COLLECTION) | (1 << 8) | (0x01 << 13);
+    g_keymap[0][15] = (JOYSTICK_COLLECTION) | (0 << 8) | (0x01 << 13); 
+    g_keymap[1][15] = (JOYSTICK_COLLECTION) | (1 << 8) | (0x01 << 13);
     layer_cache_refresh();
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        g_keyboard.advanced_keys[i].config.calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED;
-        advanced_key_reset_range(&g_keyboard.advanced_keys[i], 2048);
+        g_keyboard_advanced_keys[i].config.calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED;
+        advanced_key_reset_range(&g_keyboard_advanced_keys[i], 2048);
     }
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],false);
-    EXPECT_EQ(g_keyboard.keymap[0][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],false);
+    EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
     
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],true);
-    EXPECT_EQ(g_keyboard.keymap[0][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],true);
+    EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],false);
-    EXPECT_EQ(g_keyboard.keymap[0][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],false);
+    EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
 
-    EXPECT_EQ(g_keyboard.keymap[0][10], layer_cache_get_keycode(10));
+    EXPECT_EQ(g_keymap[0][10], layer_cache_get_keycode(10));
     // LAYER_MOMENTARY LAYER 1
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[60],true);
-    EXPECT_EQ(g_keyboard.keymap[0][60], layer_cache_get_keycode(60));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[60],true);
+    EXPECT_EQ(g_keymap[0][60], layer_cache_get_keycode(60));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[1],true);
-    EXPECT_EQ(g_keyboard.keymap[1][1], layer_cache_get_keycode(1));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[1],true);
+    EXPECT_EQ(g_keymap[1][1], layer_cache_get_keycode(1));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],false);
-    EXPECT_EQ(g_keyboard.keymap[1][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],false);
+    EXPECT_EQ(g_keymap[1][15], layer_cache_get_keycode(15));
     
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],true);
-    EXPECT_EQ(g_keyboard.keymap[1][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],true);
+    EXPECT_EQ(g_keymap[1][15], layer_cache_get_keycode(15));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],false);
-    EXPECT_EQ(g_keyboard.keymap[1][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],false);
+    EXPECT_EQ(g_keymap[1][15], layer_cache_get_keycode(15));
     // LAYER_MOMENTARY LAYER 2
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[54],true);
-    EXPECT_EQ(g_keyboard.keymap[1][54], layer_cache_get_keycode(54));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[54],true);
+    EXPECT_EQ(g_keymap[1][54], layer_cache_get_keycode(54));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[0],true);
-    EXPECT_EQ(g_keyboard.keymap[2][0], layer_cache_get_keycode(0));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[0],true);
+    EXPECT_EQ(g_keymap[2][0], layer_cache_get_keycode(0));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],false);
-    EXPECT_EQ(g_keyboard.keymap[1][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],false);
+    EXPECT_EQ(g_keymap[1][15], layer_cache_get_keycode(15));
 
     // LAYER_MOMENTARY LAYER 1
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[60],false);
-    EXPECT_EQ(g_keyboard.keymap[0][60], layer_cache_get_keycode(60));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[60],false);
+    EXPECT_EQ(g_keymap[0][60], layer_cache_get_keycode(60));
 
     // LAYER_MOMENTARY LAYER 2
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[54],false);
-    EXPECT_EQ(g_keyboard.keymap[0][54], layer_cache_get_keycode(54));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[54],false);
+    EXPECT_EQ(g_keymap[0][54], layer_cache_get_keycode(54));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],false);
-    EXPECT_EQ(g_keyboard.keymap[0][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],false);
+    EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
     
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],true);
-    EXPECT_EQ(g_keyboard.keymap[0][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],true);
+    EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
 
-    keyboard_advanced_key_update_state(&g_keyboard.advanced_keys[15],false);
-    EXPECT_EQ(g_keyboard.keymap[0][15], layer_cache_get_keycode(15));
+    keyboard_advanced_key_update_state(&g_keyboard_advanced_keys[15],false);
+    EXPECT_EQ(g_keymap[0][15], layer_cache_get_keycode(15));
 }
 
 TEST(Keyboard, 6KROBuffer)
 {
-    g_keyboard.config.nkro = false;
+    g_keyboard_config.nkro = false;
     keyboard_clear_buffer();
     keyboard_add_buffer(MK_EVENT(KEY_A|(KEY_LEFT_CTRL << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
     keyboard_add_buffer(MK_EVENT(KEY_B|(KEY_LEFT_ALT << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
@@ -152,7 +152,7 @@ TEST(Keyboard, 6KROBuffer)
 
 TEST(Keyboard, NKROBuffer)
 {
-    g_keyboard.config.nkro = true;
+    g_keyboard_config.nkro = true;
     keyboard_clear_buffer();
     keyboard_add_buffer(MK_EVENT(KEY_A|(KEY_LEFT_CTRL<<8), KEYBOARD_EVENT_NO_EVENT, NULL));
     keyboard_add_buffer(MK_EVENT(KEY_S|(KEY_LEFT_ALT<<8), KEYBOARD_EVENT_NO_EVENT, NULL));

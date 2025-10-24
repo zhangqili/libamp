@@ -136,15 +136,12 @@ enum ReportID {
     REPORT_ID_COUNT = REPORT_ID_LIGHTING_LAMP_ARRAY_CONTROL
 };
 
-typedef struct __Keyboard {
-    AdvancedKey advanced_keys[ADVANCED_KEY_NUM];
-    Key keys[KEY_NUM];
-    Keycode keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
-    KeyboardLED led_state;
-    KeyboardConfig config;
-} Keyboard;
+extern AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
+extern Key g_keyboard_keys[KEY_NUM];
+extern KeyboardLED g_keyboard_led_state;
+extern KeyboardConfig g_keyboard_config;
+extern Keycode g_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
 
-extern Keyboard g_keyboard;
 
 extern const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
 
@@ -170,6 +167,8 @@ int keyboard_NKRObuffer_send(Keyboard_NKROBuffer*buf);
 void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf);
 
 bool keyboard_key_update(Key *key, bool state);
+bool keyboard_advanced_key_update(AdvancedKey *advanced_key, AnalogValue value);
+bool keyboard_advanced_key_update_raw(AdvancedKey *advanced_key, AnalogRawValue raw);
 Key* keyboard_get_key(uint16_t id);
 
 void keyboard_init(void);

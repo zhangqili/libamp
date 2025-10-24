@@ -6,7 +6,7 @@ class GlobalEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {
         keyboard_init();
-        g_keyboard.config.nkro = false;
+        g_keyboard_config.nkro = false;
     }
 
     void TearDown() override {
