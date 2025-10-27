@@ -15,7 +15,6 @@ void macro_init(void)
 {
     for (int i = 0; i < MACRO_NUMS; i++)
     {
-        actions[i][0].event.keycode = MACRO_COLLECTION|(MACRO_END<<12);
         g_macros[i].actions = actions[i];
     }
     macro_forward_list_init(&macro_argument_list, macro_argument_list_buffer, MACRO_BUFFER_LENGTH);
@@ -78,7 +77,7 @@ void macro_event_handler(KeyboardEvent event)
 
 void macro_record_handler(KeyboardEvent event)
 {
-    if (event.event == KEYBOARD_EVENT_KEY_DOWN || event.event == KEYBOARD_EVENT_KEY_UP)
+    if (event.keycode && (event.event == KEYBOARD_EVENT_KEY_DOWN || event.event == KEYBOARD_EVENT_KEY_UP))
     {
         for (int i = 0; i < MACRO_NUMS; i++)
         {
@@ -160,7 +159,7 @@ void macro_process(void)
             {
                 KeyboardEvent*event = &(macro->actions[macro->index].event);
                 uint8_t report_state = ((Key*)event->key)->report_state;
-                if (event->keycode == (MACRO_COLLECTION|(MACRO_END<<12)))
+                if (!event->keycode)
                 {
                     if (macro->state == MACRO_STATE_PLAYING_ONCE)
                     {
