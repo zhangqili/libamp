@@ -106,7 +106,7 @@ void macro_start_record(Macro*macro)
 void macro_stop_record(Macro*macro)
 {
     macro->actions[macro->index].delay = g_keyboard_tick - macro->begin_time;
-    macro->actions[macro->index].event.keycode = MACRO_COLLECTION|(MACRO_END<<12);
+    macro->actions[macro->index].event.keycode = KEY_NO_EVENT;
     macro->state = MACRO_STATE_IDLE;
     macro->index=0;
 }
@@ -281,19 +281,19 @@ void macro_forward_list_remove_first(MacroArgumentList* list, MacroArgument t)
 
 void macro_forward_list_remove_specific_owner(MacroArgumentList* list, uint8_t owner)
 {
-    MacroArgumentListNode * last_node = &list->data[list->head];
-    for (int16_t iterator = list->data[list->head].next; iterator >= 0;)
+    for (int16_t *iterator_ptr = &list->data[list->head].next; *iterator_ptr >= 0;)
     {
-        MacroArgumentListNode* node = &(list->data[iterator]);
+        MacroArgumentListNode* node = &(list->data[*iterator_ptr]);
         MacroArgument *item = &(node->data);
         if ((*item).owner == owner)
         {
+            int16_t free_node = *iterator_ptr;
             keyboard_event_handler(MK_EVENT((*item).event->keycode,KEYBOARD_EVENT_KEY_UP,(*item).event->key));
-            macro_forward_list_erase_after(list, last_node);
-            iterator = last_node->next;
+            *iterator_ptr = node->next;
+            node->next = list->free_node;
+            list->free_node = free_node;
             continue;
         }
-        last_node = node;
-        iterator = list->data[iterator].next;
+        iterator_ptr = &list->data[*iterator_ptr].next;
     }
 }

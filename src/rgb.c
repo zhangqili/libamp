@@ -114,10 +114,9 @@ void rgb_update(void)
         rgb_forward_list_insert_after(&rgb_argument_list,&rgb_argument_list.data[rgb_argument_list.head], *item);
         rgb_loop_queue_pop(&rgb_argument_queue);
     }
-    RGBArgumentListNode * last_node = &rgb_argument_list.data[rgb_argument_list.head];
-    for (int16_t iterator = rgb_argument_list.data[rgb_argument_list.head].next; iterator >= 0;)
+    for (int16_t* iterator_ptr = &rgb_argument_list.data[rgb_argument_list.head].next; *iterator_ptr >= 0;)
     {
-        RGBArgumentListNode* node = &(rgb_argument_list.data[iterator]);
+        RGBArgumentListNode* node = &(rgb_argument_list.data[*iterator_ptr]);
         RGBArgument * item = &(node->data);
 #else
     rgb_loop_queue_foreach(&rgb_argument_queue, RGBLoopQueueElm, item)
@@ -140,8 +139,10 @@ void rgb_update(void)
         // if (distance > 25)
         {
 #ifdef RGB_USE_LIST_EXPERIMENTAL
-            rgb_forward_list_erase_after(&rgb_argument_list, last_node);
-            iterator = last_node->next;
+            int16_t free_node = *iterator_ptr;
+            *iterator_ptr = node->next;
+            node->next = (&rgb_argument_list)->free_node;
+            (&rgb_argument_list)->free_node = free_node;
 #endif
             continue;
         }
@@ -238,8 +239,7 @@ void rgb_update(void)
             break;
         }
 #ifdef RGB_USE_LIST_EXPERIMENTAL
-        last_node = node;
-        iterator = (&rgb_argument_list)->data[iterator].next;
+        iterator_ptr = &(&rgb_argument_list)->data[*iterator_ptr].next;
 #endif
     }
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
