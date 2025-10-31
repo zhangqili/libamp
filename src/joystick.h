@@ -11,7 +11,7 @@
 #include "keycode.h"
 #include "keyboard_def.h"
 #include "keyboard_conf.h"
-#include "analog.h"
+#include "keyboard.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,13 +58,6 @@ extern "C" {
 #define JOYSTICK_HAT_WEST 6
 #define JOYSTICK_HAT_NORTHWEST 7
 
-// configure on input_pin of the joystick_axes array entry to NO_PIN
-// to prevent it from being read from the ADC. This allows outputting forged axis value.
-#define JOYSTICK_AXIS_VIRTUAL \
-{ NO_PIN, 0, JOYSTICK_MAX_VALUE / 2, JOYSTICK_MAX_VALUE }
-#define JOYSTICK_AXIS_IN(INPUT_PIN, LOW, REST, HIGH) \
-{ INPUT_PIN, LOW, REST, HIGH }
-
 #if JOYSTICK_AXIS_RESOLUTION > 8
 typedef int16_t JoystickAxis;
 #else
@@ -89,9 +82,14 @@ typedef struct __Joystick {
 #endif
 } __PACKED Joystick;
 
+#define JOYSTICK_KEYCODE_GET_AXIS_MAP(keycode) (KEYCODE_GET_SUB((keycode) >> 5) & 0x03)
+#define JOYSTICK_KEYCODE_IS_AXIS_INVERT(keycode) (KEYCODE_GET_SUB((keycode)) & 0x80)
+#define JOYSTICK_KEYCODE_IS_AXIS(keycode) (KEYCODE_GET_SUB((keycode)) & 0xE0)
+#define JOYSTICK_KEYCODE_GET_AXIS_INDEX(keycode) (KEYCODE_GET_SUB((keycode)) & 0x1F)
+
 void joystick_event_handler(KeyboardEvent event);
 void joystick_buffer_clear(void);
-void joystick_add_buffer(Keycode keycode);
+void joystick_add_buffer(KeyboardEvent event);
 void joystick_set_axis(Keycode keycode, AnalogValue value);
 int joystick_buffer_send(void);
 

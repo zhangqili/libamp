@@ -118,3 +118,13 @@ __WEAK int flash_erase(uint32_t addr, uint32_t size)
     printf("flash_erase needs to be implemented.\n");
     return 0;
 }
+
+__WEAK int led_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b)
+{
+    UNUSED(index);
+    UNUSED(r);
+    UNUSED(g);
+    UNUSED(b);
+    printf("led_set needs to be implemented.\n");
+    return 0;
+}

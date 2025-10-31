@@ -12,20 +12,22 @@ static Mouse mouse;
 
 void mouse_event_handler(KeyboardEvent event)
 {
+    if (MOUSE_KEYCODE_IS_MOVE(event.keycode))
+    {
+        g_keyboard_report_flags.mouse = true;
+        ((Key*)event.key)->report_state = true;
+        return;
+    }
     switch (event.event)
     {
-    case KEYBOARD_EVENT_KEY_UP:
     case KEYBOARD_EVENT_KEY_DOWN:
-        KEYBOARD_REPORT_FLAG_SET(MOUSE_REPORT_FLAG);
+        keyboard_key_event_down_callback((Key*)event.key);
+        g_keyboard_report_flags.mouse = true;
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
-        if (MODIFIER(event.keycode) & 0xF0)
-        {
-            KEYBOARD_REPORT_FLAG_SET(MOUSE_REPORT_FLAG);
-            mouse_set_axis(MODIFIER(event.keycode), IS_ADVANCED_KEY(event.key) ? ((AdvancedKey*)event.key)->value : ANALOG_VALUE_MAX);
-            break;
-        }
-        mouse_add_buffer(MODIFIER(event.keycode));
+        break;
+    case KEYBOARD_EVENT_KEY_UP:
+        g_keyboard_report_flags.mouse = true;
         break;
     case KEYBOARD_EVENT_KEY_FALSE:
         break;
@@ -40,9 +42,15 @@ void mouse_buffer_clear(void)
     memset(&mouse, 0, sizeof(Mouse));
 }
 
-void mouse_add_buffer(Keycode keycode)
+void mouse_add_buffer(KeyboardEvent event)
 {
-    switch (keycode)
+    if (MOUSE_KEYCODE_IS_MOVE(event.keycode))
+    {
+        g_keyboard_report_flags.mouse = true;
+        mouse_set_axis(event.keycode, KEYBOARD_GET_KEY_EFFECTIVE_ANALOG_VALUE(event.key));
+        return;
+    }
+    switch (KEYCODE_GET_SUB(event.keycode))
     {
     case MOUSE_LBUTTON:
         mouse.buttons |= BIT(0);
@@ -86,13 +94,13 @@ void mouse_set_axis(Keycode keycode, AnalogValue value)
 {
     uint32_t speed = A_NORM((value - ANALOG_VALUE_MIN)) * MOUSE_MAX_SPEED;
     uint32_t mouse_value = speed / REPORT_RATE + should_move(g_keyboard_tick%REPORT_RATE, speed);
-    switch (keycode)
+    switch (KEYCODE_GET_SUB(keycode))
     {
     case MOUSE_MOVE_UP:
-        mouse.y += mouse_value;
+        mouse.y -= mouse_value;
         break;
     case MOUSE_MOVE_DOWN:
-        mouse.y -= mouse_value;
+        mouse.y += mouse_value;
         break;
     case MOUSE_MOVE_LEFT:
         mouse.x -= mouse_value;
@@ -106,28 +114,31 @@ void mouse_set_axis(Keycode keycode, AnalogValue value)
 
 }
 
+static inline bool mouse_should_send(Mouse * restrict mouse, Mouse * restrict prev_mouse)
+{
+    bool changed = ((mouse->buttons != prev_mouse->buttons) ||
+#ifdef MOUSE_EXTENDED_REPORT
+                    (mouse->boot_x != 0 && mouse->boot_x != prev_mouse->boot_x) || (mouse->boot_y != 0 && mouse->boot_y != prev_mouse->boot_y) ||
+#endif
+                    (mouse->x != 0 && mouse->x != prev_mouse->x) || (mouse->y != 0 && mouse->y != prev_mouse->y) || (mouse->h != 0 && mouse->h != prev_mouse->h) || (mouse->v != 0 && mouse->v != prev_mouse->v)) ||
+                    (mouse->x || mouse->y || mouse->v || mouse->h);
+    return changed;
+}
+
 int mouse_buffer_send(void)
 {
-    uint8_t v = mouse.v;
-    uint8_t h = mouse.h;
-    static uint8_t prev_v;
-    static uint8_t prev_h;
-    if (prev_v == v)
-    {
-        mouse.v = 0;
-    }
-    if (prev_h == h)
-    {
-        mouse.h = 0;
-    }
+    static Mouse prev_mouse;
 #ifdef MOUSE_SHARED_EP
     mouse.report_id = REPORT_ID_MOUSE;
 #endif
-    int ret = hid_send_mouse((uint8_t*)&mouse, sizeof(Mouse));
-    if (!ret)
+    int ret = 0;
+    if (mouse_should_send(&mouse, &prev_mouse))
     {
-        prev_v = v;
-        prev_h = h;
+        ret = hid_send_mouse((uint8_t*)&mouse, sizeof(Mouse));
+        if (!ret)
+        {
+            prev_mouse = mouse;
+        }
     }
     return ret;
 }

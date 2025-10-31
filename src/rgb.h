@@ -18,26 +18,6 @@ extern "C" {
 #define RGB_NUM                 (ADVANCED_KEY_NUM)
 #endif
 
-#ifndef ONE_PULSE
-#define ONE_PULSE               (7)
-#endif
-
-#ifndef ZERO_PULSE
-#define ZERO_PULSE              (3)
-#endif
-
-#ifndef NONE_PULSE
-#define NONE_PULSE              (0)
-#endif
-
-#ifndef RGB_RESET_LENGTH
-#define RGB_RESET_LENGTH        (60)
-#endif
-
-#ifndef RGB_BUFFER_LENGTH
-#define RGB_BUFFER_LENGTH       (((RGB_NUM)*(3*8))+RGB_RESET_LENGTH)
-#endif
-
 #ifndef RGB_MAX_DURATION
 #define RGB_MAX_DURATION 1000
 #endif
@@ -205,7 +185,6 @@ void rgb_forward_list_erase_after(RGBArgumentList* list, RGBArgumentListNode*dat
 void rgb_forward_list_insert_after(RGBArgumentList* list, RGBArgumentListNode* data, RGBArgument t);
 void rgb_forward_list_push_front(RGBArgumentList* list, RGBArgument t);
 
-extern uint8_t g_rgb_buffer[RGB_BUFFER_LENGTH];
 extern ColorRGB g_rgb_colors[RGB_NUM];
 extern volatile bool g_rgb_hid_mode;
 extern RGBBaseConfig g_rgb_base_config;

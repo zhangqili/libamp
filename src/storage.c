@@ -48,7 +48,7 @@
 #define STORAGE_RGB_CONFIG_SIZE 0
 #endif
 #ifdef DYNAMICKEY_ENABLE
-#define STORAGE_DYNAMIC_KEY_CONFIG_SIZE (sizeof(g_keyboard_dynamic_keys))
+#define STORAGE_DYNAMIC_KEY_CONFIG_SIZE (sizeof(g_dynamic_keys))
 #else
 #define STORAGE_DYNAMIC_KEY_CONFIG_SIZE 0
 #endif
@@ -83,7 +83,7 @@ static int _sync(const struct lfs_config *c)
 static uint8_t read_buffer[LFS_CACHE_SIZE];
 static uint8_t prog_buffer[LFS_CACHE_SIZE];
 static uint8_t lookahead_buffer[LFS_CACHE_SIZE];
-static lfs_t lfs;
+static lfs_t _lfs;
 static const struct lfs_config _lfs_config =
 {
     // block device operations
@@ -109,7 +109,7 @@ static const struct lfs_config _lfs_config =
 
 lfs_t * storage_get_lfs(void)
 {
-    return &lfs;
+    return &_lfs;
 }
 
 struct lfs_config * storage_get_lfs_config(void)
@@ -126,6 +126,11 @@ static inline int config_file_read(uint8_t *buffer, uint32_t size, uint32_t offs
 
 static inline int config_file_write(const uint8_t *buffer, uint32_t size, uint32_t offset)
 {
+    int res = flash_erase(STORAGE_CONFIG_FILE_ADDRESS(g_current_config_index) + offset, size);
+    if (res)
+    {
+        return res;
+    }
     return flash_write(STORAGE_CONFIG_FILE_ADDRESS(g_current_config_index) + offset, size, buffer);
 }
 #endif
@@ -169,6 +174,7 @@ void dynamic_key_stroke_normalize(DynamicKeyStroke4x4Normalized* buffer, Dynamic
     buffer->press_fully_distance = A_NORM(dks->press_fully_distance);
     buffer->release_begin_distance = A_NORM(dks->release_begin_distance);
     buffer->release_fully_distance = A_NORM(dks->release_fully_distance);
+    buffer->key_id = dks->key_id;
     //memcpy(buffer->key_end_time, dks->key_end_time, sizeof(DynamicKeyStroke4x4) - offsetof(DynamicKeyStroke4x4,key_end_time));
 }
 
@@ -179,6 +185,7 @@ void dynamic_key_stroke_anti_normalize(DynamicKeyStroke4x4* dks, DynamicKeyStrok
     dks->press_fully_distance = A_ANIT_NORM(buffer->press_fully_distance);
     dks->release_begin_distance = A_ANIT_NORM(buffer->release_begin_distance);
     dks->release_fully_distance = A_ANIT_NORM(buffer->release_fully_distance);
+    dks->key_id = buffer->key_id;
     //memcpy(dks->key_end_time, buffer->key_end_time, sizeof(DynamicKeyStroke4x4) - offsetof(DynamicKeyStroke4x4,key_end_time));
 }
 
@@ -203,13 +210,13 @@ int storage_mount(void)
 {
 #ifdef LFS_ENABLE
     // mount the filesystem
-    int err = lfs_mount(&lfs, &_lfs_config);
+    int err = lfs_mount(&_lfs, &_lfs_config);
     // reformat if we can't mount the filesystem
     // this should only happen on the first boot
     if (err)
     {
-        lfs_format(&lfs, &_lfs_config);
-        lfs_mount(&lfs, &_lfs_config);
+        lfs_format(&_lfs, &_lfs_config);
+        lfs_mount(&_lfs, &_lfs_config);
     }
     return err;
 #endif
@@ -218,7 +225,7 @@ int storage_mount(void)
 void storage_unmount(void)
 {
 #ifdef LFS_ENABLE
-    lfs_unmount(&lfs);
+    lfs_unmount(&_lfs);
 #endif
 }
 
@@ -227,10 +234,10 @@ uint8_t storage_read_config_index(void)
 #ifdef LFS_ENABLE
     lfs_file_t lfs_file;
     uint8_t index = 0;
-    lfs_file_open(&lfs, &lfs_file, "config_index", LFS_O_RDWR | LFS_O_CREAT);
-    lfs_file_rewind(&lfs, &lfs_file);
-    lfs_file_read(&lfs, &lfs_file, &index, sizeof(index));
-    lfs_file_close(&lfs, &lfs_file);
+    lfs_file_open(&_lfs, &lfs_file, "config_index", LFS_O_RDWR | LFS_O_CREAT);
+    lfs_file_rewind(&_lfs, &lfs_file);
+    lfs_file_read(&_lfs, &lfs_file, &index, sizeof(index));
+    lfs_file_close(&_lfs, &lfs_file);
     if (index >= STORAGE_CONFIG_FILE_NUM)
     {
         index = 0;
@@ -246,10 +253,10 @@ void storage_save_config_index(void)
 {
 #ifdef LFS_ENABLE
     lfs_file_t lfs_file;
-    lfs_file_open(&lfs, &lfs_file, "config_index", LFS_O_RDWR | LFS_O_CREAT);
-    lfs_file_rewind(&lfs, &lfs_file);
-    lfs_file_write(&lfs, &lfs_file, &g_current_config_index, sizeof(g_current_config_index));
-    lfs_file_close(&lfs, &lfs_file);
+    lfs_file_open(&_lfs, &lfs_file, "config_index", LFS_O_RDWR | LFS_O_CREAT);
+    lfs_file_rewind(&_lfs, &lfs_file);
+    lfs_file_write(&_lfs, &lfs_file, &g_current_config_index, sizeof(g_current_config_index));
+    lfs_file_close(&_lfs, &lfs_file);
 #else
     flash_write(STORAGE_FLASH_BASE_ADDRESS, sizeof(g_current_config_index), (uint8_t *)&g_current_config_index);
 #endif
@@ -262,36 +269,36 @@ void storage_read_config(void)
     char config_file_name[8] = "config0";
     config_file_name[6] = g_current_config_index + '0';
 
-    lfs_file_open(&lfs, &lfs_file, config_file_name, LFS_O_RDWR | LFS_O_CREAT);
-    lfs_file_rewind(&lfs, &lfs_file);
+    lfs_file_open(&_lfs, &lfs_file, config_file_name, LFS_O_RDWR | LFS_O_CREAT);
+    lfs_file_rewind(&_lfs, &lfs_file);
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        read_advanced_key_config(&lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
+        read_advanced_key_config(&_lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
     }
-    lfs_file_read(&lfs, &lfs_file, g_keymap, sizeof(g_keymap));
+    lfs_file_read(&_lfs, &lfs_file, g_keymap, sizeof(g_keymap));
     layer_cache_refresh();
 #ifdef RGB_ENABLE
-    lfs_file_read(&lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
-    lfs_file_read(&lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
+    lfs_file_read(&_lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
+    lfs_file_read(&_lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
 #endif
 #ifdef DYNAMICKEY_ENABLE
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
     {
         DynamicKey buffer;
-        lfs_file_read(&lfs, &lfs_file, &buffer, sizeof(DynamicKey));
+        lfs_file_read(&_lfs, &lfs_file, &buffer, sizeof(DynamicKey));
         switch (buffer.type)
         {
         case DYNAMIC_KEY_STROKE:
-            dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[i], (DynamicKeyStroke4x4Normalized*)&buffer);
+            dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_dynamic_keys[i], (DynamicKeyStroke4x4Normalized*)&buffer);
             break;
         default:
-            memcpy(&g_keyboard_dynamic_keys[i], &buffer, sizeof(DynamicKey));
+            memcpy(&g_dynamic_keys[i], &buffer, sizeof(DynamicKey));
             break;
         }
     }
 #endif
     // remember the storage is not updated until the file is closed successfully
-    lfs_file_close(&lfs, &lfs_file);
+    lfs_file_close(&_lfs, &lfs_file);
 #else
     uint32_t offset = 0;
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
@@ -325,10 +332,10 @@ void storage_read_config(void)
         switch (buffer.type)
         {
         case DYNAMIC_KEY_STROKE:
-            dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[i], (DynamicKeyStroke4x4Normalized*)&buffer);
+            dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_dynamic_keys[i], (DynamicKeyStroke4x4Normalized*)&buffer);
             break;
         default:
-            memcpy(&g_keyboard_dynamic_keys[i], &buffer, sizeof(DynamicKey));
+            memcpy(&g_dynamic_keys[i], &buffer, sizeof(DynamicKey));
             break;
         }
         offset += sizeof(DynamicKey);
@@ -344,35 +351,35 @@ void storage_save_config(void)
     char config_file_name[8] = "config0";
     config_file_name[6] = g_current_config_index + '0';
 
-    lfs_file_open(&lfs, &lfs_file, config_file_name, LFS_O_RDWR | LFS_O_CREAT);
-    lfs_file_rewind(&lfs, &lfs_file);
+    lfs_file_open(&_lfs, &lfs_file, config_file_name, LFS_O_RDWR | LFS_O_CREAT);
+    lfs_file_rewind(&_lfs, &lfs_file);
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        save_advanced_key_config(&lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
+        save_advanced_key_config(&_lfs, &lfs_file, &g_keyboard_advanced_keys[i]);
     }
-    lfs_file_write(&lfs, &lfs_file, g_keymap, sizeof(g_keymap));
+    lfs_file_write(&_lfs, &lfs_file, g_keymap, sizeof(g_keymap));
 #ifdef RGB_ENABLE
-    lfs_file_write(&lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
-    lfs_file_write(&lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
+    lfs_file_write(&_lfs, &lfs_file, &g_rgb_base_config, sizeof(g_rgb_base_config));
+    lfs_file_write(&_lfs, &lfs_file, &g_rgb_configs, sizeof(g_rgb_configs));
 #endif
 #ifdef DYNAMICKEY_ENABLE
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
     {
-        switch (g_keyboard_dynamic_keys[i].type)
+        switch (g_dynamic_keys[i].type)
         {
         case DYNAMIC_KEY_STROKE:
             DynamicKeyStroke4x4Normalized buffer;
-            dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[i]);
-            lfs_file_write(&lfs, &lfs_file, &buffer, sizeof(DynamicKey));
+            dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_dynamic_keys[i]);
+            lfs_file_write(&_lfs, &lfs_file, &buffer, sizeof(DynamicKey));
             break;
         default:
-            lfs_file_write(&lfs, &lfs_file, &g_keyboard_dynamic_keys[i], sizeof(DynamicKey));
+            lfs_file_write(&_lfs, &lfs_file, &g_dynamic_keys[i], sizeof(DynamicKey));
             break;
         }
     }
 #endif
     // remember the storage is not updated until the file is closed successfully
-    lfs_file_close(&lfs, &lfs_file);
+    lfs_file_close(&_lfs, &lfs_file);
 #else
     uint32_t offset = 0;
 
@@ -401,15 +408,15 @@ void storage_save_config(void)
 #ifdef DYNAMICKEY_ENABLE
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
     {
-        switch (g_keyboard_dynamic_keys[i].type)
+        switch (g_dynamic_keys[i].type)
         {
         case DYNAMIC_KEY_STROKE:
             DynamicKeyStroke4x4Normalized buffer;
-            dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_keyboard_dynamic_keys[i]);
+            dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_dynamic_keys[i]);
             config_file_write((uint8_t*)&buffer, sizeof(DynamicKey), offset);
             break;
         default:
-            config_file_write((uint8_t*)&g_keyboard_dynamic_keys[i], sizeof(DynamicKey), offset);
+            config_file_write((uint8_t*)&g_dynamic_keys[i], sizeof(DynamicKey), offset);
             break;
         }
         offset += sizeof(DynamicKey);

@@ -18,6 +18,7 @@ typedef struct __ExtraKey
 } __PACKED ExtraKey;
 
 void extra_key_event_handler(KeyboardEvent event);
+void extra_key_add_buffer(KeyboardEvent event);
 int consumer_key_buffer_send(void);
 int system_key_buffer_send(void);
 

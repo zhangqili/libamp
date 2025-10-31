@@ -22,6 +22,7 @@ void layer_control(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_event_down_callback((Key*)event.key);
         switch ((event.keycode >> 12) & 0x0F)
         {
         case LAYER_MOMENTARY:
@@ -93,7 +94,7 @@ Keycode layer_get_keycode(uint16_t id, int8_t layer)
     while (layer>=0)
     {
         keycode = g_keymap[layer][id];
-        if (KEYCODE(keycode) == KEY_TRANSPARENT)
+        if (KEYCODE_GET_MAIN(keycode) == KEY_TRANSPARENT)
         {
             layer--;
         }

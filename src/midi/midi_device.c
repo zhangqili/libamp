@@ -103,7 +103,6 @@ void midi_process_byte(MIDIDevice* device, uint8_t input) {
         switch (midi_packet_length(input)) {
             case ONE:
                 device->input_state = ONE_BYTE_MESSAGE;
-                ;
                 midi_input_callbacks(device, 1, input, 0, 0);
                 device->input_state = IDLE;
                 break;

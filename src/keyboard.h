@@ -12,7 +12,6 @@
 #include "keyboard_def.h"
 #include "event.h"
 #include "keycode.h"
-#include "dynamic_key.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,14 +23,9 @@ extern "C" {
 
 #define NKRO_REPORT_BITS 30
 
-#define KEYBINDING(keycode, modifier) (((modifier) << 8) | (keycode))
-#define KEYCODE(binding) ((binding) & 0xFF)
-#define MODIFIER(binding) (((binding) >> 8) & 0xFF)
 #define KEYBOARD_CONFIG(index, action) ((((KEYBOARD_CONFIG_BASE + (index)) | ((action) << 6)) << 8) | KEYBOARD_OPERATION)
-
-#define KEYBOARD_REPORT_FLAG_SET(flag) BIT_SET(g_keyboard_report_flags, flag)
-#define KEYBOARD_REPORT_FLAG_CLEAR(flag) BIT_RESET(g_keyboard_report_flags, flag)
-#define KEYBOARD_REPORT_FLAG_GET(flag) BIT_GET(g_keyboard_report_flags, flag)
+#define KEYBOARD_GET_KEY_ANALOG_VALUE(key) (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->value : ((((Key*)(key))->state) * ANALOG_VALUE_MAX))
+#define KEYBOARD_GET_KEY_EFFECTIVE_ANALOG_VALUE(key) (IS_ADVANCED_KEY((key)) ? advanced_key_get_effective_value(((AdvancedKey*)(key))) : ((((Key*)(key))->state) * ANALOG_VALUE_MAX))
 
 typedef struct
 {
@@ -57,15 +51,6 @@ typedef enum
     KEYBOARD_STATE_DEBUG,
 } KEYBOARD_STATE;
 
-enum KeyboardReportFlag
-{
-    KEYBOARD_REPORT_FLAG = 0,
-    MOUSE_REPORT_FLAG = 1,
-    CONSUMER_REPORT_FLAG = 2,
-    SYSTEM_REPORT_FLAG = 3,
-    JOYSTICK_REPORT_FLAG = 4,
-};
-
 enum
 {
     KEYBOARD_CONFIG_DEBUG           = 0,
@@ -82,13 +67,55 @@ enum
     KEYBOARD_CONFIG_TOGGLE  = 2,
 };
 
-typedef struct
+typedef union
 {
-    bool debug : 1;
-    bool nkro : 1;
-    bool winlock : 1;
-    bool continous_poll : 1;
+    uint8_t raw;
+    struct
+    {
+        bool debug : 1;
+        bool nkro : 1;
+        bool winlock : 1;
+        bool continous_poll : 1;
+        uint8_t reserved : 4;
+    };
 } __PACKED KeyboardConfig;
+
+typedef union
+{
+    uint8_t raw;
+    struct
+    {
+        bool    num_lock : 1;
+        bool    caps_lock : 1;
+        bool    scroll_lock : 1;
+        bool    compose : 1;
+        bool    kana : 1;
+        uint8_t reserved : 3;
+    };
+} KeyboardLED;
+
+typedef union
+{
+    uint8_t raw;
+    struct
+    {
+        bool    keyboard : 1;
+        bool    mouse : 1;
+        bool    consumer : 1;
+        bool    system : 1;
+        bool    joystick : 1;
+        uint8_t reserved : 3;
+    };
+} KeyboardReportFlag;
+
+enum
+{
+    KEYBOARD_REPORT_FLAG = 0,
+    MOUSE_REPORT_FLAG = 1,
+    CONSUMER_REPORT_FLAG = 2,
+    SYSTEM_REPORT_FLAG = 3,
+    JOYSTICK_REPORT_FLAG = 4,
+};
 
 enum ReportID { 
     REPORT_ID_ALL = 0,
@@ -109,28 +136,25 @@ enum ReportID {
     REPORT_ID_COUNT = REPORT_ID_LIGHTING_LAMP_ARRAY_CONTROL
 };
 
-extern Key g_keyboard_keys[KEY_NUM];
 extern AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
-extern const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
+extern Key g_keyboard_keys[KEY_NUM];
+extern KeyboardLED g_keyboard_led_state;
+extern KeyboardConfig g_keyboard_config;
 extern Keycode g_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
 
-extern DynamicKey g_keyboard_dynamic_keys[DYNAMIC_KEY_NUM];
 
-extern uint8_t g_keyboard_led_state;
+extern const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
 
-extern uint32_t g_keyboard_tick;
-
-extern uint8_t g_keyboard_knob_flag;
+extern volatile uint32_t g_keyboard_tick;
 extern volatile bool g_keyboard_send_report_enable;
-extern volatile KeyboardConfig g_keyboard_config;
-
-extern volatile uint_fast8_t g_keyboard_is_suspend;
-extern volatile uint_fast8_t g_keyboard_report_flags;
+extern volatile bool g_keyboard_is_suspend;
+extern volatile KeyboardReportFlag g_keyboard_report_flags;
 
 void keyboard_event_handler(KeyboardEvent event);
 void keyboard_operation_event_handler(KeyboardEvent event);
-void keyboard_advanced_key_event_handler(AdvancedKey*key, KeyboardEvent event);
+void keyboard_key_event_down_callback(Key*key);
 
+void keyboard_add_buffer(KeyboardEvent event);
 int keyboard_buffer_send(void);
 void keyboard_clear_buffer(void);
 
@@ -142,9 +166,10 @@ int keyboard_NKRObuffer_add(Keyboard_NKROBuffer*buf,Keycode keycode);
 int keyboard_NKRObuffer_send(Keyboard_NKROBuffer*buf);
 void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf);
 
-
-void keyboard_key_update(Key *key, bool state);
-void keyboard_advanced_key_update_state(AdvancedKey *key, bool state);
+bool keyboard_key_update(Key *key, bool state);
+bool keyboard_advanced_key_update(AdvancedKey *advanced_key, AnalogValue value);
+bool keyboard_advanced_key_update_raw(AdvancedKey *advanced_key, AnalogRawValue raw);
+Key* keyboard_get_key(uint16_t id);
 
 void keyboard_init(void);
 void keyboard_reboot(void);

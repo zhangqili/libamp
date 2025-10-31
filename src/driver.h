@@ -28,6 +28,8 @@ int flash_read(uint32_t addr, uint32_t size, uint8_t *data);
 int flash_write(uint32_t addr, uint32_t size, const uint8_t *data);
 int flash_erase(uint32_t addr, uint32_t size);
 
+int led_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b);
+
 #ifdef __cplusplus
 }
 #endif

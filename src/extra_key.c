@@ -18,58 +18,66 @@ void extra_key_event_handler(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_UP:
-        switch (KEYCODE(event.keycode))
+        switch (KEYCODE_GET_MAIN(event.keycode))
         {
         case CONSUMER_COLLECTION:
             consumer_buffer.usage = 0;
-            KEYBOARD_REPORT_FLAG_SET(CONSUMER_REPORT_FLAG);
+            g_keyboard_report_flags.consumer = true;
             break;
         case SYSTEM_COLLECTION:
             system_buffer.usage = 0;
-            KEYBOARD_REPORT_FLAG_SET(SYSTEM_REPORT_FLAG);
+            g_keyboard_report_flags.system = true;
             break;
         default:
             break;
         }
+        //fallthrough
+    case KEYBOARD_EVENT_KEY_FALSE:
+        ((Key*)event.key)->report_state = false;
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
-        switch (KEYCODE(event.keycode))
+        keyboard_key_event_down_callback((Key*)event.key);
+        switch (KEYCODE_GET_MAIN(event.keycode))
         {
         case CONSUMER_COLLECTION:
-            consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(MODIFIER(event.keycode));
-            KEYBOARD_REPORT_FLAG_SET(CONSUMER_REPORT_FLAG);
+            consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(KEYCODE_GET_SUB(event.keycode));
+            g_keyboard_report_flags.consumer = true;
             break;
         case SYSTEM_COLLECTION:
-            system_buffer.usage = MODIFIER(event.keycode);
-            KEYBOARD_REPORT_FLAG_SET(SYSTEM_REPORT_FLAG);
+            system_buffer.usage = KEYCODE_GET_SUB(event.keycode);
+            g_keyboard_report_flags.system = true;
             break;
         default:
             break;
         }
-        break;
+        //fallthrough
     case KEYBOARD_EVENT_KEY_TRUE:
-        switch (KEYCODE(event.keycode))
-        {
-        case CONSUMER_COLLECTION:
-            if (!consumer_buffer.usage)
-            {
-                consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(MODIFIER(event.keycode));
-            }
-                break;
-        case SYSTEM_COLLECTION:
-            if (!system_buffer.usage)
-            {
-                system_buffer.usage = MODIFIER(event.keycode);
-            }
-        default:
-            break;
-        }
-        break;
-    case KEYBOARD_EVENT_KEY_FALSE:
+        ((Key*)event.key)->report_state = true;
         break;
     default:
         break;
     }
+}
+
+void extra_key_add_buffer(KeyboardEvent event)
+{
+    switch (KEYCODE_GET_MAIN(event.keycode))
+    {
+    case CONSUMER_COLLECTION:
+        if (!consumer_buffer.usage)
+        {
+            consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(KEYCODE_GET_SUB(event.keycode));
+        }
+            break;
+    case SYSTEM_COLLECTION:
+        if (!system_buffer.usage)
+        {
+            system_buffer.usage = KEYCODE_GET_SUB(event.keycode);
+        }
+    default:
+        break;
+    }
+
 }
 
 int consumer_key_buffer_send(void)

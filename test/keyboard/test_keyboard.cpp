@@ -8,6 +8,16 @@
 extern uint8_t shared_ep_send_buffer[64];
 extern uint8_t keyboard_send_buffer[64];
 
+
+void keyboard_advanced_key_update_state(AdvancedKey *key, bool state)
+{
+    keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(key->key.id), 
+                                            advanced_key_update_state(key, state) ? 
+                                            key->key.state ? KEYBOARD_EVENT_KEY_DOWN : KEYBOARD_EVENT_KEY_UP
+                                            : key->key.state ? KEYBOARD_EVENT_KEY_TRUE : KEYBOARD_EVENT_KEY_FALSE ,
+                                            key));
+}
+
 TEST(Keyboard, KeyboardTask)
 {
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
@@ -122,14 +132,14 @@ TEST(Keyboard, 6KROBuffer)
 {
     g_keyboard_config.nkro = false;
     keyboard_clear_buffer();
-    keyboard_event_handler({KEY_A|(KEY_LEFT_CTRL << 8), KEYBOARD_EVENT_KEY_TRUE});
-    keyboard_event_handler({KEY_B|(KEY_LEFT_ALT << 8), KEYBOARD_EVENT_KEY_TRUE});
-    keyboard_event_handler({KEY_C|(KEY_LEFT_SHIFT << 8), KEYBOARD_EVENT_KEY_TRUE});
-    keyboard_event_handler({KEY_D|(KEY_LEFT_GUI << 8), KEYBOARD_EVENT_KEY_TRUE});
-    keyboard_event_handler({KEY_A|(KEY_RIGHT_CTRL << 8), KEYBOARD_EVENT_KEY_TRUE});
-    keyboard_event_handler({KEY_B|(KEY_RIGHT_ALT << 8), KEYBOARD_EVENT_KEY_TRUE});
-    keyboard_event_handler({KEY_C|(KEY_RIGHT_SHIFT << 8), KEYBOARD_EVENT_KEY_TRUE});
-    keyboard_event_handler({KEY_D|(KEY_RIGHT_GUI << 8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_add_buffer(MK_EVENT(KEY_A|(KEY_LEFT_CTRL << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
+    keyboard_add_buffer(MK_EVENT(KEY_B|(KEY_LEFT_ALT << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
+    keyboard_add_buffer(MK_EVENT(KEY_C|(KEY_LEFT_SHIFT << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
+    keyboard_add_buffer(MK_EVENT(KEY_D|(KEY_LEFT_GUI << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
+    keyboard_add_buffer(MK_EVENT(KEY_A|(KEY_RIGHT_CTRL << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
+    keyboard_add_buffer(MK_EVENT(KEY_B|(KEY_RIGHT_ALT << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
+    keyboard_add_buffer(MK_EVENT(KEY_C|(KEY_RIGHT_SHIFT << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
+    keyboard_add_buffer(MK_EVENT(KEY_D|(KEY_RIGHT_GUI << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[0], 0xFF);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
@@ -144,8 +154,8 @@ TEST(Keyboard, NKROBuffer)
 {
     g_keyboard_config.nkro = true;
     keyboard_clear_buffer();
-    keyboard_event_handler({KEY_A|(KEY_LEFT_CTRL<<8), KEYBOARD_EVENT_KEY_TRUE});
-    keyboard_event_handler({KEY_S|(KEY_LEFT_ALT<<8), KEYBOARD_EVENT_KEY_TRUE});
+    keyboard_add_buffer(MK_EVENT(KEY_A|(KEY_LEFT_CTRL<<8), KEYBOARD_EVENT_NO_EVENT, NULL));
+    keyboard_add_buffer(MK_EVENT(KEY_S|(KEY_LEFT_ALT<<8), KEYBOARD_EVENT_NO_EVENT, NULL));
     keyboard_buffer_send();
     EXPECT_EQ(shared_ep_send_buffer[1], KEY_LEFT_CTRL|KEY_LEFT_ALT);
     EXPECT_EQ(shared_ep_send_buffer[KEY_A/8 + 2], BIT(4));

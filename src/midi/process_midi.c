@@ -52,7 +52,7 @@ uint8_t midi_compute_note(uint16_t keycode) {
 
 bool midi_event_handler(KeyboardEvent event)
 {
-    uint8_t keycode = MODIFIER(event.keycode);
+    uint8_t keycode = KEYCODE_GET_SUB(event.keycode);
     uint8_t velocity = 0;
     if (IS_ADVANCED_KEY(event.key))
     {
@@ -67,17 +67,24 @@ bool midi_event_handler(KeyboardEvent event)
     {
         velocity = midi_config.velocity;
     }
-    
-    if (KEYCODE(event.keycode) == MIDI_NOTE)
+    if (event.event == KEYBOARD_EVENT_KEY_DOWN)
+    {
+        /* code */
+    }
+    if (KEYCODE_GET_MAIN(event.keycode) == MIDI_NOTE)
     {
         uint8_t channel  = midi_config.channel;
-        if ((event.event == KEYBOARD_EVENT_KEY_DOWN))
+        switch (event.event)
         {
+        case KEYBOARD_EVENT_KEY_DOWN:
+            keyboard_key_event_down_callback((Key*)event.key);
             midi_send_noteon(&midi_device, channel, keycode, velocity);
-        }
-        else
-        {
+            break;
+        case KEYBOARD_EVENT_KEY_UP:
             midi_send_noteoff(&midi_device, channel, keycode, velocity);
+            break;
+        default:
+            break;
         }
         return false;
     }
@@ -248,7 +255,7 @@ bool midi_event_handler(KeyboardEvent event)
                 //dprintf("midi pitchbend channel:%d amount:%d\n", midi_config.channel, 0);
             }
             return false;
-    };
+    }
 
     return true;
 }
