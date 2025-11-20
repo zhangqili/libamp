@@ -174,7 +174,7 @@ void macro_process(void)
                     break;
                 }
                 keyboard_event_handler(macro->actions[macro->index].event);
-                ((Key*)event->key)->report_state = report_state;//protect key state
+                KEYBOARD_KEY_SET_REPORT_STATE(event->key, report_state);//protect key state
                 if (macro->actions[macro->index].event.event == KEYBOARD_EVENT_KEY_DOWN)
                 {
                     macro_forward_list_insert_after(&macro_argument_list, &macro_argument_list.data[macro_argument_list.head], (MacroArgument){event,i});

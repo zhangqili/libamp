@@ -26,6 +26,17 @@ extern "C" {
 #define KEYBOARD_CONFIG(index, action) ((((KEYBOARD_CONFIG_BASE + (index)) | ((action) << 6)) << 8) | KEYBOARD_OPERATION)
 #define KEYBOARD_GET_KEY_ANALOG_VALUE(key) (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->value : ((((Key*)(key))->state) * ANALOG_VALUE_MAX))
 #define KEYBOARD_GET_KEY_EFFECTIVE_ANALOG_VALUE(key) (IS_ADVANCED_KEY((key)) ? advanced_key_get_effective_value(((AdvancedKey*)(key))) : ((((Key*)(key))->state) * ANALOG_VALUE_MAX))
+#ifndef OPTIMIZE_KEY_BITMAP
+#define KEYBOARD_KEY_SET_REPORT_STATE(key, state) ((Key*)(key))->report_state = (state)
+#else
+#define KEY_BITMAP_SIZE ((ADVANCED_KEY_NUM + KEY_NUM + sizeof(uint32_t)*8 - 1) / (sizeof(uint32_t)*8))
+#define KEYBOARD_KEY_SET_REPORT_STATE(key, state) {const bool __report_state = (state);\
+    ((Key*)(key))->report_state = __report_state;\
+    const uint32_t __is_active = __report_state;\
+    const uint32_t __index = ((Key*)(key))->id / 32;\
+    const uint32_t __mask = BIT(((Key*)(key))->id % 32);\
+    g_key_active_bitmap[__index] = (g_key_active_bitmap[__index] & ~__mask) | (-(int32_t)__is_active & __mask);}
+#endif
 
 typedef struct
 {
@@ -149,6 +160,10 @@ extern volatile uint32_t g_keyboard_tick;
 extern volatile bool g_keyboard_send_report_enable;
 extern volatile bool g_keyboard_is_suspend;
 extern volatile KeyboardReportFlag g_keyboard_report_flags;
+
+#ifdef OPTIMIZE_KEY_BITMAP
+extern volatile uint32_t g_key_active_bitmap[KEY_BITMAP_SIZE];
+#endif
 
 void keyboard_event_handler(KeyboardEvent event);
 void keyboard_operation_event_handler(KeyboardEvent event);

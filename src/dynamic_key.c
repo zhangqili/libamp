@@ -219,7 +219,7 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
         keyboard_event_handler(MK_EVENT(dynamic_key_s->key_binding[i], 
             CALC_EVENT(BIT_GET(last_key_state, i), BIT_GET(dynamic_key_s->key_state, i)), key));
     }
-    key->report_state = dynamic_key_s->key_state > 0;
+    KEYBOARD_KEY_SET_REPORT_STATE(key, dynamic_key_s->key_state > 0);
     dynamic_key_s->value = current_value;
 }
 
@@ -267,7 +267,7 @@ void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
         CALC_EVENT(dynamic_key_mt->state == DYNAMIC_KEY_ACTION_HOLD && last_report_state, dynamic_key_mt->state == DYNAMIC_KEY_ACTION_HOLD && next_report_state), key));
     dynamic_key_mt->key_state = key->state;
     dynamic_key_mt->key_report_state = next_report_state;
-    key->report_state = next_report_state;
+    KEYBOARD_KEY_SET_REPORT_STATE(key, next_report_state);
 }
 
 void dynamic_key_tk_process(DynamicKeyToggleKey*dynamic_key)

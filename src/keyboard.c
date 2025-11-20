@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "keyboard.h"
-#include "keyboard_conf.h"
 #include "layer.h"
 #include "record.h"
 #include "driver.h"
@@ -61,12 +60,16 @@ static Keyboard_NKROBuffer keyboard_nkro_buffer;
 #endif
 static Keyboard_6KROBuffer keyboard_6kro_buffer;
 
+#ifdef OPTIMIZE_KEY_BITMAP
+volatile uint32_t g_key_active_bitmap[KEY_BITMAP_SIZE];
+#endif
+
 void keyboard_event_handler(KeyboardEvent event)
 {
 #ifdef MACRO_ENABLE
     macro_record_handler(event);
 #endif
-    ((Key*)event.key)->report_state = ((Key*)event.key)->state;
+    KEYBOARD_KEY_SET_REPORT_STATE(event.key, ((Key*)event.key)->state);
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
@@ -498,6 +501,7 @@ void keyboard_set_config_index(uint8_t index)
 
 void keyboard_fill_buffer(void)
 {
+#ifndef OPTIMIZE_KEY_BITMAP
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         AdvancedKey*key = &g_keyboard_advanced_keys[i];
@@ -514,6 +518,35 @@ void keyboard_fill_buffer(void)
             keyboard_add_buffer(MK_EVENT(layer_cache_get_keycode(key->id), KEYBOARD_EVENT_NO_EVENT, key));
         }
     }
+#else
+    for (uint16_t i = 0; i < KEY_BITMAP_SIZE; i++)
+    {
+        uint32_t block = g_key_active_bitmap[i];
+#ifdef __GNUC__
+        while (block != 0)
+        {
+            int bit_index = __builtin_ctz(block);
+            uint16_t id = i * 32 + bit_index;
+            Key* key = keyboard_get_key(id);
+            keyboard_add_buffer(MK_EVENT(layer_cache_get_keycode(id), KEYBOARD_EVENT_NO_EVENT, key));
+            BIT_RESET(block, bit_index);
+        }
+#else
+        if (!block)
+            continue;
+        for (int bit_index = 0; bit_index < 32; bit_index++)
+        {
+            if (block & BIT(bit_index))
+            {
+                uint16_t id = i * 32 + bit_index;
+                if (id >= (ADVANCED_KEY_NUM + KEY_NUM)) break;
+                Key* key = keyboard_get_key(id);
+                keyboard_add_buffer(MK_EVENT(layer_cache_get_keycode(id), KEYBOARD_EVENT_NO_EVENT, key));
+            }
+        }
+#endif
+    }
+#endif
 #ifdef DYNAMICKEY_ENABLE
     dynamic_key_add_buffer();
 #endif

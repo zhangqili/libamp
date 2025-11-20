@@ -15,7 +15,7 @@ void mouse_event_handler(KeyboardEvent event)
     if (MOUSE_KEYCODE_IS_MOVE(event.keycode))
     {
         g_keyboard_report_flags.mouse = true;
-        ((Key*)event.key)->report_state = true;
+        KEYBOARD_KEY_SET_REPORT_STATE(event.key, true);
         return;
     }
     switch (event.event)
