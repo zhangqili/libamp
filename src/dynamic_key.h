@@ -6,13 +6,7 @@
 #ifndef DYNAMIC_KEY_H_
 #define DYNAMIC_KEY_H_
 
-#include "stdint.h"
-#include "stddef.h"
-#include "stdbool.h"
-
-#include "keycode.h"
-#include "event.h"
-#include "advanced_key.h"
+#include "keyboard.h"
 
 #ifdef __cplusplus
 extern "C" {

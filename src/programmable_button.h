@@ -7,10 +7,7 @@
 #ifndef PROGRAMMABLE_BUTTON_H
 #define PROGRAMMABLE_BUTTON_H
 
-#include "stdint.h"
-#include "keycode.h"
-#include "keyboard_def.h"
-#include "keyboard_conf.h"
+#include "keyboard.h"
  
 #ifdef __cplusplus
 extern "C" {

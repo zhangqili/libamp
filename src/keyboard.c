@@ -46,9 +46,9 @@ AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
 Key g_keyboard_keys[KEY_NUM];
 KeyboardLED g_keyboard_led_state;
 __WEAK KeyboardConfig g_keyboard_config;
-Keycode g_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
+Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
-__WEAK const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
+__WEAK const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
 volatile uint32_t g_keyboard_tick;
 volatile bool g_keyboard_send_report_enable = true;
@@ -539,7 +539,7 @@ void keyboard_fill_buffer(void)
             if (block & BIT(bit_index))
             {
                 uint16_t id = i * 32 + bit_index;
-                if (id >= (ADVANCED_KEY_NUM + KEY_NUM)) break;
+                if (id >= (TOTAL_KEY_NUM)) break;
                 Key* key = keyboard_get_key(id);
                 keyboard_add_buffer(MK_EVENT(layer_cache_get_keycode(id), KEYBOARD_EVENT_NO_EVENT, key));
             }
@@ -671,7 +671,7 @@ bool keyboard_advanced_key_update_raw(AdvancedKey *advanced_key, AnalogRawValue 
 
 Key* keyboard_get_key(uint16_t id)
 {
-    if (id >= (ADVANCED_KEY_NUM + KEY_NUM))
+    if (id >= TOTAL_KEY_NUM)
     {
         return NULL;
     }

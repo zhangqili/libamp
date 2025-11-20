@@ -6,11 +6,7 @@
 #ifndef FILTER_H_
 #define FILTER_H_
 
-#include "stdint.h"
-#include "stddef.h"
-#include "stdbool.h"
-#include "keyboard_conf.h"
-#include "advanced_key.h"
+#include "keyboard.h"
 
 #ifdef __cplusplus
 extern "C" {

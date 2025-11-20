@@ -3,11 +3,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-#include "stdlib.h"
-#include "stdio.h"
-#include "rgb.h"
 #include "analog.h"
-#include "advanced_key.h"
 
 AdaptiveSchimidtFilter g_analog_filters[ADVANCED_KEY_NUM];
 

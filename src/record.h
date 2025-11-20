@@ -6,7 +6,6 @@
 #ifndef RECORD_H_
 #define RECORD_H_
 #include "keyboard.h"
-#include "keyboard_conf.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,7 +43,7 @@ typedef struct __LoopArray
 } LoopArray;
 
 #ifdef COUNTER_ENABLE
-extern uint32_t g_key_counts[ADVANCED_KEY_NUM+KEY_NUM];
+extern uint32_t g_key_counts[TOTAL_KEY_NUM];
 #endif
 
 #ifdef KPS_ENABLE

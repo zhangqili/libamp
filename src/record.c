@@ -28,7 +28,7 @@ size_t g_bit_stream_datas[ADVANCED_KEY_NUM][BIT_DATA_LENGTH];
 #endif
 
 #ifdef COUNTER_ENABLE
-uint32_t g_key_counts[ADVANCED_KEY_NUM+KEY_NUM];
+uint32_t g_key_counts[TOTAL_KEY_NUM];
 #endif
 // static Key *kps_queue[RECORD_MAX_KEY_NUM];
 // static Key *bit_queue[RECORD_MAX_KEY_NUM];

@@ -19,7 +19,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "keyboard.h"
-#include "keycode.h"
 
 // MIDI aliases
 #define MIDI_TONE_MIN       MIDI_NOTE_C_0

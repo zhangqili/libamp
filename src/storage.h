@@ -6,11 +6,10 @@
 #ifndef STORAGE_H_
 #define STORAGE_H_
 
-#include "stdint.h"
-#include "keyboard_def.h"
-#include "advanced_key.h"
+#include "keyboard.h"
+#ifdef DYNAMICKEY_ENABLE
 #include "dynamic_key.h"
-#include "keycode.h"
+#endif
 
 #include "lfs.h"
 
@@ -62,8 +61,10 @@ lfs_t * storage_get_lfs(void);
 
 void advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, const AdvancedKeyConfiguration* config);
 void advanced_key_config_anti_normalize(AdvancedKeyConfiguration* config, const AdvancedKeyConfigurationNormalized* buffer);
+#ifdef DYNAMICKEY_ENABLE
 void dynamic_key_stroke_normalize(DynamicKeyStroke4x4Normalized* buffer, DynamicKeyStroke4x4* dks);
 void dynamic_key_stroke_anti_normalize(DynamicKeyStroke4x4* dks, DynamicKeyStroke4x4Normalized* buffer);
+#endif
 
 int storage_mount(void);
 void storage_unmount(void);

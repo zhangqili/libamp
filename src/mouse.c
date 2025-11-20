@@ -3,7 +3,6 @@
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-#include "keyboard.h"
 #include "mouse.h"
 #include "string.h"
 #include "driver.h"

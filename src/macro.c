@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "macro.h"
-#include "keyboard.h"
 
 Macro g_macros[MACRO_NUMS];
 static MacroAction actions[MACRO_NUMS][MACRO_MAX_ACTIONS];

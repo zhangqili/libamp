@@ -4,17 +4,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "layer.h"
-#include "keycode.h"
-#include "key.h"
-#include "keyboard_def.h"
-#include "keyboard.h"
 
 #include "string.h"
 
 uint8_t g_current_layer;
 static uint16_t layer_state;
-Keycode g_keymap_cache[ADVANCED_KEY_NUM + KEY_NUM];
-bool g_keymap_lock[ADVANCED_KEY_NUM + KEY_NUM];
+Keycode g_keymap_cache[TOTAL_KEY_NUM];
+bool g_keymap_lock[TOTAL_KEY_NUM];
 
 void layer_control(KeyboardEvent event)
 {
@@ -119,7 +115,7 @@ inline void layer_unlock(uint16_t id)
 
 void layer_cache_refresh(void)
 {
-    for (int i = 0; i < (ADVANCED_KEY_NUM + KEY_NUM); i++)
+    for (int i = 0; i < TOTAL_KEY_NUM; i++)
     {
         if (!g_keymap_lock[i])
         {

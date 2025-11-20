@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "encoder.h"
-#include "keyboard.h"
 
 #ifdef ENCODER_ENABLE
 __WEAK Encoder g_encoders[ENCODER_NUM];

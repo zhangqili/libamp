@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include"storage.h"
-#include"lfs.h"
-#include"keyboard.h"
-#include"rgb.h"
 #include"layer.h"
 #include"driver.h"
+#ifdef RGB_ENABLE
+#include"rgb.h"
+#endif
 
 #ifndef STORAGE_FLASH_BASE_ADDRESS
 #define STORAGE_FLASH_BASE_ADDRESS 0x00000000

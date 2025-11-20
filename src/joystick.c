@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "joystick.h"
-#include "keyboard_def.h"
 #include "string.h"
 #include "driver.h"
 

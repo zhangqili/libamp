@@ -6,10 +6,7 @@
 #ifndef MACRO_H_
 #define MACRO_H_
 
-#include "stdint.h"
-#include "keyboard_def.h"
-#include "keyboard_conf.h"
-#include "event.h"
+#include "keyboard.h"
 
 #ifdef __cplusplus
 extern "C" {

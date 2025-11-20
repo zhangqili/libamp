@@ -14,7 +14,7 @@ uint8_t keyboard_send_buffer[64];
 uint8_t raw_send_buffer[64];
 uint8_t midi_send_buffer[64];
 
-const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM] = {
+const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM] = {
     {
         KEY_ESC/*0*/,           KEY_1/*1*/,     KEY_2/*2*/,     KEY_3/*3*/,     KEY_4/*4*/,     KEY_5/*5*/,     KEY_6/*6*/,     KEY_7/*7*/,     KEY_8/*8*/,     KEY_9/*9*/,     KEY_0/*10*/,        KEY_MINUS/*11*/,        KEY_EQUAL/*12*/,        KEY_BACKSPACE/*13*/,
         KEY_TAB/*14*/,          KEY_Q/*15*/,    KEY_W/*16*/,    KEY_E/*17*/,    KEY_R/*18*/,    KEY_T/*19*/,    KEY_Y/*20*/,    KEY_U/*21*/,    KEY_I/*22*/,    KEY_O/*23*/,    KEY_P/*24*/,        KEY_LEFT_BRACE/*25*/,   KEY_RIGHT_BRACE/*26*/,  KEY_BACKSLASH/*27*/,

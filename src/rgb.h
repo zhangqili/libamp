@@ -8,7 +8,6 @@
 
 #include "color.h"
 #include "keyboard.h"
-#include "keyboard_conf.h"
 
 #ifdef __cplusplus
 extern "C" {

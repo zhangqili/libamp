@@ -23,13 +23,15 @@ extern "C" {
 
 #define NKRO_REPORT_BITS 30
 
+#define TOTAL_KEY_NUM (ADVANCED_KEY_NUM + KEY_NUM)
+
 #define KEYBOARD_CONFIG(index, action) ((((KEYBOARD_CONFIG_BASE + (index)) | ((action) << 6)) << 8) | KEYBOARD_OPERATION)
 #define KEYBOARD_GET_KEY_ANALOG_VALUE(key) (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->value : ((((Key*)(key))->state) * ANALOG_VALUE_MAX))
 #define KEYBOARD_GET_KEY_EFFECTIVE_ANALOG_VALUE(key) (IS_ADVANCED_KEY((key)) ? advanced_key_get_effective_value(((AdvancedKey*)(key))) : ((((Key*)(key))->state) * ANALOG_VALUE_MAX))
 #ifndef OPTIMIZE_KEY_BITMAP
 #define KEYBOARD_KEY_SET_REPORT_STATE(key, state) ((Key*)(key))->report_state = (state)
 #else
-#define KEY_BITMAP_SIZE ((ADVANCED_KEY_NUM + KEY_NUM + sizeof(uint32_t)*8 - 1) / (sizeof(uint32_t)*8))
+#define KEY_BITMAP_SIZE ((TOTAL_KEY_NUM + sizeof(uint32_t)*8 - 1) / (sizeof(uint32_t)*8))
 #define KEYBOARD_KEY_SET_REPORT_STATE(key, state) {const bool __report_state = (state);\
     ((Key*)(key))->report_state = __report_state;\
     const uint32_t __is_active = __report_state;\
@@ -151,10 +153,10 @@ extern AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
 extern Key g_keyboard_keys[KEY_NUM];
 extern KeyboardLED g_keyboard_led_state;
 extern KeyboardConfig g_keyboard_config;
-extern Keycode g_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
+extern Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
 
-extern const Keycode g_default_keymap[LAYER_NUM][ADVANCED_KEY_NUM + KEY_NUM];
+extern const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
 extern volatile uint32_t g_keyboard_tick;
 extern volatile bool g_keyboard_send_report_enable;
