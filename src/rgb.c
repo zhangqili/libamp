@@ -276,7 +276,7 @@ void rgb_update(void)
         Color* target_color = &g_rgb_colors[i];
         RGBConfig* rgb_config = &g_rgb_configs[i];
         Key* key = keyboard_get_key(g_rgb_mapping[i]);
-        if (key == NULL)
+        if (key != NULL)
         {
             intensity = KEYBOARD_GET_KEY_EFFECTIVE_ANALOG_VALUE(key);
             report_state = key->report_state;
