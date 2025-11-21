@@ -91,7 +91,7 @@ TEST(Packet, SetPacketRGBConfigs)
     packet_process((uint8_t*)&packet,sizeof(packet));
 
     uint16_t key_index;
-    key_index = g_rgb_mapping[3];
+    key_index = g_rgb_inverse_mapping[3];
     ColorHSV hsv;
     ColorRGB rgb;
     rgb.r = 255;
@@ -103,7 +103,7 @@ TEST(Packet, SetPacketRGBConfigs)
     EXPECT_EQ(g_rgb_configs[key_index].mode, RGB_MODE_LINEAR);
     EXPECT_FLOAT_EQ(g_rgb_configs[key_index].speed, 0.01);
 
-    key_index = g_rgb_mapping[5];
+    key_index = g_rgb_inverse_mapping[5];
     rgb.r = 0;
     rgb.g = 255;
     rgb.b = 0;

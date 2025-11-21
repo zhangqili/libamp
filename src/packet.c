@@ -149,7 +149,7 @@ void packet_process_rgb_config(PacketData*data)
     {
         for (uint8_t i = 0; i < packet->length; i++)
         {
-            uint16_t rgb_index = g_rgb_mapping[packet->data[i].index];
+            uint16_t rgb_index = g_rgb_inverse_mapping[packet->data[i].index];
             if (rgb_index < RGB_NUM)
             {
                 g_rgb_configs[rgb_index].mode  = packet->data[i].mode;
@@ -165,10 +165,10 @@ void packet_process_rgb_config(PacketData*data)
     {
         for (uint8_t i = 0; i < packet->length; i++)
         {
-            uint8_t key_index =  g_rgb_mapping[packet->data[i].index];
+            uint8_t key_index =  g_rgb_inverse_mapping[packet->data[i].index];
             if (key_index < RGB_NUM)
             {
-                uint8_t rgb_index = g_rgb_mapping[key_index];
+                uint8_t rgb_index = g_rgb_inverse_mapping[key_index];
                 packet->data[i].index = key_index;
                 packet->data[i].mode = g_rgb_configs[rgb_index].mode;
                 packet->data[i].r = g_rgb_configs[rgb_index].rgb.r;
