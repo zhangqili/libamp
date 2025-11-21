@@ -1,12 +1,9 @@
 #include "packet.h"
-#include "keyboard.h"
-#include "keyboard_def.h"
 #include "rgb.h"
-#include "string.h"
-#include "packet.h"
 #include "layer.h"
 #include "driver.h"
 
+#include "string.h"
 
 static inline void command_advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, AdvancedKeyConfiguration* config)
 {

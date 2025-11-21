@@ -170,7 +170,6 @@ void dynamic_key_stroke_normalize(DynamicKeyStroke4x4Normalized* buffer, Dynamic
     buffer->release_begin_distance = A_NORM(dks->release_begin_distance);
     buffer->release_fully_distance = A_NORM(dks->release_fully_distance);
     buffer->key_id = dks->key_id;
-    //memcpy(buffer->key_end_time, dks->key_end_time, sizeof(DynamicKeyStroke4x4) - offsetof(DynamicKeyStroke4x4,key_end_time));
 }
 
 void dynamic_key_stroke_anti_normalize(DynamicKeyStroke4x4* dks, DynamicKeyStroke4x4Normalized* buffer)
@@ -181,7 +180,6 @@ void dynamic_key_stroke_anti_normalize(DynamicKeyStroke4x4* dks, DynamicKeyStrok
     dks->release_begin_distance = A_ANIT_NORM(buffer->release_begin_distance);
     dks->release_fully_distance = A_ANIT_NORM(buffer->release_fully_distance);
     dks->key_id = buffer->key_id;
-    //memcpy(dks->key_end_time, buffer->key_end_time, sizeof(DynamicKeyStroke4x4) - offsetof(DynamicKeyStroke4x4,key_end_time));
 }
 
 static inline void save_advanced_key_config(lfs_t *lfs, lfs_file_t *file, AdvancedKey* key)

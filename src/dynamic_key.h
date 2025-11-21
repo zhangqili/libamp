@@ -12,7 +12,10 @@
 extern "C" {
 #endif
 
+#ifndef DYNAMIC_KEY_NUM
 #define DYNAMIC_KEY_NUM 32
+#endif
+
 typedef enum __DynamicKeyType
 {
     DYNAMIC_KEY_NONE,
@@ -49,7 +52,7 @@ typedef struct __DynamicKeyStroke4x4
     AnalogValue release_fully_distance;
     uint16_t key_id;
     AnalogValue value;
-    uint32_t key_end_time[4];
+    uint32_t key_end_tick[4];
     uint8_t key_state;
 } DynamicKeyStroke4x4;
 
@@ -59,8 +62,8 @@ typedef struct __DynamicKeyModTap
     Keycode key_binding[2];
     uint32_t duration;
     uint16_t key_id;
-    uint32_t begin_time;
-    uint32_t end_time;
+    uint32_t begin_tick;
+    uint32_t end_tick;
     uint8_t state;
     uint8_t key_state;
     uint8_t key_report_state;

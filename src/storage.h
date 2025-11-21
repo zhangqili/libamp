@@ -49,7 +49,7 @@ typedef struct __DynamicKeyStroke4x4Normalized
     float release_fully_distance;
     uint16_t key_id;
     float value;
-    uint32_t key_end_time[4];
+    uint32_t key_end_tick[4];
     uint8_t key_state;
 } DynamicKeyStroke4x4Normalized;
 

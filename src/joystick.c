@@ -14,7 +14,7 @@ void joystick_event_handler(KeyboardEvent event)
     if (JOYSTICK_KEYCODE_IS_AXIS(event.keycode))
     {
         g_keyboard_report_flags.joystick = true;
-        ((Key*)event.key)->report_state = true;
+        keyboard_key_set_report_state((Key*)&event.key, true);
         return;
     }
     switch (event.event)
@@ -45,7 +45,7 @@ void joystick_add_buffer(KeyboardEvent event)
     if (JOYSTICK_KEYCODE_IS_AXIS(event.keycode))
     {
         g_keyboard_report_flags.joystick = true;
-        joystick_set_axis(event.keycode, KEYBOARD_GET_KEY_ANALOG_VALUE(event.key));
+        joystick_set_axis(event.keycode, keyboard_get_key_analog_value(event.key));
         return;
     }
     uint8_t button = KEYCODE_GET_SUB(event.keycode);

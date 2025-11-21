@@ -59,7 +59,7 @@ typedef struct __MacroAction
 typedef struct __Macro
 {
     uint8_t state;
-    uint32_t begin_time;
+    uint32_t begin_tick;
     uint16_t length;
     uint16_t index;
     MacroAction* actions;

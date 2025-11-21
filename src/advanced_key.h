@@ -7,7 +7,6 @@
 #define ADVANCED_KEY_H_
 
 #include "key.h"
-#include "keyboard_conf.h"
 
 #ifdef __cplusplus
 extern "C" {

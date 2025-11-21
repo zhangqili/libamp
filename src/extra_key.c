@@ -31,16 +31,15 @@ void extra_key_event_handler(KeyboardEvent event)
         default:
             break;
         }
-        //fallthrough
+        break;
     case KEYBOARD_EVENT_KEY_FALSE:
-        KEYBOARD_KEY_SET_REPORT_STATE(event.key, false);
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
         keyboard_key_event_down_callback((Key*)event.key);
         switch (KEYCODE_GET_MAIN(event.keycode))
         {
         case CONSUMER_COLLECTION:
-            consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(KEYCODE_GET_SUB(event.keycode));
+            consumer_buffer.usage = consumer_keycode_to_rawcide(KEYCODE_GET_SUB(event.keycode));
             g_keyboard_report_flags.consumer = true;
             break;
         case SYSTEM_COLLECTION:
@@ -50,9 +49,8 @@ void extra_key_event_handler(KeyboardEvent event)
         default:
             break;
         }
-        //fallthrough
+        break;
     case KEYBOARD_EVENT_KEY_TRUE:
-        KEYBOARD_KEY_SET_REPORT_STATE(event.key, true);
         break;
     default:
         break;
@@ -66,7 +64,7 @@ void extra_key_add_buffer(KeyboardEvent event)
     case CONSUMER_COLLECTION:
         if (!consumer_buffer.usage)
         {
-            consumer_buffer.usage = CONSUMER_KEYCODE_TO_RAWCODE(KEYCODE_GET_SUB(event.keycode));
+            consumer_buffer.usage = consumer_keycode_to_rawcide(KEYCODE_GET_SUB(event.keycode));
         }
             break;
     case SYSTEM_COLLECTION:

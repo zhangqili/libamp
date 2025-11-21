@@ -17,8 +17,8 @@
 extern "C" {
 #endif
 
-#ifndef REPORT_RATE
-#define REPORT_RATE 1000
+#ifndef POLLING_RATE
+#define POLLING_RATE 1000
 #endif
 
 #define NKRO_REPORT_BITS 30
@@ -26,18 +26,12 @@ extern "C" {
 #define TOTAL_KEY_NUM (ADVANCED_KEY_NUM + KEY_NUM)
 
 #define KEYBOARD_CONFIG(index, action) ((((KEYBOARD_CONFIG_BASE + (index)) | ((action) << 6)) << 8) | KEYBOARD_OPERATION)
-#define KEYBOARD_GET_KEY_ANALOG_VALUE(key) (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->value : ((((Key*)(key))->state) * ANALOG_VALUE_MAX))
-#define KEYBOARD_GET_KEY_EFFECTIVE_ANALOG_VALUE(key) (IS_ADVANCED_KEY((key)) ? advanced_key_get_effective_value(((AdvancedKey*)(key))) : ((((Key*)(key))->state) * ANALOG_VALUE_MAX))
-#ifndef OPTIMIZE_KEY_BITMAP
-#define KEYBOARD_KEY_SET_REPORT_STATE(key, state) ((Key*)(key))->report_state = (state)
-#else
+
+#define KEYBOARD_TIME_TO_TICK(x)   ((uint32_t)(((uint64_t)(x) * POLLING_RATE) / 1000))
+#define KEYBOARD_TICK_TO_TIME(x)   ((uint32_t)(((uint64_t)(x) * 1000) / POLLING_RATE))
+
+#ifdef OPTIMIZE_KEY_BITMAP
 #define KEY_BITMAP_SIZE ((TOTAL_KEY_NUM + sizeof(uint32_t)*8 - 1) / (sizeof(uint32_t)*8))
-#define KEYBOARD_KEY_SET_REPORT_STATE(key, state) {const bool __report_state = (state);\
-    ((Key*)(key))->report_state = __report_state;\
-    const uint32_t __is_active = __report_state;\
-    const uint32_t __index = ((Key*)(key))->id / 32;\
-    const uint32_t __mask = BIT(((Key*)(key))->id % 32);\
-    g_key_active_bitmap[__index] = (g_key_active_bitmap[__index] & ~__mask) | (-(int32_t)__is_active & __mask);}
 #endif
 
 typedef struct
@@ -167,7 +161,7 @@ extern volatile KeyboardReportFlag g_keyboard_report_flags;
 extern volatile uint32_t g_key_active_bitmap[KEY_BITMAP_SIZE];
 #endif
 
-void keyboard_event_handler(KeyboardEvent event);
+bool keyboard_event_handler(KeyboardEvent event);
 void keyboard_operation_event_handler(KeyboardEvent event);
 void keyboard_key_event_down_callback(Key*key);
 
@@ -186,7 +180,6 @@ void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf);
 bool keyboard_key_update(Key *key, bool state);
 bool keyboard_advanced_key_update(AdvancedKey *advanced_key, AnalogValue value);
 bool keyboard_advanced_key_update_raw(AdvancedKey *advanced_key, AnalogRawValue raw);
-Key* keyboard_get_key(uint16_t id);
 
 void keyboard_init(void);
 void keyboard_reboot(void);
@@ -202,6 +195,38 @@ void keyboard_save(void);
 void keyboard_set_config_index(uint8_t index);
 void keyboard_task(void);
 void keyboard_delay(uint32_t ms);
+
+static inline Key* keyboard_get_key(uint16_t id)
+{    
+    if (id >= TOTAL_KEY_NUM)
+    {
+        return NULL;
+    }
+    return id < ADVANCED_KEY_NUM ? &g_keyboard_advanced_keys[id].key : &g_keyboard_keys[id - ADVANCED_KEY_NUM];
+}
+
+static inline bool keyboard_key_set_report_state(Key*key, bool state)
+{
+    bool changed = key->report_state != state;
+    key->report_state = state;
+#ifdef OPTIMIZE_KEY_BITMAP
+    const uint32_t is_active = state;
+    const uint32_t index = key->id / 32;
+    const uint32_t mask = BIT(key->id % 32);    
+    g_key_active_bitmap[index] = (g_key_active_bitmap[index] & ~mask) | (-(int32_t)is_active & mask);
+#endif
+    return changed;
+}
+
+static inline AnalogValue keyboard_get_key_analog_value(Key* key)
+{    
+    return (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->value : ((((Key*)(key))->state) * ANALOG_VALUE_MAX));
+}
+
+static inline AnalogValue keyboard_get_key_effective_analog_value(Key* key)
+{    
+    return (IS_ADVANCED_KEY((key)) ? advanced_key_get_effective_value(((AdvancedKey*)(key))) : ((((Key*)(key))->state) * ANALOG_VALUE_MAX));
+}
 
 #ifdef __cplusplus
 }

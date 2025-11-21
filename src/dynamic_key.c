@@ -7,7 +7,7 @@
 #include "dynamic_key.h"
 #include "layer.h"
 
-#define DK_TAP_DURATION 5
+#define DK_TAP_DURATION KEYBOARD_TIME_TO_TICK(5)
 
 #define DYNAMIC_KEY_NOT_MATCH(dynamic_key, key) (KEYCODE_GET_MAIN(layer_cache_get_keycode((key)->id)) != DYNAMIC_KEY || \
         &g_dynamic_keys[KEYCODE_GET_SUB(layer_cache_get_keycode((key)->id))] != ((DynamicKey*)(dynamic_key)))
@@ -104,7 +104,7 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
         return;
     }
     AnalogValue last_value = dynamic_key_s->value;
-    AnalogValue current_value = KEYBOARD_GET_KEY_ANALOG_VALUE(key);
+    AnalogValue current_value = keyboard_get_key_analog_value(key);
     uint8_t last_key_state = dynamic_key_s->key_state;
     if (current_value > last_value)
     {
@@ -119,11 +119,11 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
                     BIT_RESET(dynamic_key_s->key_state, i);
                     break;
                 case DKS_TAP:
-                    dynamic_key_s->key_end_time[i] = g_keyboard_tick + DK_TAP_DURATION;
+                    dynamic_key_s->key_end_tick[i] = g_keyboard_tick + DK_TAP_DURATION;
                     BIT_SET(dynamic_key_s->key_state, i);
                     break;
                 case DKS_HOLD:
-                    dynamic_key_s->key_end_time[i] = 0xFFFFFFFF;
+                    dynamic_key_s->key_end_tick[i] = 0xFFFFFFFF;
                     BIT_SET(dynamic_key_s->key_state, i);
                     break;
                 default:
@@ -143,11 +143,11 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
                     BIT_RESET(dynamic_key_s->key_state, i);
                     break;
                 case DKS_TAP:
-                    dynamic_key_s->key_end_time[i] = g_keyboard_tick + DK_TAP_DURATION;
+                    dynamic_key_s->key_end_tick[i] = g_keyboard_tick + DK_TAP_DURATION;
                     BIT_SET(dynamic_key_s->key_state, i);
                     break;
                 case DKS_HOLD:
-                    dynamic_key_s->key_end_time[i] = 0xFFFFFFFF;
+                    dynamic_key_s->key_end_tick[i] = 0xFFFFFFFF;
                     BIT_SET(dynamic_key_s->key_state, i);
                     break;
                 default:
@@ -170,11 +170,11 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
                     BIT_RESET(dynamic_key_s->key_state, i);
                     break;
                 case DKS_TAP:
-                    dynamic_key_s->key_end_time[i] = g_keyboard_tick + DK_TAP_DURATION;
+                    dynamic_key_s->key_end_tick[i] = g_keyboard_tick + DK_TAP_DURATION;
                     BIT_SET(dynamic_key_s->key_state, i);
                     break;
                 case DKS_HOLD:
-                    dynamic_key_s->key_end_time[i] = 0xFFFFFFFF;
+                    dynamic_key_s->key_end_tick[i] = 0xFFFFFFFF;
                     BIT_SET(dynamic_key_s->key_state, i);
                     break;
                 default:
@@ -194,11 +194,11 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
                     BIT_RESET(dynamic_key_s->key_state, i);
                     break;
                 case DKS_TAP:
-                    dynamic_key_s->key_end_time[i] = g_keyboard_tick + DK_TAP_DURATION;
+                    dynamic_key_s->key_end_tick[i] = g_keyboard_tick + DK_TAP_DURATION;
                     BIT_SET(dynamic_key_s->key_state, i);
                     break;
                 case DKS_HOLD:
-                    dynamic_key_s->key_end_time[i] = 0xFFFFFFFF;
+                    dynamic_key_s->key_end_tick[i] = 0xFFFFFFFF;
                     BIT_SET(dynamic_key_s->key_state, i);
                     break;
                 default:
@@ -211,14 +211,14 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
 
     for (int i = 0; i < 4; i++)
     {
-        if (g_keyboard_tick > dynamic_key_s->key_end_time[i])
+        if (g_keyboard_tick > dynamic_key_s->key_end_tick[i])
         {
             BIT_RESET(dynamic_key_s->key_state, i);
         }
         keyboard_event_handler(MK_EVENT(dynamic_key_s->key_binding[i], 
             CALC_EVENT(BIT_GET(last_key_state, i), BIT_GET(dynamic_key_s->key_state, i)), key));
     }
-    KEYBOARD_KEY_SET_REPORT_STATE(key, dynamic_key_s->key_state > 0);
+    keyboard_key_set_report_state(key, dynamic_key_s->key_state > 0);
     dynamic_key_s->value = current_value;
 }
 
@@ -234,13 +234,13 @@ void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
     bool next_report_state = dynamic_key_mt->key_report_state;
     if (!dynamic_key_mt->key_state && key->state)
     {
-        dynamic_key_mt->begin_time = g_keyboard_tick;
+        dynamic_key_mt->begin_tick = g_keyboard_tick;
     }
     if (dynamic_key_mt->key_state && !key->state)
     {
-        if (g_keyboard_tick - dynamic_key_mt->begin_time < dynamic_key_mt->duration)
+        if (g_keyboard_tick - dynamic_key_mt->begin_tick < dynamic_key_mt->duration)
         {
-            dynamic_key_mt->end_time = g_keyboard_tick+DK_TAP_DURATION;
+            dynamic_key_mt->end_tick = g_keyboard_tick+DK_TAP_DURATION;
             dynamic_key_mt->state = DYNAMIC_KEY_ACTION_TAP;
             next_report_state = true;
         }
@@ -248,15 +248,15 @@ void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
         {
             next_report_state = false;
         }
-        dynamic_key_mt->begin_time = g_keyboard_tick;
+        dynamic_key_mt->begin_tick = g_keyboard_tick;
     }
-    if (key->state && !last_report_state && (g_keyboard_tick - dynamic_key_mt->begin_time > dynamic_key_mt->duration))
+    if (key->state && !last_report_state && (g_keyboard_tick - dynamic_key_mt->begin_tick > dynamic_key_mt->duration))
     {
-        dynamic_key_mt->end_time = 0xFFFFFFFF;
+        dynamic_key_mt->end_tick = 0xFFFFFFFF;
         dynamic_key_mt->state = DYNAMIC_KEY_ACTION_HOLD;
         next_report_state = true;
     }
-    if (g_keyboard_tick > dynamic_key_mt->end_time && last_report_state)
+    if (g_keyboard_tick > dynamic_key_mt->end_tick && last_report_state)
     {
         next_report_state = false;
     }
@@ -266,7 +266,7 @@ void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
         CALC_EVENT(dynamic_key_mt->state == DYNAMIC_KEY_ACTION_HOLD && last_report_state, dynamic_key_mt->state == DYNAMIC_KEY_ACTION_HOLD && next_report_state), key));
     dynamic_key_mt->key_state = key->state;
     dynamic_key_mt->key_report_state = next_report_state;
-    KEYBOARD_KEY_SET_REPORT_STATE(key, next_report_state);
+    keyboard_key_set_report_state(key, next_report_state);
 }
 
 void dynamic_key_tk_process(DynamicKeyToggleKey*dynamic_key)

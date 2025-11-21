@@ -88,7 +88,7 @@ void rgb_update(void)
             {
                 const RGBLocation* location = &g_rgb_locations[i];
                 float vertical_distance = location->x * direction_cos + location->y * direction_sin;
-                temp_hsv.h = ((uint32_t)(g_rgb_base_config.hsv.h + vertical_distance * g_rgb_base_config.density + g_keyboard_tick * g_rgb_base_config.speed)) % 360;
+                temp_hsv.h = ((uint32_t)(g_rgb_base_config.hsv.h + vertical_distance * g_rgb_base_config.density + KEYBOARD_TICK_TO_TIME(g_keyboard_tick) * g_rgb_base_config.speed)) % 360;
                 color_set_hsv(&temp_rgb, &temp_hsv);
                 color_mix(&g_rgb_colors[i], &temp_rgb);
             }
@@ -105,7 +105,7 @@ void rgb_update(void)
             {
                 const RGBLocation* location = &g_rgb_locations[i];
                 float vertical_distance = location->x * direction_cos + location->y * direction_sin;
-                float intensity = fmodf(((vertical_distance * g_rgb_base_config.density + g_keyboard_tick * g_rgb_base_config.speed)  / 180), 2.0f);
+                float intensity = fmodf(((vertical_distance * g_rgb_base_config.density + KEYBOARD_TICK_TO_TIME(g_keyboard_tick) * g_rgb_base_config.speed)  / 180), 2.0f);
                 intensity -= 1.0f;
                 float secondary_intensity;
                 if (intensity<0)
@@ -142,7 +142,7 @@ void rgb_update(void)
 #endif
         RGBConfig *config = g_rgb_configs + item->rgb_ptr;
         RGBLocation *location = (RGBLocation *)&g_rgb_locations[item->rgb_ptr];
-        uint32_t duration = g_keyboard_tick - item->begin_time;
+        uint32_t duration = KEYBOARD_TICK_TO_TIME(g_keyboard_tick - item->begin_tick);
         float distance = duration * config->speed;
 #ifndef RGB_USE_LIST_EXPERIMENTAL
         if (duration > RGB_MAX_DURATION)
@@ -278,7 +278,7 @@ void rgb_update(void)
         Key* key = keyboard_get_key(g_rgb_mapping[i]);
         if (key != NULL)
         {
-            intensity = KEYBOARD_GET_KEY_EFFECTIVE_ANALOG_VALUE(key);
+            intensity = keyboard_get_key_effective_analog_value(key);
             report_state = key->report_state;
         }
         else
@@ -301,9 +301,9 @@ void rgb_update(void)
         case RGB_MODE_TRIGGER:
             if (report_state)
             {
-                rgb_config->begin_time = g_keyboard_tick;
+                rgb_config->begin_tick = g_keyboard_tick;
             }
-            intensity = powf(1 - rgb_config->speed, g_keyboard_tick - rgb_config->begin_time);
+            intensity = powf(1 - rgb_config->speed, KEYBOARD_TICK_TO_TIME(g_keyboard_tick - rgb_config->begin_tick));
             temp_rgb.r = (uint8_t)((float)(rgb_config->rgb.r) * intensity);
             temp_rgb.g = (uint8_t)((float)(rgb_config->rgb.g) * intensity);
             temp_rgb.b = (uint8_t)((float)(rgb_config->rgb.b) * intensity);
@@ -322,7 +322,7 @@ void rgb_update(void)
         case RGB_MODE_CYCLE:
             temp_hsv.s = rgb_config->hsv.s;
             temp_hsv.v = rgb_config->hsv.v;
-            temp_hsv.h = (uint16_t)(rgb_config->hsv.h + (g_keyboard_tick % (uint16_t)(360 / rgb_config->speed)) * rgb_config->speed) % 360;
+            temp_hsv.h = (uint16_t)(rgb_config->hsv.h + (KEYBOARD_TICK_TO_TIME(g_keyboard_tick) % (uint16_t)(360 / rgb_config->speed)) * rgb_config->speed) % 360;
             color_set_hsv(&temp_rgb, &temp_hsv);
             color_mix(target_color, &temp_rgb);
             break;
@@ -371,12 +371,12 @@ void rgb_init_flash(void)
 {
     float intensity;
     ColorRGB temp_rgb;
-    uint32_t begin_time = g_keyboard_tick;
+    uint32_t begin_tick = g_keyboard_tick;
     RGBLocation location = PORT_LOCATION;
     bool animation_playing = false;
-    while (g_keyboard_tick - begin_time < RGB_FLASH_MAX_DURATION)
+    while (KEYBOARD_TICK_TO_TIME(g_keyboard_tick - begin_tick) < RGB_FLASH_MAX_DURATION)
     {
-        float distance = (g_keyboard_tick - begin_time) * RGB_FLASH_RIPPLE_SPEED;
+        float distance = KEYBOARD_TICK_TO_TIME(g_keyboard_tick - begin_tick) * RGB_FLASH_RIPPLE_SPEED;
         memset(g_rgb_colors, 0, sizeof(g_rgb_colors));
         animation_playing = false;
         for (int8_t i = 0; i < RGB_NUM; i++)
@@ -488,7 +488,7 @@ void rgb_activate(uint16_t id)
     }
     RGBArgument a;
     a.rgb_ptr = g_rgb_inverse_mapping[id];
-    a.begin_time = g_keyboard_tick;
+    a.begin_tick = g_keyboard_tick;
     switch (g_rgb_configs[a.rgb_ptr].mode)
     {
     case RGB_MODE_STRING:

@@ -56,7 +56,7 @@ bool midi_event_handler(KeyboardEvent event)
     uint8_t velocity = 0;
     if (IS_ADVANCED_KEY(event.key))
     {
-        float intensity = fabs(((AdvancedKey*)event.key)->difference/(float)MIDI_REF_VELOCITY);
+        float intensity = fabs(((AdvancedKey*)event.key)->difference*(POLLING_RATE/1000)/(float)MIDI_REF_VELOCITY);
         if (intensity > 1.0f)
         {
             intensity = 1.0f;

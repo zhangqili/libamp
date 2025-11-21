@@ -109,7 +109,7 @@ typedef struct __RGBBaseConfig
     ColorRGB secondary_rgb;
     ColorHSV secondary_hsv;
     float speed;
-    uint32_t begin_time;
+    uint32_t begin_tick;
     uint16_t direction;
     uint8_t density;
     uint8_t brightness;
@@ -136,7 +136,7 @@ typedef struct __RGBConfig
     ColorRGB rgb;
     ColorHSV hsv;
     float speed;
-    uint32_t begin_time;
+    uint32_t begin_tick;
 } RGBConfig;
 
 typedef struct __RGBLocation
@@ -147,7 +147,7 @@ typedef struct __RGBLocation
 
 typedef struct __RGBArgument
 {
-    uint32_t begin_time;
+    uint32_t begin_tick;
     uint8_t rgb_ptr;
 }RGBArgument;
 

@@ -11,8 +11,6 @@
 extern "C" {
 #endif
 
-#define layer_cache_get_keycode(id) g_keymap_cache[(id)]
-
 extern uint8_t g_current_layer;
 extern Keycode g_keymap_cache[TOTAL_KEY_NUM];
 extern bool g_keymap_lock[TOTAL_KEY_NUM];
@@ -22,10 +20,34 @@ uint8_t layer_get(void);
 void layer_set(uint8_t layer);
 void layer_reset(uint8_t layer);
 void layer_toggle(uint8_t layer);
-void layer_lock(uint16_t id);
-void layer_unlock(uint16_t id);
-void layer_cache_refresh(void);
 Keycode layer_get_keycode(uint16_t id, int8_t layer);
+
+static inline Keycode layer_cache_get_keycode(uint16_t id)
+{
+    return g_keymap_cache[id];
+}
+
+static inline void layer_lock(uint16_t id)
+{
+    g_keymap_lock[id] = true;
+}
+
+static inline void layer_unlock(uint16_t id)
+{
+    g_keymap_lock[id] = false;
+    g_keymap_cache[id] = layer_get_keycode(id, g_current_layer);
+}
+
+static inline void layer_cache_refresh(void)
+{
+    for (int i = 0; i < TOTAL_KEY_NUM; i++)
+    {
+        if (!g_keymap_lock[i])
+        {
+            g_keymap_cache[i] = layer_get_keycode(i, g_current_layer);
+        }
+    }
+}
 
 #ifdef __cplusplus
 }

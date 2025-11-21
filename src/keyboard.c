@@ -42,18 +42,18 @@
 #include "encoder.h"
 #endif
 
-AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
-Key g_keyboard_keys[KEY_NUM];
+__WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
+__WEAK Key g_keyboard_keys[KEY_NUM];
 KeyboardLED g_keyboard_led_state;
 __WEAK KeyboardConfig g_keyboard_config;
 Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
 __WEAK const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
-volatile uint32_t g_keyboard_tick;
+__WEAK volatile uint32_t g_keyboard_tick;
 volatile bool g_keyboard_send_report_enable = true;
 volatile bool g_keyboard_is_suspend;
-volatile KeyboardReportFlag g_keyboard_report_flags;
+__WEAK volatile KeyboardReportFlag g_keyboard_report_flags;
 
 #ifdef NKRO_ENABLE
 static Keyboard_NKROBuffer keyboard_nkro_buffer;
@@ -61,24 +61,44 @@ static Keyboard_NKROBuffer keyboard_nkro_buffer;
 static Keyboard_6KROBuffer keyboard_6kro_buffer;
 
 #ifdef OPTIMIZE_KEY_BITMAP
-volatile uint32_t g_key_active_bitmap[KEY_BITMAP_SIZE];
+__WEAK volatile uint32_t g_key_active_bitmap[KEY_BITMAP_SIZE];
 #endif
 
-void keyboard_event_handler(KeyboardEvent event)
+bool keyboard_event_handler(KeyboardEvent event)
 {
+    Key* key = (Key*)event.key;
+    bool last_report_state = key->report_state;
+#if DEBOUNCE > 0
+    if (key->debounce)
+    {
+        key->debounce--;
+    }
+    else
+    {
+        bool changed = key->report_state != key->state;
+        if (changed)
+        {
+            key->debounce = DEBOUNCE;
+        }
+        keyboard_key_set_report_state(key, key->state);
+        event.event = changed | (key->report_state<<1);
+        
+    }
+#else
+    keyboard_key_set_report_state(key, key->state);
+#endif
 #ifdef MACRO_ENABLE
     macro_record_handler(event);
 #endif
-    KEYBOARD_KEY_SET_REPORT_STATE(event.key, ((Key*)event.key)->state);
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
-        layer_lock(((Key*)event.key)->id);
+        layer_lock(key->id);
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
         break;
     case KEYBOARD_EVENT_KEY_UP:
-        layer_unlock(((Key*)event.key)->id);
+        layer_unlock(key->id);
         break;
     case KEYBOARD_EVENT_KEY_FALSE:
         break;
@@ -123,12 +143,11 @@ void keyboard_event_handler(KeyboardEvent event)
     case KEY_USER:
         keyboard_user_event_handler(event);
         break;
-        
     default:
         switch (event.event)
         {
         case KEYBOARD_EVENT_KEY_DOWN:
-            keyboard_key_event_down_callback((Key*)event.key);
+            keyboard_key_event_down_callback(key);
             g_keyboard_report_flags.keyboard = true;
             break;
         case KEYBOARD_EVENT_KEY_TRUE:
@@ -143,6 +162,7 @@ void keyboard_event_handler(KeyboardEvent event)
         }
         break;
     }
+    return last_report_state != key->report_state;
 }
 
 void keyboard_add_buffer(KeyboardEvent event)
@@ -651,29 +671,20 @@ __WEAK void keyboard_delay(uint32_t ms)
 bool keyboard_key_update(Key *key, bool state)
 {
     bool changed = key_update(key, state);
-    keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(key->id), changed | (key->state<<1), key));
+    changed = keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(key->id), changed | (key->state<<1), key));
     return changed;
 }
 
 bool keyboard_advanced_key_update(AdvancedKey *advanced_key, AnalogValue value)
 {
     bool changed = advanced_key_update(advanced_key, value);
-    keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(advanced_key->key.id), changed | (advanced_key->key.state<<1), advanced_key));
+    changed = keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(advanced_key->key.id), changed | (advanced_key->key.state<<1), advanced_key));
     return changed;
 }
 
 bool keyboard_advanced_key_update_raw(AdvancedKey *advanced_key, AnalogRawValue raw)
 {
     bool changed = advanced_key_update_raw(advanced_key, raw);
-    keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(advanced_key->key.id), changed | (advanced_key->key.state<<1), advanced_key));
+    changed = keyboard_event_handler(MK_EVENT(layer_cache_get_keycode(advanced_key->key.id), changed | (advanced_key->key.state<<1), advanced_key));
     return changed;
-}
-
-Key* keyboard_get_key(uint16_t id)
-{
-    if (id >= TOTAL_KEY_NUM)
-    {
-        return NULL;
-    }
-    return id < ADVANCED_KEY_NUM ? &g_keyboard_advanced_keys[id].key : &g_keyboard_keys[id - ADVANCED_KEY_NUM];    
 }

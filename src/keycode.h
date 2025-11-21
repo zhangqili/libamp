@@ -657,7 +657,7 @@ enum MIDINoteKeycode
 };
 
 
-static inline uint16_t CONSUMER_KEYCODE_TO_RAWCODE(uint8_t key) {
+static inline uint16_t consumer_keycode_to_rawcide(uint8_t key) {
   switch (key) {
   case CONSUMER_AUDIO_MUTE:
     return AUDIO_MUTE;
