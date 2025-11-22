@@ -161,7 +161,7 @@ extern volatile KeyboardReportFlag g_keyboard_report_flags;
 extern volatile uint32_t g_key_active_bitmap[KEY_BITMAP_SIZE];
 #endif
 
-bool keyboard_event_handler(KeyboardEvent event);
+void keyboard_event_handler(KeyboardEvent event);
 void keyboard_operation_event_handler(KeyboardEvent event);
 void keyboard_key_event_down_callback(Key*key);
 
@@ -226,6 +226,68 @@ static inline AnalogValue keyboard_get_key_analog_value(Key* key)
 static inline AnalogValue keyboard_get_key_effective_analog_value(Key* key)
 {    
     return (IS_ADVANCED_KEY((key)) ? advanced_key_get_effective_value(((AdvancedKey*)(key))) : ((((Key*)(key))->state) * ANALOG_VALUE_MAX));
+}
+
+static inline bool keyboard_key_debounce(Key *key)
+{
+#if DEBOUNCE_PRESS > 0 || DEBOUNCE_RELEASE > 0
+#if DEBOUNCE_PRESS >= 127 || DEBOUNCE_RELEASE > 127
+#warning "Debounce tick is too long!"
+#endif
+    bool next_report_state = key->report_state;
+    if (key->debounce < 0)
+    {
+        key->debounce++;
+        return next_report_state;
+    }
+    if (key->report_state)
+    {
+        if (!key->state)
+        {
+#if DEBOUNCE_RELEASE_EAGER
+            next_report_state = 0;
+            key->debounce = -(int8_t)DEBOUNCE_RELEASE;
+#else
+            key->debounce++;
+            if (key->debounce >= (int8_t)DEBOUNCE_RELEASE)
+            {
+                next_report_state = 0;
+                key->debounce = 0;
+            }
+#endif
+        }
+        else
+        {
+            if (key->debounce > 0)
+                key->debounce = 0;
+        }
+    }
+    else
+    {
+        if (key->state)
+        {
+#if DEBOUNCE_PRESS_EAGER
+            next_report_state = 1;
+            key->debounce = -(int8_t)DEBOUNCE_PRESS;
+#else
+            key->debounce++;
+            if (key->debounce >= (int8_t)DEBOUNCE_PRESS)
+            {
+                next_report_state = 1;
+                key->debounce = 0;
+            }
+#endif
+        }
+        else
+        {
+            if (key->debounce > 0)
+                key->debounce = 0;
+        }
+    }
+    return next_report_state;
+#else
+    return key->state;
+#endif
 }
 
 #ifdef __cplusplus

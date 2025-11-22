@@ -394,7 +394,9 @@ void dynamic_key_m_process(DynamicKeyMutex*dynamic_key)
         }
     }
     keyboard_event_handler(MK_EVENT(dynamic_key_m->key_binding[0], CALC_EVENT(dynamic_key_m->key_report_state[0], next_key0_report_state), key0));
+    keyboard_key_set_report_state(key0, next_key0_report_state);
     keyboard_event_handler(MK_EVENT(dynamic_key_m->key_binding[1], CALC_EVENT(dynamic_key_m->key_report_state[1], next_key1_report_state), key1));
+    keyboard_key_set_report_state(key1, next_key1_report_state);
     dynamic_key_m->key_state[0] = key0->state;
     dynamic_key_m->key_state[1] = key1->state;
     dynamic_key_m->key_report_state[0] = next_key0_report_state;

@@ -161,3 +161,139 @@ TEST(Keyboard, NKROBuffer)
     EXPECT_EQ(shared_ep_send_buffer[KEY_A/8 + 2], BIT(4));
     EXPECT_EQ(shared_ep_send_buffer[KEY_S/8 + 2], BIT(KEY_S%8));
 }
+
+TEST(Keyboard, DebouncePress)
+{
+    static Key key;
+    key_update(&key, true);
+#if DEBOUNCE_PRESS >= 2
+#if DEBOUNCE_PRESS_EAGER
+    for (int i = 0; i < DEBOUNCE_PRESS/2-1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_TRUE(key.report_state);
+    key_update(&key, false);
+    for (int i = 0; i < 1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_TRUE(key.report_state);
+    key_update(&key, true);
+    for (int i = 0; i < DEBOUNCE_PRESS-DEBOUNCE_PRESS/2-1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_TRUE(key.report_state);
+    for (int i = 0; i < 1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_TRUE(key.report_state);
+#else
+    for (int i = 0; i < DEBOUNCE_PRESS/2-1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_FALSE(key.report_state);
+    key_update(&key, false);
+    for (int i = 0; i < 1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_FALSE(key.report_state);
+    key_update(&key, true);
+    for (int i = 0; i < DEBOUNCE_PRESS/2-1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_FALSE(key.report_state);
+    for (int i = 0; i < 1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_FALSE(key.report_state);
+    for (int i = 0; i < DEBOUNCE_PRESS-DEBOUNCE_PRESS/2-1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_FALSE(key.report_state);
+    for (int i = 0; i < 1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_TRUE(key.report_state);
+#endif
+#else
+    EXPECT_TRUE(keyboard_key_debounce(&key));
+#endif
+}
+
+TEST(Keyboard, DebounceRelease)
+{
+    static Key key;
+    key.state = true;
+    key.report_state = true;
+    key_update(&key, false);
+#if DEBOUNCE_RELEASE >= 2
+#if DEBOUNCE_RELEASE_EAGER
+    for (int i = 0; i < DEBOUNCE_RELEASE/2-1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_FALSE(key.report_state);
+    key_update(&key, true);
+    for (int i = 0; i < 1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_FALSE(key.report_state);
+    key_update(&key, false);
+    for (int i = 0; i < DEBOUNCE_RELEASE-DEBOUNCE_RELEASE/2-1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_FALSE(key.report_state);
+    for (int i = 0; i < 1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_FALSE(key.report_state);
+#else
+    for (int i = 0; i < DEBOUNCE_RELEASE/2-1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_TRUE(key.report_state);
+    key_update(&key, true);
+    for (int i = 0; i < 1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_TRUE(key.report_state);
+    key_update(&key, false);
+    for (int i = 0; i < DEBOUNCE_RELEASE/2-1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_TRUE(key.report_state);
+    for (int i = 0; i < 1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_TRUE(key.report_state);
+    for (int i = 0; i < DEBOUNCE_RELEASE-DEBOUNCE_RELEASE/2-1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_TRUE(key.report_state);
+    for (int i = 0; i < 1; i++)
+    {        
+        key.report_state = keyboard_key_debounce(&key);
+    }
+    EXPECT_FALSE(key.report_state);
+#endif
+#else
+    EXPECT_FALSE(keyboard_key_debounce(&key));
+#endif
+}

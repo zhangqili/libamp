@@ -34,8 +34,8 @@ typedef struct __Key
     uint16_t id;
     uint8_t state;
     uint8_t report_state;
-#if DEBOUNCE > 0
-    uint8_t debounce;
+#if DEBOUNCE_PRESS > 0 || DEBOUNCE_RELEASE > 0
+    int8_t debounce;
 #endif
     key_cb_t key_cb[KEY_EVENT_NUM];
 } Key;
