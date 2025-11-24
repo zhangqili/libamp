@@ -30,7 +30,7 @@ ColorRGB g_rgb_colors[RGB_NUM];
 
 #ifdef RGB_USE_LIST_EXPERIMENTAL
 static RGBArgumentList rgb_argument_list;
-static RGBArgumentListNode RGB_Argument_List_Buffer[RGB_ARGUMENT_BUFFER_LENGTH];
+static RGBArgumentListNode RGB_Argument_List_Buffer[RGB_ARGUMENT_LIST_BUFFER_LENGTH];
 #endif
 static RGBLoopQueue rgb_argument_queue;
 static RGBLoopQueueElm RGB_Argument_Buffer[RGB_ARGUMENT_BUFFER_LENGTH];
@@ -38,7 +38,7 @@ static RGBLoopQueueElm RGB_Argument_Buffer[RGB_ARGUMENT_BUFFER_LENGTH];
 void rgb_init(void)
 {
 #ifdef RGB_USE_LIST_EXPERIMENTAL
-    rgb_forward_list_init(&rgb_argument_list, RGB_Argument_List_Buffer, RGB_ARGUMENT_BUFFER_LENGTH);
+    rgb_forward_list_init(&rgb_argument_list, RGB_Argument_List_Buffer, RGB_ARGUMENT_LIST_BUFFER_LENGTH);
 #endif
     rgb_loop_queue_init(&rgb_argument_queue, RGB_Argument_Buffer, RGB_ARGUMENT_BUFFER_LENGTH);
 #ifndef RGB_CUSTOM_INVERSE_MAPPING
@@ -150,10 +150,10 @@ void rgb_update(void)
             rgb_loop_queue_pop(&rgb_argument_queue);
         }
 #endif
-        if (MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT, location->y, RGB_TOP) < distance - 5 &&
-            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT, location->y, RGB_BOTTOM) < distance - 5 &&
-            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_RIGHT, location->y, RGB_TOP) < distance - 5 &&
-            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_RIGHT, location->y, RGB_BOTTOM) < distance - 5)
+        if (MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT, location->y, RGB_TOP) < distance - FADING_DISTANCE &&
+            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT, location->y, RGB_BOTTOM) < distance - FADING_DISTANCE &&
+            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_RIGHT, location->y, RGB_TOP) < distance - FADING_DISTANCE &&
+            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_RIGHT, location->y, RGB_BOTTOM) < distance - FADING_DISTANCE)
         // if (distance > 25)
         {
 #ifdef RGB_USE_LIST_EXPERIMENTAL
