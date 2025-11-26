@@ -210,10 +210,14 @@ static inline bool keyboard_key_set_report_state(Key*key, bool state)
     bool changed = key->report_state != state;
     key->report_state = state;
 #ifdef OPTIMIZE_KEY_BITMAP
-    const uint32_t is_active = state;
-    const uint32_t index = key->id / 32;
-    const uint32_t mask = BIT(key->id % 32);    
-    g_key_active_bitmap[index] = (g_key_active_bitmap[index] & ~mask) | (-(int32_t)is_active & mask);
+    if (changed)
+    {
+        const uint32_t is_active = state;
+        const uint32_t index = key->id / 32;
+        const uint32_t mask = BIT(key->id % 32);    
+        g_key_active_bitmap[index] = (g_key_active_bitmap[index] & ~mask) | (-(int32_t)is_active & mask);
+    }
+    
 #endif
     return changed;
 }
