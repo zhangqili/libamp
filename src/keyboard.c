@@ -411,6 +411,9 @@ void keyboard_init(void)
     macro_init();
 #endif
     keyboard_recovery();
+#ifdef ASSIGN_ENABLE
+    assign_init();
+#endif
 }
 
 __WEAK void keyboard_reset_to_default(void)

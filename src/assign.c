@@ -29,14 +29,14 @@ static inline void assign_slave(uint8_t slave_id)
     uint8_t buffer[64];
     const uint16_t begin = slave_configs[slave_id].begin;
     const uint16_t length = slave_configs[slave_id].length;
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         PacketAdvancedKey *packet = (PacketAdvancedKey *)buffer;
         memset(buffer, 0, sizeof(packet));
         packet->code = PACKET_CODE_SET;
         packet->type = PACKET_DATA_ADVANCED_KEY;
         packet->index = i;
-        advanced_key_config_normalize(&packet->data, &g_keyboard_advanced_keys[i+begin].config);
+        advanced_key_config_normalize(&packet->data, &g_keyboard_advanced_keys[i].config);
         assign_send(slave_id, buffer, 64);
     }
     {

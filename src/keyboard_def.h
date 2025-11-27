@@ -5,6 +5,12 @@
  */
 #ifndef KEYBOARD_DEF_H
 #define KEYBOARD_DEF_H
+
+#define LIBAMP_VERSION_MAJOR 0
+#define LIBAMP_VERSION_MINOR 1
+#define LIBAMP_VERSION_PATCH 0
+#define LIBAMP_VERSION_INFO  "beta"
+
 #if defined (__ARMCC_VERSION) /* ARM Compiler */
   #ifndef __WEAK
     #define __WEAK  __attribute__((weak))

@@ -17,6 +17,7 @@ enum {
   PACKET_CODE_ACTION = 0x00,
   PACKET_CODE_SET = 0x01,
   PACKET_CODE_GET = 0x02,
+  PACKET_CODE_LOG = 0x03,
   PACKET_CODE_USER = 0xFF,
 };
 
@@ -30,6 +31,7 @@ enum {
   PACKET_DATA_CONFIG = 0x06,
   PACKET_DATA_DEBUG = 0x07,
   PACKET_DATA_REPORT = 0x08,
+  PACKET_DATA_VERSION = 0x09,
 };
 
 typedef struct __PacketBase
@@ -167,6 +169,25 @@ typedef struct __PacketReport
   uint8_t data[];
 } __PACKED PacketReport;
 
+typedef struct __PacketVersion
+{
+  uint8_t code;
+  uint8_t type;
+  uint16_t info_length;
+  uint32_t major;
+  uint32_t minor;
+  uint32_t patch;
+  uint8_t info[];
+} __PACKED PacketVersion;
+
+typedef struct __PacketLog
+{
+  uint8_t code;
+  uint8_t level;
+  uint16_t length;
+  uint8_t data[];
+} __PACKED PacketLog;
+
 void packet_process(uint8_t *buf, uint16_t len);
 void packet_process_advanced_key(PacketData*data);
 void packet_process_rgb_base_config(PacketData*data);
@@ -176,6 +197,7 @@ void packet_process_dynamic_key(PacketData*data);
 void packet_process_config_index(PacketData*data);
 void packet_process_config(PacketData*data);
 void packet_process_debug(PacketData*data);
+void packet_process_user(uint8_t *buf, uint16_t len);
 
 #ifdef __cplusplus
 }

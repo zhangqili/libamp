@@ -21,6 +21,12 @@
 extern "C" {
 #endif
 
+#define ASSIGN_LEVEL_REPORT 0
+
+#ifndef ASSIGN_LEVEL
+#define ASSIGN_LEVEL ASSIGN_LEVEL_REPORT
+#endif
+
 typedef struct __Assignment
 {
     Keyboard_6KROBuffer keyboard_6kro_buffer;

@@ -84,7 +84,19 @@ void packet_process(uint8_t *buf, uint16_t len)
         case PACKET_DATA_DEBUG:
             packet_process_debug(packet);
             break;
+        case PACKET_DATA_VERSION:
+            if (packet->code == PACKET_CODE_GET)
+            {
+                PacketVersion* packet_version = (PacketVersion*)packet;
+                packet_version->info_length = sizeof(LIBAMP_VERSION_INFO);
+                packet_version->major = LIBAMP_VERSION_MAJOR;
+                packet_version->minor = LIBAMP_VERSION_MINOR;
+                packet_version->patch = LIBAMP_VERSION_PATCH;
+                memcpy(packet_version->info, LIBAMP_VERSION_INFO, sizeof(LIBAMP_VERSION_INFO));
+            }
+            break;
         default:
+            packet_process_user(buf, len);
             break;
         }
         break;
@@ -92,6 +104,7 @@ void packet_process(uint8_t *buf, uint16_t len)
         keyboard_operation_event_handler(MK_EVENT(((((PacketBase*)packet)->buf[0]) << 8) | KEYBOARD_OPERATION, KEYBOARD_EVENT_KEY_DOWN, NULL));
         break;
     default:
+        packet_process_user(buf, len);
         break;
     }
     hid_send_raw(buf, 63);
@@ -304,4 +317,9 @@ void packet_process_debug(PacketData*data)
             }
         }
     }
+}
+
+__WEAK void packet_process_user(uint8_t *buf, uint16_t len)
+{
+
 }
