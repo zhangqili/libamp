@@ -52,6 +52,17 @@ void mouse_add_buffer(KeyboardEvent event);
 void mouse_set_axis(Keycode keycode, AnalogValue value);
 int mouse_buffer_send(void);
 
+static inline bool mouse_should_send(Mouse * restrict mouse, Mouse * restrict prev_mouse)
+{
+    bool changed = ((mouse->buttons != prev_mouse->buttons) ||
+#ifdef MOUSE_EXTENDED_REPORT
+                    (mouse->boot_x != 0 && mouse->boot_x != prev_mouse->boot_x) || (mouse->boot_y != 0 && mouse->boot_y != prev_mouse->boot_y) ||
+#endif
+                    (mouse->x != 0 && mouse->x != prev_mouse->x) || (mouse->y != 0 && mouse->y != prev_mouse->y) || (mouse->h != 0 && mouse->h != prev_mouse->h) || (mouse->v != 0 && mouse->v != prev_mouse->v)) ||
+                    (mouse->x || mouse->y || mouse->v || mouse->h);
+    return changed;
+}
+
 #ifdef __cplusplus
 }
 #endif

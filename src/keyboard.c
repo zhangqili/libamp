@@ -41,6 +41,9 @@
 #ifdef ENCODER_ENABLE
 #include "encoder.h"
 #endif
+#ifdef ASSIGN_ENABLE
+#include "assign.h"
+#endif
 
 __WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
 __WEAK Key g_keyboard_keys[KEY_NUM];
@@ -61,7 +64,7 @@ static Keyboard_NKROBuffer keyboard_nkro_buffer;
 static Keyboard_6KROBuffer keyboard_6kro_buffer;
 
 #ifdef OPTIMIZE_KEY_BITMAP
-__WEAK volatile uint32_t g_key_active_bitmap[KEY_BITMAP_SIZE];
+__WEAK volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 #endif
 
 void keyboard_event_handler(KeyboardEvent event)
@@ -520,7 +523,7 @@ void keyboard_fill_buffer(void)
 #else
     for (uint16_t i = 0; i < KEY_BITMAP_SIZE; i++)
     {
-        uint32_t block = g_key_active_bitmap[i];
+        uint32_t block = g_keyboard_bitmap[i];
 #ifdef __GNUC__
         while (block != 0)
         {
@@ -599,6 +602,13 @@ void keyboard_send_report(void)
 #endif
 }
 
+#if defined(ASSIGN_ENABLE) && !ASSIGN_IS_SLAVE 
+__WEAK void keyboard_task(void)
+{
+    if (g_keyboard_send_report_enable && g_keyboard_report_flags.raw)
+        assign_report();
+}
+#else
 __WEAK void keyboard_task(void)
 {
     keyboard_scan();
@@ -641,6 +651,7 @@ __WEAK void keyboard_task(void)
         keyboard_send_report();
     }
 }
+#endif
 
 __WEAK void keyboard_delay(uint32_t ms)
 {

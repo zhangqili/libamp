@@ -158,7 +158,7 @@ extern volatile bool g_keyboard_is_suspend;
 extern volatile KeyboardReportFlag g_keyboard_report_flags;
 
 #ifdef OPTIMIZE_KEY_BITMAP
-extern volatile uint32_t g_key_active_bitmap[KEY_BITMAP_SIZE];
+extern volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 #endif
 
 void keyboard_event_handler(KeyboardEvent event);
@@ -215,7 +215,7 @@ static inline bool keyboard_key_set_report_state(Key*key, bool state)
         const uint32_t is_active = state;
         const uint32_t index = key->id / 32;
         const uint32_t mask = BIT(key->id % 32);    
-        g_key_active_bitmap[index] = (g_key_active_bitmap[index] & ~mask) | (-(int32_t)is_active & mask);
+        g_keyboard_bitmap[index] = (g_keyboard_bitmap[index] & ~mask) | (-(int32_t)is_active & mask);
     }
     
 #endif

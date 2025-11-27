@@ -28,7 +28,8 @@ enum {
   PACKET_DATA_DYNAMIC_KEY = 0x04,
   PACKET_DATA_CONFIG_INDEX = 0x05,
   PACKET_DATA_CONFIG = 0x06,
-  PACKET_DATA_DEBUG = 0x07
+  PACKET_DATA_DEBUG = 0x07,
+  PACKET_DATA_REPORT = 0x08,
 };
 
 typedef struct __PacketBase
@@ -156,6 +157,15 @@ typedef struct __PacketDebug
     float value;
   } __PACKED data[];
 } __PACKED PacketDebug;
+
+typedef struct __PacketReport
+{
+  uint8_t code;
+  uint8_t type;
+  uint8_t report_type;
+  uint8_t length;
+  uint8_t data[];
+} __PACKED PacketReport;
 
 void packet_process(uint8_t *buf, uint16_t len);
 void packet_process_advanced_key(PacketData*data);

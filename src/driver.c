@@ -128,3 +128,12 @@ __WEAK int led_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b)
     printf("led_set needs to be implemented.\n");
     return 0;
 }
+
+__WEAK int assign_send(uint8_t slave_id, uint8_t *report, uint16_t len)
+{
+    UNUSED(slave_id);
+    UNUSED(report);
+    UNUSED(len);
+    printf("assign_send needs to be implemented.\n");
+    return 0;
+}
