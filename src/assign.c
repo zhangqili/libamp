@@ -113,7 +113,7 @@ void assign_process(uint8_t slave_id, uint8_t *buf, uint16_t len)
 
 bool assign_get_state(uint16_t index)
 {
-    return BIT_GET(g_keyboard_bitmap[index/8], index%8);
+    return 0;//BIT_GET(g_keyboard_bitmap[index/8], index%8);
 }
 
 int assign_report(void)

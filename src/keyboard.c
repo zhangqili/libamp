@@ -54,7 +54,6 @@ Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 __WEAK const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
 __WEAK volatile uint32_t g_keyboard_tick;
-volatile bool g_keyboard_send_report_enable = true;
 volatile bool g_keyboard_is_suspend;
 __WEAK volatile KeyboardReportFlag g_keyboard_report_flags;
 
@@ -174,6 +173,7 @@ void keyboard_add_buffer(KeyboardEvent event)
     case KEY_USER:
         break;
     default:
+    {
         const uint8_t keycode = KEYCODE_GET_MAIN(event.keycode);
         if (keycode <= KEY_EXSEL)
         {
@@ -189,6 +189,7 @@ void keyboard_add_buffer(KeyboardEvent event)
             }
         }
         break;
+    }
     }
 }
 
@@ -389,6 +390,7 @@ void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf)
 void keyboard_init(void)
 {
     g_keyboard_tick = 0;
+    g_keyboard_config.enable_report = true;
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         g_keyboard_advanced_keys[i].key.id = i;
@@ -412,7 +414,11 @@ void keyboard_init(void)
 #endif
     keyboard_recovery();
 #ifdef ASSIGN_ENABLE
+#if ASSIGN_IS_SLAVE
+    g_keyboard_config.enable_report = false;
+#else
     assign_init();
+#endif
 #endif
 }
 
@@ -608,7 +614,7 @@ void keyboard_send_report(void)
 #if defined(ASSIGN_ENABLE) && !ASSIGN_IS_SLAVE 
 __WEAK void keyboard_task(void)
 {
-    if (g_keyboard_send_report_enable && g_keyboard_report_flags.raw)
+    if (g_keyboard_config.enable_report && g_keyboard_report_flags.raw)
         assign_report();
 }
 #else
@@ -647,7 +653,7 @@ __WEAK void keyboard_task(void)
     {
         g_keyboard_report_flags.keyboard = true;
     }
-    if (g_keyboard_send_report_enable && g_keyboard_report_flags.raw)
+    if (g_keyboard_config.enable_report && g_keyboard_report_flags.raw)
     {
         keyboard_clear_buffer();
         keyboard_fill_buffer();

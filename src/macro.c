@@ -24,6 +24,7 @@ void macro_event_handler(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
+    {
         uint8_t index = MACRO_KEYCODE_GET_INDEX(event.keycode);
         switch (MACRO_KEYCODE_GET_KEYCODE(event.keycode))
         {
@@ -63,6 +64,7 @@ void macro_event_handler(KeyboardEvent event)
             break;
         }
         break;
+    }
     case KEYBOARD_EVENT_KEY_TRUE:
         break;
     case KEYBOARD_EVENT_KEY_UP:

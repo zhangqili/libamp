@@ -64,7 +64,8 @@ enum
     KEYBOARD_CONFIG_NKRO            = 1,
     KEYBOARD_CONFIG_WINLOCK         = 2,
     KEYBOARD_CONFIG_CONTINOUS_POLL  = 3,
-    KEYBOARD_CONFIG_NUM             = 4,
+    KEYBOARD_CONFIG_ENABLE_REPORT   = 4,
+    KEYBOARD_CONFIG_NUM             = 5,
 };
 
 enum
@@ -83,7 +84,8 @@ typedef union
         bool nkro : 1;
         bool winlock : 1;
         bool continous_poll : 1;
-        uint8_t reserved : 4;
+        bool enable_report : 1;
+        uint8_t reserved : 3;
     };
 } __PACKED KeyboardConfig;
 
@@ -153,7 +155,6 @@ extern Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 extern const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
 extern volatile uint32_t g_keyboard_tick;
-extern volatile bool g_keyboard_send_report_enable;
 extern volatile bool g_keyboard_is_suspend;
 extern volatile KeyboardReportFlag g_keyboard_report_flags;
 

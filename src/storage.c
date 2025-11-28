@@ -361,10 +361,12 @@ void storage_save_config(void)
         switch (g_dynamic_keys[i].type)
         {
         case DYNAMIC_KEY_STROKE:
+        {
             DynamicKeyStroke4x4Normalized buffer;
             dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_dynamic_keys[i]);
             lfs_file_write(&_lfs, &lfs_file, &buffer, sizeof(DynamicKey));
             break;
+        }
         default:
             lfs_file_write(&_lfs, &lfs_file, &g_dynamic_keys[i], sizeof(DynamicKey));
             break;
@@ -404,10 +406,12 @@ void storage_save_config(void)
         switch (g_dynamic_keys[i].type)
         {
         case DYNAMIC_KEY_STROKE:
+        {
             DynamicKeyStroke4x4Normalized buffer;
             dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_dynamic_keys[i]);
             config_file_write((uint8_t*)&buffer, sizeof(DynamicKey), offset);
             break;
+        }
         default:
             config_file_write((uint8_t*)&g_dynamic_keys[i], sizeof(DynamicKey), offset);
             break;
