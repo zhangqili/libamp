@@ -8,7 +8,7 @@
 static inline void command_advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, AdvancedKeyConfiguration* config)
 {
     buffer->mode = config->mode;
-#if defined(ASSIGN_ENABLE) && ASSIGN_IS_SLAVE
+#if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
     buffer->calibration_mode = config->calibration_mode;
 #endif
     buffer->activation_value = A_NORM(config->activation_value);
@@ -19,7 +19,7 @@ static inline void command_advanced_key_config_normalize(AdvancedKeyConfiguratio
     buffer->release_speed = A_NORM(config->release_speed);
     buffer->upper_deadzone = A_NORM(config->upper_deadzone);
     buffer->lower_deadzone = A_NORM(config->lower_deadzone);
-#if defined(ASSIGN_ENABLE) && ASSIGN_IS_SLAVE
+#if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
     buffer->upper_bound = config->upper_bound;
     buffer->lower_bound = config->lower_bound;
 #endif
@@ -28,7 +28,7 @@ static inline void command_advanced_key_config_normalize(AdvancedKeyConfiguratio
 static inline void command_advanced_key_config_anti_normalize(AdvancedKeyConfiguration* config, AdvancedKeyConfigurationNormalized* buffer)
 {
     config->mode = buffer->mode;
-#if defined(ASSIGN_ENABLE) && ASSIGN_IS_SLAVE
+#if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
     config->calibration_mode = buffer->calibration_mode;
 #endif
     config->activation_value = A_ANIT_NORM(buffer->activation_value);
@@ -39,7 +39,7 @@ static inline void command_advanced_key_config_anti_normalize(AdvancedKeyConfigu
     config->release_speed = A_ANIT_NORM(buffer->release_speed);
     config->upper_deadzone = A_ANIT_NORM(buffer->upper_deadzone);
     config->lower_deadzone = A_ANIT_NORM(buffer->lower_deadzone);
-#if defined(ASSIGN_ENABLE) && ASSIGN_IS_SLAVE
+#if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
     config->upper_bound = buffer->upper_bound;
     config->lower_bound = buffer->lower_bound;
 #endif
