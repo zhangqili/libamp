@@ -41,8 +41,8 @@
 #ifdef ENCODER_ENABLE
 #include "encoder.h"
 #endif
-#ifdef ASSIGN_ENABLE
-#include "assign.h"
+#ifdef NEXUS_ENABLE
+#include "nexus.h"
 #endif
 
 __WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
@@ -62,9 +62,7 @@ static Keyboard_NKROBuffer keyboard_nkro_buffer;
 #endif
 static Keyboard_6KROBuffer keyboard_6kro_buffer;
 
-#ifdef OPTIMIZE_KEY_BITMAP
-__WEAK volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
-#endif
+volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 
 void keyboard_event_handler(KeyboardEvent event)
 {
@@ -417,7 +415,7 @@ void keyboard_init(void)
 #if ASSIGN_IS_SLAVE
     g_keyboard_config.enable_report = false;
 #else
-    assign_init();
+    nexus_init();
 #endif
 #endif
 }
@@ -611,24 +609,23 @@ void keyboard_send_report(void)
 #endif
 }
 
-#if defined(ASSIGN_ENABLE) && !ASSIGN_IS_SLAVE 
-__WEAK void keyboard_task(void)
-{
-    if (g_keyboard_config.enable_report && g_keyboard_report_flags.raw)
-        assign_report();
-}
-#else
 __WEAK void keyboard_task(void)
 {
     keyboard_scan();
 #ifdef ENCODER_ENABLE
     encoder_process();
 #endif
+#if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
         keyboard_advanced_key_update_raw(advanced_key, advanced_key_read(advanced_key));
     }
+    nexus_send_report();
+#else
+#if defined(NEXUS_ENABLE)
+    nexus_process();
+#endif
 #ifdef MACRO_ENABLE
     macro_process();
 #endif
@@ -659,8 +656,8 @@ __WEAK void keyboard_task(void)
         keyboard_fill_buffer();
         keyboard_send_report();
     }
-}
 #endif
+}
 
 __WEAK void keyboard_delay(uint32_t ms)
 {

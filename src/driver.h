@@ -30,7 +30,9 @@ int flash_erase(uint32_t addr, uint32_t size);
 
 int led_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b);
 
-int assign_send(uint8_t slave_id, uint8_t *report, uint16_t len); 
+
+int nexus_send(uint8_t slave_id, uint8_t *report, uint16_t len);
+int nexus_report(uint8_t *report, uint16_t len);
 
 #ifdef __cplusplus
 }

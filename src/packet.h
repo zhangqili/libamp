@@ -104,7 +104,6 @@ typedef struct __PacketRGBConfigs
   } __PACKED data[];
 } __PACKED PacketRGBConfigs;
 
-
 typedef struct __PacketKeymap
 {
   uint8_t code;
@@ -188,6 +187,15 @@ typedef struct __PacketLog
   uint8_t data[];
 } __PACKED PacketLog;
 
+typedef struct __PacketNexus
+{
+  uint16_t index;
+  uint16_t raw;
+  int16_t value;
+  uint8_t bits[];
+} __PACKED PacketNexus;
+
+void packet_process_buffer(uint8_t *buf, uint16_t len);
 void packet_process(uint8_t *buf, uint16_t len);
 void packet_process_advanced_key(PacketData*data);
 void packet_process_rgb_base_config(PacketData*data);

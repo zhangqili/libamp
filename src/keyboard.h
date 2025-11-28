@@ -46,9 +46,7 @@ extern "C" {
 #define KEYBOARD_TIME_TO_TICK(x)   ((uint32_t)(((uint64_t)(x) * POLLING_RATE) / 1000))
 #define KEYBOARD_TICK_TO_TIME(x)   ((uint32_t)(((uint64_t)(x) * 1000) / POLLING_RATE))
 
-#ifdef OPTIMIZE_KEY_BITMAP
 #define KEY_BITMAP_SIZE ((TOTAL_KEY_NUM + sizeof(uint32_t)*8 - 1) / (sizeof(uint32_t)*8))
-#endif
 
 typedef struct
 {
@@ -174,9 +172,7 @@ extern volatile uint32_t g_keyboard_tick;
 extern volatile bool g_keyboard_is_suspend;
 extern volatile KeyboardReportFlag g_keyboard_report_flags;
 
-#ifdef OPTIMIZE_KEY_BITMAP
 extern volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
-#endif
 
 void keyboard_event_handler(KeyboardEvent event);
 void keyboard_operation_event_handler(KeyboardEvent event);
@@ -228,12 +224,15 @@ static inline bool keyboard_key_set_report_state(Key*key, bool state)
         return false;
     }
     key->report_state = state;
-#ifdef OPTIMIZE_KEY_BITMAP
     const uint32_t index = key->id / 32;
     const uint32_t mask = 1U << (key->id % 32);
     g_keyboard_bitmap[index] ^= mask;
-#endif
     return true;
+}
+
+static inline AnalogValue keyboard_get_key_raw_value(Key* key)
+{    
+    return (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->raw : key->state);
 }
 
 static inline AnalogValue keyboard_get_key_analog_value(Key* key)
