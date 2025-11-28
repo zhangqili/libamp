@@ -208,19 +208,16 @@ static inline Key* keyboard_get_key(uint16_t id)
 
 static inline bool keyboard_key_set_report_state(Key*key, bool state)
 {
-    bool changed = key->report_state != state;
+    if (key->report_state == state) {
+        return false;
+    }
     key->report_state = state;
 #ifdef OPTIMIZE_KEY_BITMAP
-    if (changed)
-    {
-        const uint32_t is_active = state;
-        const uint32_t index = key->id / 32;
-        const uint32_t mask = BIT(key->id % 32);    
-        g_keyboard_bitmap[index] = (g_keyboard_bitmap[index] & ~mask) | (-(int32_t)is_active & mask);
-    }
-    
+    const uint32_t index = key->id / 32;
+    const uint32_t mask = 1U << (key->id % 32);
+    g_keyboard_bitmap[index] ^= mask;
 #endif
-    return changed;
+    return true;
 }
 
 static inline AnalogValue keyboard_get_key_analog_value(Key* key)

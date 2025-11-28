@@ -24,41 +24,48 @@ const struct {
 
 Assignment assignments[ASSIGN_SLAVE_NUM];
 
+extern const uint16_t g_analog_map[ADVANCED_KEY_NUM];
+
 static inline void assign_slave(uint8_t slave_id)
 {
     uint8_t buffer[64];
     const uint16_t begin = slave_configs[slave_id].begin;
     const uint16_t length = slave_configs[slave_id].length;
+    uint16_t count = 0;
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
+        AdvancedKey *key = &g_keyboard_advanced_keys[i];
+        const uint16_t analog_index = g_analog_map[key->key.id];
+        if (analog_index < begin || analog_index >= begin + length)
+        {
+            continue;
+        }
         PacketAdvancedKey *packet = (PacketAdvancedKey *)buffer;
         memset(buffer, 0, sizeof(packet));
         packet->code = PACKET_CODE_SET;
         packet->type = PACKET_DATA_ADVANCED_KEY;
-        packet->index = i;
+        packet->index = count;
         advanced_key_config_normalize(&packet->data, &g_keyboard_advanced_keys[i].config);
-        assign_send(slave_id, buffer, 64);
-    }
-    {
-        PacketKeymap *packet = (PacketKeymap *)buffer;
-        memset(buffer, 0, sizeof(packet));
-        memset(&packet, 0, sizeof(packet));
-        packet->code = PACKET_CODE_SET;
-        packet->type = PACKET_DATA_KEYMAP;
-        for (int layer_index = 0; layer_index < LAYER_NUM; layer_index++)
+        while (assign_send(slave_id,buffer,64) != 0)
         {
-            packet->layer = layer_index;
-            for (int k = 0; k < length; k+=16)
+            
+        }
+        PacketKeymap *packet_keymap = (PacketKeymap *)buffer;
+        memset(buffer, 0, sizeof(packet));
+        packet_keymap->code = PACKET_CODE_SET;
+        packet_keymap->type = PACKET_DATA_KEYMAP;
+        packet_keymap->start = i;
+        packet_keymap->length = 1;
+        for (int j = 0; j < LAYER_NUM; j++)
+        {
+            packet_keymap->keymap[0] = g_keymap[j][i];
+            packet_keymap->layer = j;
+            while (assign_send(slave_id,buffer,64) != 0)
             {
-                packet->start = k;
-                packet->length = length-k>=16 ? 16 : length - k;
-                for (int l = 0; l < packet->length; l++)
-                {
-                    packet->keymap[l] = g_keymap[layer_index][begin+l];
-                }
-                assign_send(slave_id,buffer,64);
+
             }
         }
+        count++;
     }
 }
 
