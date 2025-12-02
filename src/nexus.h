@@ -12,6 +12,31 @@
 extern "C" {
 #endif
 
+#ifndef NEXUS_SLICE_LENGTH_MAX
+#define NEXUS_SLICE_LENGTH_MAX 16
+#endif
+
+#ifndef NEXUS_VALUE_MAX
+#define NEXUS_VALUE_MAX 65535
+#endif
+
+typedef struct __PacketNexus
+{
+  int8_t index;
+#if NEXUS_SLICE_LENGTH_MAX >= 128
+  int8_t index_high;
+#endif
+#if NEXUS_VALUE_MAX == 0
+  // No value field
+#elif NEXUS_VALUE_MAX < 256
+  uint8_t value;
+#else
+  uint16_t value;
+#endif
+  uint16_t raw;
+  uint8_t bits[(NEXUS_SLICE_LENGTH_MAX + 7) / 8];
+} __PACKED PacketNexus;
+
 void nexus_init(void);
 void nexus_process(void);
 void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len);

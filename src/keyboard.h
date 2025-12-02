@@ -237,12 +237,12 @@ static inline AnalogValue keyboard_get_key_raw_value(Key* key)
 
 static inline AnalogValue keyboard_get_key_analog_value(Key* key)
 {    
-    return (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->value : ((((Key*)(key))->state) * ANALOG_VALUE_MAX));
+    return (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->value : ((((Key*)(key))->state) * ANALOG_VALUE_RANGE + ANALOG_VALUE_MIN));
 }
 
 static inline AnalogValue keyboard_get_key_effective_analog_value(Key* key)
 {    
-    return (IS_ADVANCED_KEY((key)) ? advanced_key_get_effective_value(((AdvancedKey*)(key))) : ((((Key*)(key))->state) * ANALOG_VALUE_MAX));
+    return (IS_ADVANCED_KEY((key)) ? advanced_key_get_effective_value(((AdvancedKey*)(key))) : ((((Key*)(key))->state) * ANALOG_VALUE_RANGE + ANALOG_VALUE_MIN));
 }
 
 static inline bool keyboard_key_debounce(Key *key)

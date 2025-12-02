@@ -112,16 +112,14 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
 {
 #if NEXUS_IS_SLAVE
     packet_process_buffer(buf, len);
-    PacketNexus* packet = (PacketNexus*)buf;
-    packet->index = ~(uint16_t)0;
     nexus_report(buf,len);
 #else
     slave_flags[slave_id] = true;
-    PacketNexus* packet = (PacketNexus*)buf;
-    if ((uint16_t)~packet->index)
+    if (!(((PacketBase*)buf)->code & 0x80))
     {
         return;
     }
+    PacketNexus* packet = (PacketNexus*)buf;
     memcpy(&slave_bitmap[slave_id], packet->bits, (slave_configs[slave_id].length+7)/8);
     Key* key = keyboard_get_key(packet->index + slave_configs[slave_id].begin);
     if (IS_ADVANCED_KEY(key))
@@ -136,11 +134,19 @@ int nexus_send_report(void)
 {
     static uint16_t counter;
     static uint8_t buffer[16];
+
+    // No value field
     PacketNexus* packet = (PacketNexus*)buffer;
-    packet->index = counter;
+    packet->index = counter & 0x7F;
+    packet->index |= 0x80;
+#if NEXUS_SLICE_LENGTH_MAX >= 128
+    packet->index_high = (counter >> 7) & 0xFF;
+#endif
     Key* key = keyboard_get_key(counter);
     packet->raw = keyboard_get_key_raw_value(key);
-    packet->value = (int16_t)(keyboard_get_key_analog_value(key)*(1/(float)ANALOG_VALUE_RANGE));
+#if NEXUS_VALUE_MAX != 0
+    packet->value = (keyboard_get_key_analog_value(key)*(1/(float)ANALOG_VALUE_RANGE)*NEXUS_VALUE_MAX);
+#endif
     memcpy(packet->bits, (void*)g_keyboard_bitmap, (TOTAL_KEY_NUM+7)/8);
     nexus_report(buffer, sizeof(PacketNexus) + (TOTAL_KEY_NUM+7)/8);
     counter++;

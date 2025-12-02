@@ -187,14 +187,6 @@ typedef struct __PacketLog
   uint8_t data[];
 } __PACKED PacketLog;
 
-typedef struct __PacketNexus
-{
-  uint16_t index;
-  uint16_t raw;
-  int16_t value;
-  uint8_t bits[];
-} __PACKED PacketNexus;
-
 void packet_process_buffer(uint8_t *buf, uint16_t len);
 void packet_process(uint8_t *buf, uint16_t len);
 void packet_process_advanced_key(PacketData*data);
