@@ -12,7 +12,7 @@
 #define NEXUS_TIMEOUT  POLLING_RATE
 
 static bool slave_flags[NEXUS_SLAVE_NUM];
-static uint64_t slave_bitmap[NEXUS_SLAVE_NUM];
+static uint32_t slave_bitmap[NEXUS_SLAVE_NUM][(NEXUS_SLICE_LENGTH_MAX+31)/32];
 
 __WEAK NexusSlaveConfig g_nexus_slave_configs[NEXUS_SLAVE_NUM];
 
@@ -82,8 +82,10 @@ void nexus_process(void)
     {
         for (int j = 0; j < g_nexus_slave_configs[slave_id].length; j++)
         {
-            Key* key = keyboard_get_key(g_nexus_slave_configs[slave_id].map[j]);
-            keyboard_key_update(key, BIT_GET(slave_bitmap[slave_id], j));
+            const bool state = BIT_GET(slave_bitmap[slave_id][j/32], j%32);
+            const uint16_t index = g_nexus_slave_configs[slave_id].map[j];
+            Key* key = keyboard_get_key(index);
+            keyboard_key_update(key, state);
         }
     }
 }
@@ -100,8 +102,9 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
         return;
     }
     PacketNexus* packet = (PacketNexus*)buf;
+    uint16_t index = packet->index & 0x7f;
     memcpy(&slave_bitmap[slave_id], packet->bits, (g_nexus_slave_configs[slave_id].length+7)/8);
-    Key* key = keyboard_get_key(g_nexus_slave_configs[slave_id].map[packet->index]);
+    Key* key = keyboard_get_key(g_nexus_slave_configs[slave_id].map[index]);
     if (IS_ADVANCED_KEY(key))
     {
         ((AdvancedKey*)key)->raw = packet->raw;
