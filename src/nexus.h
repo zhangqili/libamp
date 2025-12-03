@@ -24,6 +24,14 @@ extern "C" {
 #define NEXUS_VALUE_MAX 65535
 #endif
 
+#ifndef NEXUS_BUFFER_SIZE
+#define NEXUS_BUFFER_SIZE 64
+#endif
+
+#ifndef NEXUS_RETRY_COUNT
+#define NEXUS_RETRY_COUNT 100
+#endif
+
 typedef struct __PacketNexus
 {
   int8_t index;
@@ -47,10 +55,13 @@ typedef struct __NexusSlaveConfig
     const uint16_t *map;
 } NexusSlaveConfig;
 
+extern uint8_t g_nexus_slave_buffer[NEXUS_SLAVE_NUM][NEXUS_BUFFER_SIZE];
+
 void nexus_init(void);
 void nexus_process(void);
 void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len);
 int  nexus_send_report(void);
+int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout);
 
 #ifdef __cplusplus
 }

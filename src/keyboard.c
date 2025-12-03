@@ -625,6 +625,7 @@ __WEAK void keyboard_task(void)
     {
         nexus_send_report();
     }
+    return;
 #else
 #if defined(NEXUS_ENABLE)
     nexus_process();

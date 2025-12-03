@@ -13,29 +13,9 @@
 
 static bool slave_flags[NEXUS_SLAVE_NUM];
 static uint32_t slave_bitmap[NEXUS_SLAVE_NUM][(NEXUS_SLICE_LENGTH_MAX+31)/32];
+uint8_t g_nexus_slave_buffer[NEXUS_SLAVE_NUM][NEXUS_BUFFER_SIZE];
 
 __WEAK NexusSlaveConfig g_nexus_slave_configs[NEXUS_SLAVE_NUM];
-
-static inline int nexus_send_timeout(uint8_t slave_id, uint8_t *report, uint16_t len, uint32_t timeout)
-{
-    const uint32_t start = g_keyboard_tick;
-    while (start + timeout > g_keyboard_tick)
-    {
-        if (nexus_send(slave_id, report, len) == 0)
-        {
-            break;
-        }
-    }
-    while (start + timeout > g_keyboard_tick)
-    {
-        if (slave_flags[slave_id])
-        {
-            slave_flags[slave_id] = false;
-            return 0;
-        }
-    }
-    return 1;
-}
 
 static inline void nexus_config_slave(uint8_t slave_id)
 {
@@ -96,6 +76,7 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
     packet_process_buffer(buf, len);
     nexus_report(buf,len);
 #else
+    //memcpy(g_nexus_slave_buffer[slave_id], buf, len);
     slave_flags[slave_id] = true;
     if (!(((PacketBase*)buf)->code & 0x80))
     {
@@ -131,7 +112,7 @@ int nexus_send_report(void)
     packet->value = (keyboard_get_key_analog_value(key)*(1/(float)ANALOG_VALUE_RANGE)*NEXUS_VALUE_MAX);
 #endif
     memcpy(packet->bits, (void*)g_keyboard_bitmap, (TOTAL_KEY_NUM+7)/8);
-    nexus_report(buffer, sizeof(PacketNexus) + (TOTAL_KEY_NUM+7)/8);
+    nexus_report(buffer, sizeof(PacketNexus));
     counter++;
     if (counter>=TOTAL_KEY_NUM)
     {
@@ -139,3 +120,41 @@ int nexus_send_report(void)
     }
     return 0;
 }
+
+int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout)
+{
+    const uint32_t start = g_keyboard_tick;
+    uint32_t retry_count = 0;
+    uint16_t count = 0;
+    retry:
+    while (start + timeout > g_keyboard_tick)
+    {
+        if (nexus_send(slave_id, (uint8_t*)report, len) == 0)
+        {
+            break;
+        }
+    }
+    while (start + timeout > g_keyboard_tick)
+    {
+        if (g_nexus_slave_buffer[slave_id][0] == report[0] && g_nexus_slave_buffer[slave_id][1] == report[1])
+        {
+            g_nexus_slave_buffer[slave_id][0] = 0;
+            g_nexus_slave_buffer[slave_id][1] = 0;
+            slave_flags[slave_id] = false;
+            return 0;
+        }
+        count++;
+        if (count > 10000)
+        {
+            count = 0;
+            retry_count++;
+            if (retry_count > NEXUS_RETRY_COUNT)
+            {
+                break;
+            }
+            goto retry;
+        }
+    }
+    return 1;
+}
+
