@@ -13,6 +13,9 @@
 
 static bool slave_flags[NEXUS_SLAVE_NUM];
 static uint32_t slave_bitmap[NEXUS_SLAVE_NUM][(NEXUS_SLICE_LENGTH_MAX+31)/32];
+#if NEXUS_USE_RAW
+static AnalogRawValue nexus_slave_raw_values[ADVANCED_KEY_NUM];
+#endif
 uint8_t g_nexus_slave_buffer[NEXUS_SLAVE_NUM][NEXUS_BUFFER_SIZE];
 
 __WEAK NexusSlaveConfig g_nexus_slave_configs[NEXUS_SLAVE_NUM];
@@ -58,6 +61,13 @@ void nexus_init(void)
 
 void nexus_process(void)
 {
+#if NEXUS_USE_RAW
+    for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
+    {
+        AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
+        keyboard_advanced_key_update_raw(advanced_key, nexus_slave_raw_values[i]);
+    }
+#else
     for (uint8_t slave_id = 0; slave_id < NEXUS_SLAVE_NUM; slave_id++)
     {
         for (int j = 0; j < g_nexus_slave_configs[slave_id].length; j++)
@@ -68,6 +78,7 @@ void nexus_process(void)
             keyboard_key_update(key, state);
         }
     }
+#endif
 }
 
 void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
@@ -82,6 +93,14 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
     {
         return;
     }
+#if NEXUS_USE_RAW
+    uint16_t* raw_values = (uint16_t*)buf;
+    nexus_slave_raw_values[0] = buf[0] & 0x7F + ((buf[1]&0x7F)<<7);
+    for (int i = 0; i < g_nexus_slave_configs[slave_id].length; i++)
+    {
+        nexus_slave_raw_values[g_nexus_slave_configs[slave_id].map[i]] = raw_values[i];
+    }
+#else
     PacketNexus* packet = (PacketNexus*)buf;
     uint16_t index = packet->index & 0x7f;
     memcpy(&slave_bitmap[slave_id], packet->bits, (g_nexus_slave_configs[slave_id].length+7)/8);
@@ -92,10 +111,25 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
         ((AdvancedKey*)key)->value = packet->value * (1/65536.f) * ANALOG_VALUE_RANGE;
     }
 #endif
+#endif
 }
 
 int nexus_send_report(void)
 {
+#if NEXUS_USE_RAW
+    static uint8_t buffer[NEXUS_SLICE_LENGTH_MAX*sizeof(uint16_t)];
+    uint16_t* raw_buffer = (uint16_t*)buffer;
+    uint16_t raw1 = advanced_key_read(&g_keyboard_advanced_keys[0]);
+    buffer[0] = raw1 & 0x7F;
+    buffer[0] |= 0x80;
+    buffer[1] = raw1 >> 7;
+    for (int i = 1; i < ADVANCED_KEY_NUM; i++)
+    {
+        AdvancedKey* advanced_key = &g_keyboard_advanced_keys[i];
+        raw_buffer[i] = advanced_key_read(advanced_key);
+    }
+    return nexus_report(buffer, sizeof(buffer));
+#else
     static uint16_t counter;
     static uint8_t buffer[16];
 
@@ -119,6 +153,7 @@ int nexus_send_report(void)
         counter = 0;
     }
     return 0;
+#endif
 }
 
 int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout)
