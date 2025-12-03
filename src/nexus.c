@@ -9,24 +9,12 @@
 #include "string.h"
 #include "storage.h"
 
-#ifndef NEXUS_SLAVE_CONFIG
-#define NEXUS_SLAVE_CONFIG {{0,0}};
-#endif
-
-#ifndef NEXUS_SLAVE_NUM
-#define NEXUS_SLAVE_NUM 1
-#endif
-
 #define NEXUS_TIMEOUT  POLLING_RATE
 
-static struct {
-    uint16_t begin;
-    uint16_t length;
-} slave_configs[NEXUS_SLAVE_NUM] = NEXUS_SLAVE_CONFIG;
 static bool slave_flags[NEXUS_SLAVE_NUM];
 static uint64_t slave_bitmap[NEXUS_SLAVE_NUM];
 
-extern const uint16_t g_analog_map[ADVANCED_KEY_NUM];
+__WEAK NexusSlaveConfig g_nexus_slave_configs[NEXUS_SLAVE_NUM];
 
 static inline int nexus_send_timeout(uint8_t slave_id, uint8_t *report, uint16_t len, uint32_t timeout)
 {
@@ -52,23 +40,16 @@ static inline int nexus_send_timeout(uint8_t slave_id, uint8_t *report, uint16_t
 static inline void nexus_config_slave(uint8_t slave_id)
 {
     uint8_t buffer[64];
-    const uint16_t begin = slave_configs[slave_id].begin;
-    const uint16_t length = slave_configs[slave_id].length;
-    uint16_t count = 0;
-    for (int i = 0; i < ADVANCED_KEY_NUM; i++)
+    const uint16_t length = g_nexus_slave_configs[slave_id].length;
+    for (int i = 0; i < length; i++)
     {
-        AdvancedKey *key = &g_keyboard_advanced_keys[i];
-        const uint16_t analog_index = g_analog_map[key->key.id];
-        if (analog_index < begin || analog_index >= begin + length)
-        {
-            continue;
-        }
+        AdvancedKey *key = &g_keyboard_advanced_keys[g_nexus_slave_configs[slave_id].map[i]];
         PacketAdvancedKey *packet = (PacketAdvancedKey *)buffer;
         memset(buffer, 0, sizeof(packet));
         packet->code = PACKET_CODE_SET;
         packet->type = PACKET_DATA_ADVANCED_KEY;
-        packet->index = count;
-        advanced_key_config_normalize(&packet->data, &g_keyboard_advanced_keys[i].config);
+        packet->index = i;
+        advanced_key_config_normalize(&packet->data, &key->config);
         nexus_send_timeout(slave_id,buffer,64,NEXUS_TIMEOUT);
         /*
         PacketKeymap *packet_keymap = (PacketKeymap *)buffer;
@@ -84,7 +65,6 @@ static inline void nexus_config_slave(uint8_t slave_id)
             nexus_send_timeout(slave_id,buffer,64,NEXUS_TIMEOUT);
         }
         */
-        count++;
     }
 }
 
@@ -100,9 +80,9 @@ void nexus_process(void)
 {
     for (uint8_t slave_id = 0; slave_id < NEXUS_SLAVE_NUM; slave_id++)
     {
-        for (int j = 0; j < slave_configs[slave_id].length; j++)
+        for (int j = 0; j < g_nexus_slave_configs[slave_id].length; j++)
         {
-            Key* key = keyboard_get_key(j+slave_configs[slave_id].begin);
+            Key* key = keyboard_get_key(g_nexus_slave_configs[slave_id].map[j]);
             keyboard_key_update(key, BIT_GET(slave_bitmap[slave_id], j));
         }
     }
@@ -120,8 +100,8 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
         return;
     }
     PacketNexus* packet = (PacketNexus*)buf;
-    memcpy(&slave_bitmap[slave_id], packet->bits, (slave_configs[slave_id].length+7)/8);
-    Key* key = keyboard_get_key(packet->index + slave_configs[slave_id].begin);
+    memcpy(&slave_bitmap[slave_id], packet->bits, (g_nexus_slave_configs[slave_id].length+7)/8);
+    Key* key = keyboard_get_key(g_nexus_slave_configs[slave_id].map[packet->index]);
     if (IS_ADVANCED_KEY(key))
     {
         ((AdvancedKey*)key)->raw = packet->raw;

@@ -621,10 +621,19 @@ __WEAK void keyboard_task(void)
         AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
         keyboard_advanced_key_update_raw(advanced_key, advanced_key_read(advanced_key));
     }
-    nexus_send_report();
+    if (g_keyboard_config.enable_report)
+    {
+        nexus_send_report();
+    }
 #else
 #if defined(NEXUS_ENABLE)
     nexus_process();
+#else
+    for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
+    {
+        AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
+        keyboard_advanced_key_update_raw(advanced_key, advanced_key_read(advanced_key));
+    }
 #endif
 #ifdef MACRO_ENABLE
     macro_process();
