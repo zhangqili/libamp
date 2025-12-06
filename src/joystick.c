@@ -14,7 +14,7 @@ void joystick_event_handler(KeyboardEvent event)
     if (JOYSTICK_KEYCODE_IS_AXIS(event.keycode))
     {
         g_keyboard_report_flags.joystick = true;
-        keyboard_key_set_report_state((Key*)&event.key, true);
+        keyboard_key_set_report_state((Key*)(event.key), true);
         return;
     }
     switch (event.event)
