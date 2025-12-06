@@ -3,6 +3,17 @@
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+
+/**
+ * @file keyboard.c
+ * @brief Implementation of the core keyboard functionality.
+ * @details This file handles the main keyboard task loop, event dispatching,
+ * report buffer management, and integration with other subsystems
+ * like RGB, storage, and MIDI.
+ * @author Zhangqi Li
+ * @date 2024
+ */
+
 #include "keyboard.h"
 #include "layer.h"
 #include "record.h"
@@ -45,25 +56,69 @@
 #include "nexus.h"
 #endif
 
+/* ---------------- Global Variables ---------------- */
+
+/**
+ * @brief Array storing the state and configuration of advanced (analog) keys.
+ * @note Defined as weak to allow overriding by user implementation if necessary.
+ */
 __WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
+
+/**
+ * @brief Array storing the state of standard digital keys.
+ * @note Defined as weak to allow overriding.
+ */
 __WEAK Key g_keyboard_keys[KEY_NUM];
+
+/** @brief Current state of the keyboard indicator LEDs (Num/Caps/Scroll Lock). */
 KeyboardLED g_keyboard_led_state;
+
+/**
+ * @brief Global configuration flags for the keyboard.
+ * @note Defined as weak.
+ */
 __WEAK KeyboardConfig g_keyboard_config;
+
+/** @brief The active keymap for all layers. */
 Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
+/**
+ * @brief The default keymap.
+ * @note Defined as weak to allow overriding.
+ */
 __WEAK const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
+/** @brief System tick counter, typically incremented by a timer interrupt. */
 __WEAK volatile uint32_t g_keyboard_tick;
+
+/** @brief Flag indicating if the keyboard is currently in USB suspend mode. */
 volatile bool g_keyboard_is_suspend;
-__WEAK volatile KeyboardReportFlag g_keyboard_report_flags;
+
+/** @brief Flags indicating which HID reports are pending transmission. */
+volatile KeyboardReportFlag g_keyboard_report_flags;
+
+/* ---------------- Internal Static Variables ---------------- */
 
 #ifdef NKRO_ENABLE
+/** @brief Internal buffer for building N-Key Rollover reports. */
 static Keyboard_NKROBuffer keyboard_nkro_buffer;
 #endif
+/** @brief Internal buffer for building standard 6-Key Rollover reports. */
 static Keyboard_6KROBuffer keyboard_6kro_buffer;
 
+/**
+ * @brief Global bitmap tracking the state of all keys for fast lookup.
+ */
 volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 
+/* ---------------- Function Implementations ---------------- */
+
+/**
+ * @brief Central event handler for keyboard events.
+ * @details Dispatches events to appropriate subsystems (Mouse, MIDI, Macro, etc.)
+ * based on the keycode type.
+ * @param event The event structure containing keycode, event type, and source key.
+ */
 void keyboard_event_handler(KeyboardEvent event)
 {
     Key* key = (Key*)event.key;
@@ -144,6 +199,12 @@ void keyboard_event_handler(KeyboardEvent event)
     }
 }
 
+/**
+ * @brief Adds a processed event to the appropriate report buffer.
+ * @details This function determines whether to add the key to the mouse,
+ * joystick, consumer, or standard keyboard buffer (6KRO or NKRO).
+ * @param event The event to add.
+ */
 void keyboard_add_buffer(KeyboardEvent event)
 {
     switch (KEYCODE_GET_MAIN(event.keycode))
@@ -191,6 +252,12 @@ void keyboard_add_buffer(KeyboardEvent event)
     }
 }
 
+/**
+ * @brief Handles internal keyboard operations triggered by specific keycodes.
+ * @details Operations include reboot, reset, saving config, bootloader jump,
+ * and RGB brightness control.
+ * @param event The operation event.
+ */
 void keyboard_operation_event_handler(KeyboardEvent event)
 {
     switch (event.event)
@@ -294,6 +361,10 @@ void keyboard_key_event_down_callback(Key*key)
     }
 }
 
+/**
+ * @brief Sends the standard keyboard report (either NKRO or 6KRO).
+ * @return 0 on success, non-zero error code otherwise.
+ */
 int keyboard_buffer_send(void)
 {
 #ifdef NKRO_ENABLE
@@ -334,6 +405,12 @@ void keyboard_clear_buffer(void)
 #endif
 }
 
+/**
+ * @brief Adds a keycode to the 6KRO buffer.
+ * @param buf Pointer to the buffer.
+ * @param keycode The keycode to add.
+ * @return 0 if added, 1 if buffer full or invalid.
+ */
 int keyboard_6KRObuffer_add(Keyboard_6KROBuffer *buf, Keycode keycode)
 {
     buf->modifier |= KEYCODE_GET_SUB(keycode);
@@ -385,6 +462,11 @@ void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf)
     memset(buf, 0, sizeof(Keyboard_NKROBuffer));
 }
 
+/**
+ * @brief Initializes the keyboard hardware and software structures.
+ * @details Sets up keys, mounts storage, initializes RGB, MIDI, Macro subsystems,
+ * and recovers configuration from persistent storage.
+ */
 void keyboard_init(void)
 {
     g_keyboard_tick = 0;
@@ -508,6 +590,11 @@ void keyboard_set_config_index(uint8_t index)
     keyboard_recovery();
 }
 
+/**
+ * @brief Populates the report buffers based on the current state of keys.
+ * @details Iterates through active keys (using bitmap optimization if enabled)
+ * and adds their events to the buffer.
+ */
 void keyboard_fill_buffer(void)
 {
 #ifndef OPTIMIZE_KEY_BITMAP
@@ -564,6 +651,10 @@ void keyboard_fill_buffer(void)
 #endif
 }
 
+/**
+ * @brief Checks report flags and sends data to the host.
+ * @details Checks flags for mouse, consumer, system, keyboard, and joystick.
+ */
 void keyboard_send_report(void)
 {   
 #ifdef MOUSE_ENABLE
@@ -609,6 +700,11 @@ void keyboard_send_report(void)
 #endif
 }
 
+/**
+ * @brief Main keyboard loop task.
+ * @details Scans matrix, processes features (Encoders, Macros, Dynamic Keys),
+ * handles USB suspend/wakeup, and coordinates report sending.
+ */
 __WEAK void keyboard_task(void)
 {
     keyboard_scan();
