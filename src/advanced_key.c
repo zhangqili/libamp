@@ -86,6 +86,12 @@ static inline bool advanced_key_update_analog_speed_mode(AdvancedKey* advanced_k
 
 bool advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
 {
+    if (advanced_key->config.mode == ADVANCED_KEY_DIGITAL_MODE)
+    {
+        advanced_key->difference = value - advanced_key->value;
+        advanced_key->value = value;
+        return advanced_key_update_state(advanced_key, advanced_key_update_digital_mode(advanced_key));
+    }
 #if defined(FILTER_ENABLE) && FILTER_DOMAIN == FILTER_DOMAIN_NORMALIZED
     value = analog_filter(&g_analog_filters[advanced_key->key.id], value);
 #endif
@@ -97,9 +103,6 @@ bool advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
     bool state = advanced_key->key.state;
     switch (advanced_key->config.mode)
     {
-        case ADVANCED_KEY_DIGITAL_MODE:
-            state = advanced_key_update_digital_mode(advanced_key);
-            break;
         case ADVANCED_KEY_ANALOG_NORMAL_MODE:
             state = advanced_key_update_analog_normal_mode(advanced_key);
             break;
