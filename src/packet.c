@@ -31,14 +31,14 @@ static inline void command_advanced_key_config_anti_normalize(AdvancedKeyConfigu
 #if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
     config->calibration_mode = buffer->calibration_mode;
 #endif
-    config->activation_value = A_ANIT_NORM(buffer->activation_value);
-    config->deactivation_value = A_ANIT_NORM(buffer->deactivation_value);
-    config->trigger_distance = A_ANIT_NORM(buffer->trigger_distance);
-    config->release_distance = A_ANIT_NORM(buffer->release_distance);
-    config->trigger_speed = A_ANIT_NORM(buffer->trigger_speed);
-    config->release_speed = A_ANIT_NORM(buffer->release_speed);
-    config->upper_deadzone = A_ANIT_NORM(buffer->upper_deadzone);
-    config->lower_deadzone = A_ANIT_NORM(buffer->lower_deadzone);
+    config->activation_value = A_ANTI_NORM(buffer->activation_value);
+    config->deactivation_value = A_ANTI_NORM(buffer->deactivation_value);
+    config->trigger_distance = A_ANTI_NORM(buffer->trigger_distance);
+    config->release_distance = A_ANTI_NORM(buffer->release_distance);
+    config->trigger_speed = A_ANTI_NORM(buffer->trigger_speed);
+    config->release_speed = A_ANTI_NORM(buffer->release_speed);
+    config->upper_deadzone = A_ANTI_NORM(buffer->upper_deadzone);
+    config->lower_deadzone = A_ANTI_NORM(buffer->lower_deadzone);
 #if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
     config->upper_bound = buffer->upper_bound;
     config->lower_bound = buffer->lower_bound;

@@ -41,7 +41,7 @@ typedef int16_t AnalogRawValue;
 #define ANALOG_VALUE_ANTI_NORMALIZE(x) ((AnalogValue)(((float)(x))*ANALOG_VALUE_RANGE))
 
 #define A_NORM ANALOG_VALUE_NORMALIZE
-#define A_ANIT_NORM ANALOG_VALUE_ANTI_NORMALIZE
+#define A_ANTI_NORM ANALOG_VALUE_ANTI_NORMALIZE
 
 #define IS_ADVANCED_KEY(key) (((Key*)(key))->id < ADVANCED_KEY_NUM)
 

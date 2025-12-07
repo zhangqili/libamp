@@ -48,14 +48,14 @@ TEST(Packet, SetPacketAdvancedKey)
     packet_process((uint8_t*)&packet,sizeof(packet));
     EXPECT_EQ(g_keyboard_advanced_keys[3].config.mode, DEFAULT_ADVANCED_KEY_MODE);
     //EXPECT_EQ(g_keyboard_advanced_keys[3].config.calibration_mode, DEFAULT_CALIBRATION_MODE);
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.activation_value, A_ANIT_NORM(DEFAULT_ACTIVATION_VALUE));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.deactivation_value, A_ANIT_NORM(DEFAULT_DEACTIVATION_VALUE));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.trigger_distance, A_ANIT_NORM(DEFAULT_TRIGGER_DISTANCE));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.release_distance, A_ANIT_NORM(DEFAULT_RELEASE_DISTANCE));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.trigger_speed, A_ANIT_NORM(0.01));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.release_speed, A_ANIT_NORM(0.01));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.upper_deadzone, A_ANIT_NORM(DEFAULT_UPPER_DEADZONE));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.lower_deadzone, A_ANIT_NORM(DEFAULT_LOWER_DEADZONE));
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.activation_value, A_ANTI_NORM(DEFAULT_ACTIVATION_VALUE));
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.deactivation_value, A_ANTI_NORM(DEFAULT_DEACTIVATION_VALUE));
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.trigger_distance, A_ANTI_NORM(DEFAULT_TRIGGER_DISTANCE));
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.release_distance, A_ANTI_NORM(DEFAULT_RELEASE_DISTANCE));
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.trigger_speed, A_ANTI_NORM(0.01));
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.release_speed, A_ANTI_NORM(0.01));
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.upper_deadzone, A_ANTI_NORM(DEFAULT_UPPER_DEADZONE));
+    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.lower_deadzone, A_ANTI_NORM(DEFAULT_LOWER_DEADZONE));
     //EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.upper_bound, 2048);
     //EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.lower_bound, 0);
 }
@@ -151,7 +151,7 @@ TEST(Packet, SetPacketDynamicKey)
     memcpy(packet->dynamic_key,&dynamic_key,sizeof(DynamicKeyStroke4x4Normalized));
     packet_process((uint8_t*)packet,sizeof(packet));
     EXPECT_EQ(g_dynamic_keys[1].type, DYNAMIC_KEY_STROKE);
-    EXPECT_FLOAT_EQ(g_dynamic_keys[1].dks.press_fully_distance, A_ANIT_NORM(dynamic_key.press_fully_distance));
+    EXPECT_FLOAT_EQ(g_dynamic_keys[1].dks.press_fully_distance, A_ANTI_NORM(dynamic_key.press_fully_distance));
 
     memset(buffer, 0, sizeof(buffer));
     packet->code = PACKET_CODE_SET;

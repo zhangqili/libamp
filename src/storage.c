@@ -150,14 +150,14 @@ void advanced_key_config_anti_normalize(AdvancedKeyConfiguration* config, const 
 {
     config->mode = buffer->mode;
     config->calibration_mode = buffer->calibration_mode;
-    config->activation_value = A_ANIT_NORM(buffer->activation_value);
-    config->deactivation_value = A_ANIT_NORM(buffer->deactivation_value);
-    config->trigger_distance = A_ANIT_NORM(buffer->trigger_distance);
-    config->release_distance = A_ANIT_NORM(buffer->release_distance);
-    config->trigger_speed = A_ANIT_NORM(buffer->trigger_speed);
-    config->release_speed = A_ANIT_NORM(buffer->release_speed);
-    config->upper_deadzone = A_ANIT_NORM(buffer->upper_deadzone);
-    config->lower_deadzone = A_ANIT_NORM(buffer->lower_deadzone);
+    config->activation_value = A_ANTI_NORM(buffer->activation_value);
+    config->deactivation_value = A_ANTI_NORM(buffer->deactivation_value);
+    config->trigger_distance = A_ANTI_NORM(buffer->trigger_distance);
+    config->release_distance = A_ANTI_NORM(buffer->release_distance);
+    config->trigger_speed = A_ANTI_NORM(buffer->trigger_speed);
+    config->release_speed = A_ANTI_NORM(buffer->release_speed);
+    config->upper_deadzone = A_ANTI_NORM(buffer->upper_deadzone);
+    config->lower_deadzone = A_ANTI_NORM(buffer->lower_deadzone);
     config->upper_bound = buffer->upper_bound;
     config->lower_bound = buffer->lower_bound;
 }
@@ -175,10 +175,10 @@ void dynamic_key_stroke_normalize(DynamicKeyStroke4x4Normalized* buffer, Dynamic
 void dynamic_key_stroke_anti_normalize(DynamicKeyStroke4x4* dks, DynamicKeyStroke4x4Normalized* buffer)
 {
     memcpy(dks, buffer, offsetof(DynamicKeyStroke4x4,press_begin_distance));
-    dks->press_begin_distance = A_ANIT_NORM(buffer->press_begin_distance);
-    dks->press_fully_distance = A_ANIT_NORM(buffer->press_fully_distance);
-    dks->release_begin_distance = A_ANIT_NORM(buffer->release_begin_distance);
-    dks->release_fully_distance = A_ANIT_NORM(buffer->release_fully_distance);
+    dks->press_begin_distance = A_ANTI_NORM(buffer->press_begin_distance);
+    dks->press_fully_distance = A_ANTI_NORM(buffer->press_fully_distance);
+    dks->release_begin_distance = A_ANTI_NORM(buffer->release_begin_distance);
+    dks->release_fully_distance = A_ANTI_NORM(buffer->release_fully_distance);
     dks->key_id = buffer->key_id;
 }
 

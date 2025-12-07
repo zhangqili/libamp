@@ -25,10 +25,10 @@ TEST(Joystick, Axis)
     g_keymap[0][45] = JOYSTICK_COLLECTION | (0x07 << 13) | 3 << 8;
     layer_cache_refresh();
 
-    advanced_key_update(&g_keyboard_advanced_keys[42], A_ANIT_NORM(0.6));
-    advanced_key_update(&g_keyboard_advanced_keys[43], A_ANIT_NORM(0.7));
-    advanced_key_update(&g_keyboard_advanced_keys[44], A_ANIT_NORM(0.8));
-    advanced_key_update(&g_keyboard_advanced_keys[45], A_ANIT_NORM(0.9));
+    advanced_key_update(&g_keyboard_advanced_keys[42], A_ANTI_NORM(0.6));
+    advanced_key_update(&g_keyboard_advanced_keys[43], A_ANTI_NORM(0.7));
+    advanced_key_update(&g_keyboard_advanced_keys[44], A_ANTI_NORM(0.8));
+    advanced_key_update(&g_keyboard_advanced_keys[45], A_ANTI_NORM(0.9));
 
     joystick_buffer_clear();
     joystick_add_buffer(
@@ -42,8 +42,8 @@ TEST(Joystick, Axis)
     joystick_buffer_send();
 
     Joystick* joystick = (Joystick*)shared_ep_send_buffer;
-    EXPECT_NEAR(joystick->axes[0], (int8_t)((A_ANIT_NORM(0.6) - ANALOG_VALUE_MIN) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE), 1);
-    EXPECT_NEAR(joystick->axes[1], (int8_t)((ANALOG_VALUE_MIN - A_ANIT_NORM(0.7)) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE), 1);
-    EXPECT_NEAR(joystick->axes[2], (int8_t)(((A_ANIT_NORM(0.8) - ANALOG_VALUE_MIN) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE)*2 - JOYSTICK_MAX_VALUE), 1);
-    EXPECT_NEAR(joystick->axes[3], (int8_t)(-(((A_ANIT_NORM(0.9) - ANALOG_VALUE_MIN) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE)*2 - JOYSTICK_MAX_VALUE)), 1);
+    EXPECT_NEAR(joystick->axes[0], (int8_t)((A_ANTI_NORM(0.6) - ANALOG_VALUE_MIN) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE), 1);
+    EXPECT_NEAR(joystick->axes[1], (int8_t)((ANALOG_VALUE_MIN - A_ANTI_NORM(0.7)) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE), 1);
+    EXPECT_NEAR(joystick->axes[2], (int8_t)(((A_ANTI_NORM(0.8) - ANALOG_VALUE_MIN) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE)*2 - JOYSTICK_MAX_VALUE), 1);
+    EXPECT_NEAR(joystick->axes[3], (int8_t)(-(((A_ANTI_NORM(0.9) - ANALOG_VALUE_MIN) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE)*2 - JOYSTICK_MAX_VALUE)), 1);
 }

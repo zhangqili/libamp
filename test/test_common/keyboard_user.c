@@ -1096,7 +1096,7 @@ const uint16_t length = sizeof(table) / sizeof(table[0]);
     {
         index = length - 1;
     }
-    return A_ANIT_NORM(table[index]) + ANALOG_VALUE_MIN;
+    return A_ANTI_NORM(table[index]) + ANALOG_VALUE_MIN;
     /*
     if (x<0.225)
     {
