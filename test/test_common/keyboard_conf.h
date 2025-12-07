@@ -109,7 +109,7 @@
 /**********/
 /* Filter */
 /**********/
-#define TOLERANCE               1
+#define FILTER_HYSTERESIS               1
 #define FILTER_ENABLE
 
 /**********/

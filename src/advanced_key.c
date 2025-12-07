@@ -6,7 +6,6 @@
 #include "advanced_key.h"
 #include "keyboard_def.h"
 #include "analog.h"
-#include "filter.h"
 
 static inline bool advanced_key_update_digital_mode(AdvancedKey* advanced_key)
 {
@@ -87,6 +86,12 @@ static inline bool advanced_key_update_analog_speed_mode(AdvancedKey* advanced_k
 
 bool advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
 {
+#if defined(FILTER_ENABLE) && FILTER_DOMAIN == FILTER_DOMAIN_NORMALIZED
+    value = analog_filter(&g_analog_filters[advanced_key->key.id], value);
+#endif
+#if defined(FILTER_HYSTERESIS_ENABLE) && FILTER_DOMAIN == FILTER_DOMAIN_NORMALIZED
+    value = hysteresis_filter(&g_analog_hysteresis_filters[advanced_key->key.id], value);
+#endif
     advanced_key->difference = value - advanced_key->value;
     advanced_key->value = value;
     bool state = advanced_key->key.state;
@@ -109,22 +114,32 @@ bool advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
     return advanced_key_update_state(advanced_key, state);
 }
 
-bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue value)
+bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue raw)
 {
+    if (advanced_key->config.mode == ADVANCED_KEY_DIGITAL_MODE)
+    {
+        return advanced_key_update(advanced_key, raw);
+    }
+#if defined(FILTER_ENABLE) && FILTER_DOMAIN == FILTER_DOMAIN_RAW
+    raw = analog_filter(&g_analog_filters[advanced_key->key.id], raw);
+#endif
+#if defined(FILTER_HYSTERESIS_ENABLE) && FILTER_DOMAIN == FILTER_DOMAIN_RAW
+    raw = hysteresis_filter(&g_analog_hysteresis_filters[advanced_key->key.id], raw);
+#endif
 #ifdef CALIBRATION_LPF_ENABLE
     static AnalogRawValue low_pass_raws[ADVANCED_KEY_NUM];
 #ifndef FIXED_POINT_EXPERIMENTAL
     low_pass_raws[advanced_key->key.id] = 
-        value * (1.0f/16.0f)  + low_pass_raws[advanced_key->key.id] * (15.0f/16.0f);
+        raw * (1.0f/16.0f)  + low_pass_raws[advanced_key->key.id] * (15.0f/16.0f);
 #else
     low_pass_raws[advanced_key->key.id] = 
-        ((uint32_t)value + ((uint32_t)low_pass_raws[advanced_key->key.id]<<4) - low_pass_raws[advanced_key->key.id]) >> 4; 
+        ((uint32_t)raw + ((uint32_t)low_pass_raws[advanced_key->key.id]<<4) - low_pass_raws[advanced_key->key.id]) >> 4; 
 #endif
     AnalogRawValue lpf_value = low_pass_raws[advanced_key->key.id];
 #else
-    AnalogRawValue lpf_value = value;
+    AnalogRawValue lpf_value = raw;
 #endif
-    advanced_key->raw = value;
+    advanced_key->raw = raw;
     switch (advanced_key->config.calibration_mode)
     {
     case ADVANCED_KEY_AUTO_CALIBRATION_POSITIVE:
@@ -152,10 +167,8 @@ bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue value)
     default:
         break;
     }
-    if (advanced_key->config.mode == ADVANCED_KEY_DIGITAL_MODE)
-        return advanced_key_update(advanced_key, value);
-    else
-        return advanced_key_update(advanced_key, advanced_key_normalize(advanced_key, value));
+    
+    return advanced_key_update(advanced_key, advanced_key_normalize(advanced_key, raw));
 }
 
 bool advanced_key_update_state(AdvancedKey* advanced_key, bool state)
@@ -201,15 +214,6 @@ void advanced_key_set_deadzone(AdvancedKey* advanced_key, AnalogValue upper, Ana
 {
     advanced_key->config.upper_deadzone = upper;
     advanced_key->config.lower_deadzone = lower;
-}
-
-__WEAK AnalogRawValue advanced_key_read(AdvancedKey *advanced_key)
-{
-    AnalogRawValue raw = advanced_key_read_raw(advanced_key);
-#ifdef FILTER_ENABLE
-    raw = adaptive_schimidt_filter(&g_analog_filters[advanced_key->key.id], raw);
-#endif
-    return raw;
 }
 
 __WEAK AnalogRawValue advanced_key_read_raw(AdvancedKey *advanced_key)

@@ -8,6 +8,7 @@
 #include "record.h"
 #include "driver.h"
 #include "packet.h"
+#include "analog.h"
 
 #include "stdio.h"
 #include "string.h"
@@ -418,6 +419,7 @@ void keyboard_init(void)
     nexus_init();
 #endif
 #endif
+    analog_init();
 }
 
 __WEAK void keyboard_reset_to_default(void)
@@ -619,7 +621,7 @@ __WEAK void keyboard_task(void)
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
-        keyboard_advanced_key_update_raw(advanced_key, advanced_key_read(advanced_key));
+        keyboard_advanced_key_update_raw(advanced_key, advanced_key_read_raw(advanced_key));
     }
     if (g_keyboard_config.enable_report)
     {
@@ -633,7 +635,7 @@ __WEAK void keyboard_task(void)
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
-        keyboard_advanced_key_update_raw(advanced_key, advanced_key_read(advanced_key));
+        keyboard_advanced_key_update_raw(advanced_key, advanced_key_read_raw(advanced_key));
     }
 #endif
 #ifdef MACRO_ENABLE

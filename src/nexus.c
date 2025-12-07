@@ -119,14 +119,14 @@ int nexus_send_report(void)
 #if NEXUS_USE_RAW
     static uint8_t buffer[NEXUS_SLICE_LENGTH_MAX*sizeof(uint16_t)];
     uint16_t* raw_buffer = (uint16_t*)buffer;
-    uint16_t raw1 = advanced_key_read(&g_keyboard_advanced_keys[0]);
+    uint16_t raw1 = advanced_key_read_raw(&g_keyboard_advanced_keys[0]);
     buffer[0] = raw1 & 0x7F;
     buffer[0] |= 0x80;
     buffer[1] = raw1 >> 7;
     for (int i = 1; i < ADVANCED_KEY_NUM; i++)
     {
         AdvancedKey* advanced_key = &g_keyboard_advanced_keys[i];
-        raw_buffer[i] = advanced_key_read(advanced_key);
+        raw_buffer[i] = advanced_key_read_raw(advanced_key);
     }
     return nexus_report(buffer, sizeof(buffer));
 #else

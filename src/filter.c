@@ -5,11 +5,3 @@
  */
 #include "filter.h"
 
-AnalogRawValue adaptive_schimidt_filter(AdaptiveSchimidtFilter *filter, AnalogRawValue value)
-{
-    if (value - TOLERANCE > filter->state)
-        filter->state = value - TOLERANCE;
-    if (value + TOLERANCE < filter->state)
-        filter->state = value + TOLERANCE;
-    return filter->state;
-}

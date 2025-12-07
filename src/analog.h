@@ -38,7 +38,9 @@ typedef struct __RingBuf
 #endif
 } RingBuf;
 
-extern AdaptiveSchimidtFilter g_analog_filters[ADVANCED_KEY_NUM];
+extern Filter g_analog_filters[ADVANCED_KEY_NUM];
+
+extern HysteresisFilter g_analog_hysteresis_filters[ADVANCED_KEY_NUM];
 
 extern RingBuf g_adc_ringbufs[ANALOG_BUFFER_LENGTH];
 
@@ -54,6 +56,15 @@ void analog_reset_range(void);
 
 void ringbuf_push(RingBuf *ringbuf, AnalogRawValue data);
 AnalogRawValue ringbuf_avg(RingBuf *ringbuf);
+
+static inline AnalogRawValue analog_filter(Filter *filter, AnalogRawValue value)
+{
+#if FILTER_TYPE == FILTER_TYPE_LOW_PASS
+    return lowpass_filter((LowpassFilter *)filter, value);
+#elif FILTER_TYPE == FILTER_TYPE_KALMAN
+    return kalman_filter((KalmanFilter *)filter, value);
+#endif
+}
 
 #ifdef __cplusplus
 }
