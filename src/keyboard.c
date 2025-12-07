@@ -419,7 +419,6 @@ void keyboard_init(void)
     nexus_init();
 #endif
 #endif
-    analog_init();
 }
 
 __WEAK void keyboard_reset_to_default(void)

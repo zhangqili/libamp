@@ -67,7 +67,7 @@ typedef struct __KalmanFilter
     FilterValue R;
 } KalmanFilter;
 
-void filter_init(void);
+void filter_reset(void);
 
 static inline void hysteresis_filter_init(HysteresisFilter *filter, FilterValue initial_state)
 {
