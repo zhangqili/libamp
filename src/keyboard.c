@@ -400,6 +400,10 @@ void keyboard_init(void)
     }
 #ifdef STORAGE_ENABLE
     storage_mount();
+    if (storage_check_version())
+    {
+        keyboard_factory_reset();
+    }
     storage_read_config_index();
 #endif
 #ifdef RGB_ENABLE

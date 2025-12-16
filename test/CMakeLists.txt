@@ -19,6 +19,7 @@ add_executable(libamp_tests
     extra_key/test_extra_key.cpp
     joystick/test_joystick.cpp
     packet/test_packet.cpp
+    storage/test_storage.cpp
 )
 
 target_link_libraries(libamp_tests

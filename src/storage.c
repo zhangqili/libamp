@@ -215,6 +215,40 @@ int storage_mount(void)
 #endif
 }
 
+int storage_check_version(void)
+{
+#ifdef LFS_ENABLE
+    lfs_file_t lfs_file;
+    uint32_t version[3] = {0};
+    bool need_factory_reset = false;
+    bool need_update = false;
+    lfs_file_open(&_lfs, &lfs_file, "version", LFS_O_RDWR | LFS_O_CREAT);
+    lfs_file_rewind(&_lfs, &lfs_file);
+    lfs_file_read(&_lfs, &lfs_file, &version, sizeof(version));
+    if (version[0] != KEYBOARD_VERSION_MAJOR || version[1] != KEYBOARD_VERSION_MINOR)
+    {
+        version[0] = KEYBOARD_VERSION_MAJOR;
+        version[1] = KEYBOARD_VERSION_MINOR;
+        need_factory_reset = true;
+        need_update = true;
+    }
+    if (version[2] != KEYBOARD_VERSION_PATCH)
+    {
+        version[2] = KEYBOARD_VERSION_PATCH;
+        need_update = true;
+    }
+    if (need_update)
+    {
+        lfs_file_rewind(&_lfs, &lfs_file);
+        lfs_file_write(&_lfs, &lfs_file, &version, sizeof(version));
+    }
+    lfs_file_close(&_lfs, &lfs_file);
+    return need_factory_reset;
+#else
+    return 0;
+#endif
+}
+
 void storage_unmount(void)
 {
 #ifdef LFS_ENABLE

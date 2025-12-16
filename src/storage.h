@@ -68,6 +68,7 @@ void dynamic_key_stroke_anti_normalize(DynamicKeyStroke4x4* dks, DynamicKeyStrok
 
 int storage_mount(void);
 void storage_unmount(void);
+int storage_check_version(void);
 uint8_t storage_read_config_index(void);
 void storage_save_config_index(void);
 void storage_read_config(void);

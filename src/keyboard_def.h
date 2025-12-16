@@ -31,6 +31,10 @@
 #define UNUSED(X) (void)X      /* To avoid gcc/g++ warnings */
 #endif /* UNUSED */
 
+#ifdef __cplusplus
+    #define restrict __restrict__
+#endif
+
 #ifndef BIT
 #define BIT(x)  (1UL << (x))
 #endif

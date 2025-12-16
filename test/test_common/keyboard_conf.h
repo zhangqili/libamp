@@ -48,16 +48,16 @@
 /***********/
 /* Storage */
 /***********/
-//#define STORAGE_ENABLE
-//#define LFS_ENABLE
-//#define LFS_READ_SIZE       16
-//#define LFS_PROG_SIZE       16
-//#define LFS_BLOCK_SIZE      4096
-//#define LFS_BLOCK_COUNT     4096
-//#define LFS_CACHE_SIZE      16
-//#define LFS_LOOKAHEAD_SIZE  16
-//#define LFS_BLOCK_CYCLES    500
-//#define LFS_BUFFER_SIZE     16
+#define STORAGE_ENABLE
+#define LFS_ENABLE
+#define LFS_READ_SIZE       16
+#define LFS_PROG_SIZE       16
+#define LFS_BLOCK_SIZE      4096
+#define LFS_BLOCK_COUNT     4096
+#define LFS_CACHE_SIZE      16
+#define LFS_LOOKAHEAD_SIZE  16
+#define LFS_BLOCK_CYCLES    500
+#define LFS_BUFFER_SIZE     16
 
 /*******/
 /* RGB */
@@ -109,8 +109,11 @@
 /**********/
 /* Filter */
 /**********/
-#define FILTER_HYSTERESIS               1
-#define FILTER_ENABLE
+//#define FILTER_ENABLE
+//#define FILTER_HYSTERESIS_ENABLE
+//#define FILTER_HYSTERESIS               2
+#define FILTER_TYPE FILTER_TYPE_KALMAN
+#define FILTER_DOMAIN FILTER_DOMAIN_RAW
 
 /**********/
 /* Record */
