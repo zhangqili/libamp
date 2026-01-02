@@ -45,6 +45,9 @@
 #ifdef NEXUS_ENABLE
 #include "nexus.h"
 #endif
+#ifdef SCRIPT_ENABLE
+#include "script.h"
+#endif
 
 __WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
 __WEAK Key g_keyboard_keys[KEY_NUM];
@@ -113,6 +116,11 @@ void keyboard_event_handler(KeyboardEvent event)
 #ifdef MACRO_ENABLE
     case MACRO_COLLECTION:
         macro_event_handler(event);
+        break;
+#endif
+#ifdef SCRIPT_ENABLE
+    case SCRIPT_COLLECTION:
+        script_event_handler(event);
         break;
 #endif
     case LAYER_CONTROL:
@@ -423,6 +431,9 @@ void keyboard_init(void)
     nexus_init();
 #endif
 #endif
+#ifdef SCRIPT_ENABLE
+    script_init();
+#endif
 }
 
 __WEAK void keyboard_reset_to_default(void)
@@ -640,6 +651,9 @@ __WEAK void keyboard_task(void)
         AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
         keyboard_advanced_key_update_raw(advanced_key, advanced_key_read_raw(advanced_key));
     }
+#endif
+#ifdef SCRIPT_ENABLE
+    script_process();
 #endif
 #ifdef MACRO_ENABLE
     macro_process();

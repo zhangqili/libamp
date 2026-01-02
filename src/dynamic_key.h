@@ -108,9 +108,7 @@ typedef union __DynamicKey
     uint32_t aligned_buffer[15];
 } DynamicKey;
 
-#ifdef DYNAMICKEY_ENABLE
 extern DynamicKey g_dynamic_keys[DYNAMIC_KEY_NUM];
-#endif
 
 void dynamic_key_process(void);
 void dynamic_key_add_buffer(void);
