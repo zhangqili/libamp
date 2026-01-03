@@ -326,8 +326,8 @@ static const JSPropDef js_performance[] = {
 static const JSClassDef js_performance_obj =
     JS_OBJECT_DEF("Performance", js_performance);
 
-#ifndef MQJS_MINIMAL
 static const JSPropDef js_global_object[] = {
+#ifndef MQJS_MINIMAL
     JS_PROP_CLASS_DEF("Object", &js_object_class),
     JS_PROP_CLASS_DEF("Function", &js_function_class),
     JS_PROP_CLASS_DEF("Number", &js_number_class),
@@ -377,23 +377,19 @@ static const JSPropDef js_global_object[] = {
     JS_CFUNC_DEF("gc", 0, js_gc),
     JS_CFUNC_DEF("load", 1, js_load),
     JS_CFUNC_DEF("setTimeout", 2, js_setTimeout),
-    JS_CFUNC_DEF("clearTimeout", 1, js_clearTimeout),),
-#ifdef LIBAMP_CONFIG_CLASS
-    JS_PROP_CLASS_DEF("kb", &js_keyboard_obj),
-#endif
-    JS_PROP_END,
-};
+    JS_CFUNC_DEF("clearTimeout", 1, js_clearTimeout),
 #else
-static const JSPropDef js_global_object[] = {
     JS_PROP_CLASS_DEF("console", &js_console_obj),
     JS_CFUNC_DEF("setTimeout", 2, js_setTimeout),
     JS_CFUNC_DEF("clearTimeout", 1, js_clearTimeout),
+#endif
 #ifdef LIBAMP_CONFIG_CLASS
     JS_PROP_CLASS_DEF("kb", &js_keyboard_obj),
+    JS_PROP_CLASS_DEF("key", &js_key_class),
+    JS_PROP_CLASS_DEF("Advancedkey", &js_advanced_key_class),
 #endif
     JS_PROP_END,
 };
-#endif
 
 /* Additional C function declarations (only useful for C
    closures). They are always defined first. */

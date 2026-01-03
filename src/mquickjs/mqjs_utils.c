@@ -24,10 +24,315 @@
  */
 
 #include "script.h"
+#include "layer.h"
 #include "stdio.h"
 
 #include "cutils.h"
 #include "mquickjs.h"
+
+#define JS_CLASS_KEY (JS_CLASS_USER + 0)
+#define JS_CLASS_ADVANCED_KEY (JS_CLASS_USER + 1)
+#define JS_CLASS_COUNT (JS_CLASS_USER + 2)
+
+static void js_key_constructor(JSContext *ctx, JSValue *this_val, int argc,
+                                        JSValue *argv)
+{
+    JSValue obj;
+    Key *key;
+    int id;
+    if (argc > 0)
+    {
+        if (JS_ToInt32(ctx, &id, argv[0]))
+            return JS_EXCEPTION;
+    }
+    else
+    {
+        id = 0;
+    }
+    key = keyboard_get_key(id);
+    if (key == NULL)
+    {
+        return JS_ThrowRangeError(ctx, "Out of range");
+    }
+    argc &= ~FRAME_CF_CTOR;
+    obj = JS_NewObjectClassUser(ctx, IS_ADVANCED_KEY(key) ? JS_CLASS_ADVANCED_KEY : JS_CLASS_KEY);
+    JS_SetOpaque(ctx, obj, key);
+    return obj;
+}
+
+static void js_key_finalizer(JSContext *ctx, void *opaque)
+{
+    UNUSED(ctx);
+    UNUSED(opaque);
+    //free(key);
+}
+
+static JSValue js_key_get_id(JSContext *ctx, JSValue *this_val, int argc,
+                                  JSValue *argv)
+{
+    Key *key;
+    int class_id = JS_GetClassID(ctx, *this_val);
+    if (class_id != JS_CLASS_KEY && class_id != JS_CLASS_ADVANCED_KEY)
+        return JS_ThrowTypeError(ctx, "expecting Key class");
+    key = JS_GetOpaque(ctx, *this_val);
+    return JS_NewInt32(ctx, key->id);
+}
+
+static JSValue js_key_get_state(JSContext *ctx, JSValue *this_val, int argc,
+                                  JSValue *argv, int magic)
+{
+    Key *key;
+    int class_id = JS_GetClassID(ctx, *this_val);
+    if (class_id != JS_CLASS_KEY && class_id != JS_CLASS_ADVANCED_KEY)
+        return JS_ThrowTypeError(ctx, "expecting Key class");
+    key = JS_GetOpaque(ctx, *this_val);
+    if (magic)
+    {
+        return JS_NewBool(key->state);
+    }
+    else
+    {
+        return JS_NewBool(key->report_state);
+    }
+}
+
+static JSValue js_key_emit(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    int event_id;
+    Key* key;
+    int class_id = JS_GetClassID(ctx, *this_val);
+    if (class_id != JS_CLASS_KEY && class_id != JS_CLASS_ADVANCED_KEY)
+        return JS_ThrowTypeError(ctx, "expecting Key class");
+    key = JS_GetOpaque(ctx, *this_val);
+    if (argc > 0)
+    {
+        JS_ToInt32(ctx, &event_id, argv[0]);
+    }
+    else
+    {
+        event_id = KEYBOARD_EVENT_KEY_DOWN;
+    }
+    printf("event_id:%d\n", event_id);
+    uint8_t report_state = key->report_state;
+    keyboard_event_handler(
+        MK_EVENT(layer_cache_get_keycode(key->id),event_id,key));
+    keyboard_key_set_report_state(key, report_state);//protect key state
+    return JS_UNDEFINED;
+}
+
+
+//static void js_advanced_key_finalizer(JSContext *ctx, void *opaque)
+//{
+//    AdvancedKey *key = opaque;
+//    //free(key);
+//}
+
+static JSValue js_advanced_key_get(JSContext *ctx, JSValue *this_val, int argc,
+                                  JSValue *argv, int magic)
+{
+    AdvancedKey *key;
+    int class_id = JS_GetClassID(ctx, *this_val);
+    if (class_id != JS_CLASS_ADVANCED_KEY)
+    {
+        return JS_ThrowTypeError(ctx, "expecting AdvancedKey class");
+    }
+    key = JS_GetOpaque(ctx, *this_val);
+#ifdef FIXED_POINT_EXPERIMENTAL
+    switch (magic)
+    {
+    case 0:
+        return JS_NewInt32(ctx, key->value);
+        break;
+    case 1:
+        return JS_NewInt32(ctx, key->raw);
+        break;
+    case 2:
+        return JS_NewInt32(ctx, key->extremum);
+        break;
+    case 3:
+        return JS_NewInt32(ctx, key->difference);
+        break;
+    case 4:
+        return JS_NewInt32(ctx, key->config.mode);
+        break;
+    case 5:
+        return JS_NewInt32(ctx, key->config.calibration_mode);
+        break;
+    case 6:
+        return JS_NewInt32(ctx, key->config.activation_value);
+        break;
+    case 7:
+        return JS_NewInt32(ctx, key->config.deactivation_value);
+        break;
+    case 8:
+        return JS_NewInt32(ctx, key->config.trigger_distance);
+        break;
+    case 9:
+        return JS_NewInt32(ctx, key->config.release_distance);
+        break;
+    case 10:
+        return JS_NewInt32(ctx, key->config.trigger_speed);
+        break;
+    case 11:
+        return JS_NewInt32(ctx, key->config.release_speed);
+        break;
+    case 12:
+        return JS_NewInt32(ctx, key->config.upper_deadzone);
+        break;
+    case 13:
+        return JS_NewInt32(ctx, key->config.lower_deadzone);
+        break;
+    case 14:
+        return JS_NewInt32(ctx, key->config.upper_bound);
+        break;
+    case 15:
+        return JS_NewInt32(ctx, key->config.lower_bound);
+        break;
+    default:
+        break;
+    }
+#else
+    switch (magic)
+    {
+    case 0:
+        return JS_NewFloat64(ctx, key->value);
+        break;
+    case 1:
+        return JS_NewFloat64(ctx, key->raw);
+        break;
+    case 2:
+        return JS_NewFloat64(ctx, key->extremum);
+        break;
+    case 3:
+        return JS_NewFloat64(ctx, key->difference);
+        break;
+    case 4:
+        return JS_NewInt32(ctx, key->config.mode);
+        break;
+    case 5:
+        return JS_NewInt32(ctx, key->config.calibration_mode);
+        break;
+    case 6:
+        return JS_NewFloat64(ctx, key->config.activation_value);
+        break;
+    case 7:
+        return JS_NewFloat64(ctx, key->config.deactivation_value);
+        break;
+    case 8:
+        return JS_NewFloat64(ctx, key->config.trigger_distance);
+        break;
+    case 9:
+        return JS_NewFloat64(ctx, key->config.release_distance);
+        break;
+    case 10:
+        return JS_NewFloat64(ctx, key->config.trigger_speed);
+        break;
+    case 11:
+        return JS_NewFloat64(ctx, key->config.release_speed);
+        break;
+    case 12:
+        return JS_NewFloat64(ctx, key->config.upper_deadzone);
+        break;
+    case 13:
+        return JS_NewFloat64(ctx, key->config.lower_deadzone);
+        break;
+    case 14:
+        return JS_NewFloat64(ctx, key->config.upper_bound);
+        break;
+    case 15:
+        return JS_NewFloat64(ctx, key->config.lower_bound);
+        break;
+    default:
+        break;
+    }
+#endif
+    return JS_UNDEFINED;
+}
+
+static JSValue js_advanced_key_set(JSContext *ctx, JSValue *this_val, int argc,
+                                  JSValue *argv, int magic)
+{
+    AdvancedKey *key;
+    int class_id = JS_GetClassID(ctx, *this_val);
+    if (class_id != JS_CLASS_ADVANCED_KEY)
+        return JS_ThrowTypeError(ctx, "expecting Rectangle class");
+    key = JS_GetOpaque(ctx, *this_val);
+    return JS_NewInt32(ctx, key->value);
+}
+
+static JSValue js_keyboard_get_key(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    int n;
+    JSValue obj;
+    Key *key;
+    if (JS_ToInt32(ctx, &n, argv[0]))
+    {
+        return JS_EXCEPTION;
+    }
+    key = keyboard_get_key(n);
+    if (key == NULL)
+    {
+        return JS_ThrowRangeError(ctx, "Key index out of range");
+    }
+    if (IS_ADVANCED_KEY(key))
+    {
+        obj = JS_NewObjectClassUser(ctx, JS_CLASS_ADVANCED_KEY);
+    }
+    else
+    {
+        obj = JS_NewObjectClassUser(ctx, JS_CLASS_KEY);
+    }
+    JS_SetOpaque(ctx, obj, key);
+    return obj;
+}
+
+static JSValue js_keyboard_get_tick(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv, int magic)
+{
+    if (magic)
+    {
+        return JS_NewInt64(ctx, (int64_t)KEYBOARD_TICK_TO_TIME(g_keyboard_tick));
+    }
+    else
+    {
+        return JS_NewInt64(ctx, (int64_t)g_keyboard_tick);
+    }
+}
+
+static void watch_recursive(JSContext *ctx, JSValue val)
+{
+    if (JS_IsNumber(ctx, val)) {
+        int32_t id;
+        if (JS_ToInt32(ctx, &id, val) == 0) {
+            script_watch(id);
+        }
+    } 
+    else if (JS_GetClassID(ctx, val) == JS_CLASS_ARRAY) {
+        JSGCRef arr_ref;
+        JSValue *p_arr = JS_PushGCRef(ctx, &arr_ref);
+        *p_arr = val;
+
+        JSValue len_val = JS_GetPropertyStr(ctx, *p_arr, "length");
+        int32_t len;
+        
+        if (JS_ToInt32(ctx, &len, len_val) == 0) {
+            for (int i = 0; i < len; i++) {
+                JSValue item = JS_GetPropertyUint32(ctx, *p_arr, i);
+                watch_recursive(ctx, item);
+            }
+        }
+        
+        JS_PopGCRef(ctx, &arr_ref);
+    }
+}
+
+static JSValue js_keyboard_watch(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    for (int i = 0; i < argc; i++)
+    {
+        watch_recursive(ctx, argv[i]);
+    }
+    return JS_UNDEFINED;
+}
 
 //static JSValue js_keyboard_suspend(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 //{

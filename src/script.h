@@ -13,6 +13,7 @@ extern "C" {
 
 void script_init(void);
 void script_process(void);
+void script_watch(uint16_t id);
 void script_event_handler(KeyboardEvent event);
 
 #ifdef __cplusplus

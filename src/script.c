@@ -5,6 +5,7 @@
  */
 #include "script.h"
 #include "stdio.h"
+#include "string.h"
 
 #include "cutils.h"
 #include "mquickjs.h"
@@ -16,32 +17,19 @@ void script_log_func(void *opaque, const void *buf, size_t buf_len) {
 }
 extern const JSSTDLibraryDef js_stdlib;
 
-#define JS_MEMORY_SIZE  (2 * 1024)
-uint8_t js_memory_pool[JS_MEMORY_SIZE];
+uint32_t g_script_watcher_mask[KEY_BITMAP_SIZE];
 
-uint8_t app_bin[] = {  0xfb, 0xac, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x21, 0x00, 0x00, 0x00,
-  0x4d, 0x00, 0x00, 0x00, 0x36, 0x03, 0x00, 0x00, 0x3c, 0x65, 0x76, 0x61,
-  0x6c, 0x3e, 0x00, 0x61, 0xb6, 0x01, 0x00, 0x00, 0x6c, 0x6f, 0x67, 0x00,
-  0xb6, 0x03, 0x00, 0x00, 0x63, 0x6f, 0x6e, 0x73, 0x6f, 0x6c, 0x65, 0x00,
-  0x3a, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x15, 0x00, 0x00, 0x00,
-  0x0d, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x80, 0x26, 0x05, 0x00, 0x00, 0x2e, 0x2f, 0x69, 0x6e,
-  0x70, 0x75, 0x74, 0x2e, 0x6a, 0x73, 0x00, 0x00, 0x48, 0x00, 0x00, 0x00,
-  0x01, 0x00, 0x00, 0x00, 0xa1, 0x00, 0x00, 0x00, 0x89, 0x00, 0x00, 0x00,
-  0x07, 0x00, 0x00, 0x00, 0x75, 0x00, 0x00, 0x00, 0x04, 0x00, 0x02, 0x00,
-  0x3d, 0x00, 0x00, 0x00, 0xdd, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x4a, 0x00, 0x00, 0x00, 0x3b, 0x0d, 0x00, 0x00, 0x02, 0x00, 0x06, 0x00,
-  0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x2a, 0x00, 0x00, 0x00,
-  0x0d, 0x00, 0x00, 0x00, 0x95, 0x00, 0x00, 0x00, 0xa6, 0x02, 0x00, 0x00,
-  0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00, 0x00, 0x00, 0x8c, 0x03, 0x00, 0x00,
-  0x5f, 0x33, 0x00, 0x00, 0x30, 0x00, 0x00, 0x64, 0x50, 0x34, 0x20, 0x00,
-  0x00, 0x00, 0x30, 0x01, 0x00, 0x21, 0x00, 0x00, 0x02, 0x01, 0x00, 0x30,
-  0x00, 0x00, 0x1a, 0x02, 0x00, 0x0d, 0x30, 0x00, 0x00, 0x40, 0x31, 0x00,
-  0x00, 0x36, 0xde, 0xff, 0xff, 0xff, 0x30, 0x01, 0x00, 0x21, 0x00, 0x00,
-  0x30, 0x00, 0x00, 0x1a, 0x01, 0x00, 0x0d, 0x1d, 0x2c, 0x01, 0x00, 0x00,
-  0xe1, 0x38, 0xfe, 0x5e, 0x15, 0x8f, 0xe1, 0xb8, 0x4b, 0x82, 0x0b, 0xae,
-  0x0e, 0x63, 0xe2, 0xeb, 0xc0, 0x00, 0x00, 0x00};
-size_t app_bin_len = 260;
+#define JS_MEMORY_SIZE  (4 * 1024)
+uint8_t js_memory_pool[JS_MEMORY_SIZE];
+static JSGCRef loop_func_ref; 
+static JSValue *loop_func_ptr = NULL;
+static bool loop_func_set = false;
+static JSGCRef on_key_down_func_ref; 
+static JSValue *on_key_down_func_ptr = NULL;
+static bool on_key_down_func_set = false;
+static JSGCRef on_key_up_func_ref; 
+static JSValue *on_key_up_func_ptr = NULL;
+static bool on_key_up_func_set = false;
 
 static void dump_error(JSContext *ctx)
 {
@@ -51,6 +39,52 @@ static void dump_error(JSContext *ctx)
 }
 
 static JSContext *js_ctx;
+void script_run_function(JSContext *ctx, const char *func_name)
+{
+    JSValue global_obj = JS_GetGlobalObject(ctx);
+    JSValue func = JS_GetPropertyStr(ctx, global_obj, func_name);
+    if (JS_IsFunction(ctx, func)) {
+        JS_PushArg(ctx, func); /* func name */
+        JS_PushArg(ctx, JS_NULL); /* this */
+        JSValue ret = JS_Call(ctx, 0);
+        if (JS_IsException(ret)) {
+            dump_error(ctx);
+        }
+    }
+    else
+    {
+        printf("no %s function\n", func_name);
+    }
+}
+
+static bool find_function_by_name(JSContext *ctx, JSValue **func_ptr, JSGCRef *func_ref, const char *func_name)
+{   
+    *func_ptr = JS_PushGCRef(ctx, func_ref);
+    JSValue global_obj = JS_GetGlobalObject(ctx);
+    JSValue func_val = JS_GetPropertyStr(ctx, global_obj, func_name);
+    **func_ptr = func_val;
+    return JS_IsFunction(ctx, func_val);
+}
+
+static JSValue new_key_instance(JSContext *ctx, Key* key) {
+    int class_id = IS_ADVANCED_KEY(key) ? JS_CLASS_ADVANCED_KEY : JS_CLASS_KEY;
+
+    JSGCRef obj_ref;
+    JSValue *obj = JS_PushGCRef(ctx, &obj_ref);
+
+    *obj = JS_NewObjectClassUser(ctx, class_id);
+    if (JS_IsException(*obj)) {
+        JS_PopGCRef(ctx, &obj_ref);
+        return JS_EXCEPTION;
+    }
+
+    JS_SetOpaque(ctx, *obj, key);
+    JSValue ret = *obj;
+    JS_PopGCRef(ctx, &obj_ref);
+    
+    return ret;
+}
+
 void script_init(void)
 {
     JSValue val;
@@ -69,16 +103,21 @@ void script_init(void)
     //    printf("not valid bytecode\n");
     //    return;
     //}
-    char code[] ="var x = 1;function fun1(){console.log(x+=1);}setTimeout(fun1, 1000);setTimeout(fun1, 2000);setTimeout(fun1, 3000);setTimeout(fun1, 4000);console.log('waiting...');";
+    char code[] ="kb.watch(2,[0,3]);var times = 0;var x = 0;console.log('hello');\
+    function loop(){times+=1;if(times<10){console.log('times',times);}}\
+    function on_key_down(key){console.log('key down event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
+    function on_key_up(key){console.log('key up event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
+    function funp(){console.log('time',kb.get_time());}console.log('waiting...');";
     val = JS_Parse(js_ctx, (char *)code, sizeof(code), "", FALSE);
     if (JS_IsException(val)) {
         dump_error(js_ctx);
     }
     JSValue ret = JS_Run(js_ctx, val);
-    
-    if (JS_IsException(ret)) {
-        dump_error(js_ctx);
-    }
+    //script_run_function(js_ctx, "funp");
+    JSValue global_obj = JS_GetGlobalObject(js_ctx);
+    loop_func_set = find_function_by_name(js_ctx, &loop_func_ptr, &loop_func_ref, "loop");
+    on_key_down_func_set = find_function_by_name(js_ctx, &on_key_down_func_ptr, &on_key_down_func_ref, "on_key_down");
+    on_key_up_func_set = find_function_by_name(js_ctx, &on_key_up_func_ptr, &on_key_up_func_ref, "on_key_up");
     //JS_FreeContext(ctx);
 }
 
@@ -124,20 +163,96 @@ static void run_timers(JSContext *ctx)
         return;
 }
 
+void script_watch(uint16_t id)
+{
+    BIT_SET(g_script_watcher_mask[id / 32], id % 32);
+}
+
 void script_process(void)
 {
+    if (loop_func_set)
+    {
+        if (JS_StackCheck(js_ctx, 2))
+        {
+            goto fail;
+        }
+        JS_PushArg(js_ctx, *loop_func_ptr); /* func name */
+        JS_PushArg(js_ctx, JS_NULL); /* this */
+        JSValue ret = JS_Call(js_ctx, 0);
+        if (JS_IsException(ret)) {
+        fail:
+            dump_error(js_ctx);
+        }
+    }
     run_timers(js_ctx);
 }
 
 void script_event_handler(KeyboardEvent event)
 {
+    JSGCRef func_ref;
+    JSValue *pfunc;
+    const uint16_t id = ((Key*)event.key)->id;
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
+    case KEYBOARD_EVENT_KEY_UP:
+        if (BIT_GET(g_script_watcher_mask[id / 32], id % 32))
+        {
+            if (event.event == KEYBOARD_EVENT_KEY_UP)
+            {
+                if (on_key_up_func_set)
+                {
+                    JSGCRef obj_ref;
+                    pfunc = JS_PushGCRef(js_ctx, &func_ref);
+                    *pfunc = *on_key_up_func_ptr;
+                    if (JS_StackCheck(js_ctx, 3))
+                    {
+                        JS_PopGCRef(js_ctx, &func_ref);
+                        return;
+                    }
+                    JS_PushArg(js_ctx, new_key_instance(js_ctx, event.key));
+                    JS_PushArg(js_ctx, *pfunc); /* func name */
+                    JS_PushArg(js_ctx, JS_NULL); /* this */
+                    JSValue ret = JS_Call(js_ctx, 1);
+                    JS_PopGCRef(js_ctx, &func_ref);
+                    if (JS_IsException(ret)) {
+                        dump_error(js_ctx);
+                    }
+                }
+                else
+                {
+                    printf("no on_key_up function\n");
+                }
+            }
+            else
+            {
+                if (on_key_down_func_set)
+                {
+                    JSGCRef obj_ref;
+                    pfunc = JS_PushGCRef(js_ctx, &func_ref);
+                    *pfunc = *on_key_down_func_ptr;
+                    if (JS_StackCheck(js_ctx, 3))
+                    {
+                        JS_PopGCRef(js_ctx, &func_ref);
+                        return;
+                    }
+                    JS_PushArg(js_ctx, new_key_instance(js_ctx, event.key));
+                    JS_PushArg(js_ctx, *pfunc); /* func name */
+                    JS_PushArg(js_ctx, JS_NULL); /* this */
+                    JSValue ret = JS_Call(js_ctx, 1);
+                    JS_PopGCRef(js_ctx, &func_ref);
+                    if (JS_IsException(ret)) {
+                        dump_error(js_ctx);
+                    }
+                }
+                else
+                {
+                    printf("no on_key_down function\n");
+                }
+            }
+        }
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
-        break;
-    case KEYBOARD_EVENT_KEY_UP:
         break;
     case KEYBOARD_EVENT_KEY_FALSE:
         break;
@@ -145,3 +260,13 @@ void script_event_handler(KeyboardEvent event)
         break;
     }
 }
+
+void script_deinit(void)
+{
+    if (js_ctx) {
+        JS_FreeContext(js_ctx);
+        js_ctx = NULL;
+    }
+    memset(g_script_watcher_mask, 0, sizeof(g_script_watcher_mask));
+}
+

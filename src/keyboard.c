@@ -71,6 +71,9 @@ volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 void keyboard_event_handler(KeyboardEvent event)
 {
     Key* key = (Key*)event.key;
+#ifdef SCRIPT_ENABLE
+    script_event_handler(event);
+#endif
 #ifdef MACRO_ENABLE
     macro_record_handler(event);
 #endif
