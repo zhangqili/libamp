@@ -25,6 +25,7 @@
 
 #include "script.h"
 #include "layer.h"
+#include "event_buffer.h"
 #include "stdio.h"
 
 #include "cutils.h"
@@ -34,7 +35,31 @@
 #define JS_CLASS_ADVANCED_KEY (JS_CLASS_USER + 1)
 #define JS_CLASS_COUNT (JS_CLASS_USER + 2)
 
-static void js_key_constructor(JSContext *ctx, JSValue *this_val, int argc,
+typedef enum {
+    TIMER_TYPE_JS_TIMEOUT = 0,
+    TIMER_TYPE_JS_INTERVAL = 1,
+    TIMER_TYPE_JS_RELEASE_KEYCODE = 2,
+} TimerType;
+
+/* timers */
+typedef struct {
+    BOOL allocated;
+    JSGCRef func;
+    uint16_t type;
+    Keycode keycode;
+    int32_t timeout; /* in ms */
+} JSTimer;
+
+static JSTimer js_timer_list[SCRIPT_MAX_TIMERS];
+
+static int64_t get_time_ms(void)
+{
+    return KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+}
+
+static AdvancedKey virtual_key;
+
+static JSValue js_key_constructor(JSContext *ctx, JSValue *this_val, int argc,
                                         JSValue *argv)
 {
     JSValue obj;
@@ -98,24 +123,32 @@ static JSValue js_key_get_state(JSContext *ctx, JSValue *this_val, int argc,
 
 static JSValue js_key_emit(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 {
-    int event_id;
+    int event_id  = KEYBOARD_EVENT_KEY_DOWN;
     Key* key;
+    int keycode;
     int class_id = JS_GetClassID(ctx, *this_val);
     if (class_id != JS_CLASS_KEY && class_id != JS_CLASS_ADVANCED_KEY)
         return JS_ThrowTypeError(ctx, "expecting Key class");
     key = JS_GetOpaque(ctx, *this_val);
-    if (argc > 0)
+    keycode = layer_cache_get_keycode(key->id);
+    for (int i = 0; i < argc; i++)
     {
-        JS_ToInt32(ctx, &event_id, argv[0]);
-    }
-    else
-    {
-        event_id = KEYBOARD_EVENT_KEY_DOWN;
+        switch (i)
+        {
+        case 0:
+            JS_ToInt32(ctx, &event_id, argv[0]);
+            break;
+        case 1:
+            JS_ToInt32(ctx, &keycode, argv[1]);
+            break;
+        default:
+            break;
+        }
     }
     printf("event_id:%d\n", event_id);
     uint8_t report_state = key->report_state;
     keyboard_event_handler(
-        MK_EVENT(layer_cache_get_keycode(key->id),event_id,key));
+        MK_EVENT(keycode,event_id,key));
     keyboard_key_set_report_state(key, report_state);//protect key state
     return JS_UNDEFINED;
 }
@@ -301,7 +334,7 @@ static JSValue js_keyboard_get_tick(JSContext *ctx, JSValue *this_val, int argc,
 static void watch_recursive(JSContext *ctx, JSValue val)
 {
     if (JS_IsNumber(ctx, val)) {
-        int32_t id;
+        int id;
         if (JS_ToInt32(ctx, &id, val) == 0) {
             script_watch(id);
         }
@@ -312,7 +345,7 @@ static void watch_recursive(JSContext *ctx, JSValue val)
         *p_arr = val;
 
         JSValue len_val = JS_GetPropertyStr(ctx, *p_arr, "length");
-        int32_t len;
+        int len;
         
         if (JS_ToInt32(ctx, &len, len_val) == 0) {
             for (int i = 0; i < len; i++) {
@@ -331,6 +364,65 @@ static JSValue js_keyboard_watch(JSContext *ctx, JSValue *this_val, int argc, JS
     {
         watch_recursive(ctx, argv[i]);
     }
+    return JS_UNDEFINED;
+}
+
+static void js_keyboard_press(JSContext *ctx, Keycode keycode, bool multi_press)
+{
+    KeyboardEvent event = MK_VIRTUAL_EVENT(keycode,KEYBOARD_EVENT_KEY_DOWN,&virtual_key);
+    keyboard_event_handler(event);
+    if (multi_press || !event_forward_list_exists_keycode(&g_event_buffer_list, ctx, keycode))
+    {
+        event_forward_list_insert_after(&g_event_buffer_list, &g_event_buffer_list.data[g_event_buffer_list.head], (EventBuffer){event,ctx});
+    }
+}
+
+static void js_keyboard_release(JSContext *ctx, Keycode keycode)
+{
+    event_forward_list_remove_first_keycode(&g_event_buffer_list, ctx, keycode);
+    keyboard_event_handler(MK_VIRTUAL_EVENT(keycode,KEYBOARD_EVENT_KEY_UP,&virtual_key));
+}
+
+static JSValue js_keyboard_press_release(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv, int magic)
+{
+    int keycode;
+    if (JS_ToInt32(ctx, &keycode, argv[0]))
+    {
+        return JS_EXCEPTION;
+    }
+    if (!magic)
+    {
+        js_keyboard_press(ctx, keycode, false);
+    }
+    else
+    {
+        js_keyboard_release(ctx, keycode);
+    }
+    return JS_UNDEFINED;
+}
+
+static JSValue js_keyboard_tap(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    JSTimer *th;
+    int keycode;
+    int duration_ms = 100;
+    if (JS_ToInt32(ctx, &keycode, argv[0]))
+    {
+        return JS_EXCEPTION;
+    }
+    JS_ToInt32(ctx, &duration_ms, argv[1]);
+    js_keyboard_press(ctx, keycode, true);
+    for(int i = 0; i < SCRIPT_MAX_TIMERS; i++) {
+        th = &js_timer_list[i];
+        if (!th->allocated) {
+            th->timeout = get_time_ms() + duration_ms;
+            th->type = TIMER_TYPE_JS_RELEASE_KEYCODE;
+            th->keycode = keycode;
+            th->allocated = TRUE;
+            return JS_NewInt32(ctx, i);
+        }
+    }
+
     return JS_UNDEFINED;
 }
 
@@ -362,22 +454,6 @@ static JSValue js_print(JSContext *ctx, JSValue *this_val, int argc, JSValue *ar
     return JS_UNDEFINED;
 }
 
-/* timers */
-typedef struct {
-    BOOL allocated;
-    JSGCRef func;
-    int64_t timeout; /* in ms */
-} JSTimer;
-
-#define MAX_TIMERS 16
-
-static JSTimer js_timer_list[MAX_TIMERS];
-
-static int64_t get_time_ms(void)
-{
-    return KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
-}
-
 static JSValue js_setTimeout(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 {
     JSTimer *th;
@@ -388,12 +464,13 @@ static JSValue js_setTimeout(JSContext *ctx, JSValue *this_val, int argc, JSValu
         return JS_ThrowTypeError(ctx, "not a function");
     if (JS_ToInt32(ctx, &delay, argv[1]))
         return JS_EXCEPTION;
-    for(i = 0; i < MAX_TIMERS; i++) {
+    for(i = 0; i < SCRIPT_MAX_TIMERS; i++) {
         th = &js_timer_list[i];
         if (!th->allocated) {
             pfunc = JS_AddGCRef(ctx, &th->func);
             *pfunc = argv[0];
             th->timeout = get_time_ms() + delay;
+            th->type = 0;
             th->allocated = TRUE;
             return JS_NewInt32(ctx, i);
         }
@@ -408,7 +485,7 @@ static JSValue js_clearTimeout(JSContext *ctx, JSValue *this_val, int argc, JSVa
 
     if (JS_ToInt32(ctx, &timer_id, argv[0]))
         return JS_EXCEPTION;
-    if (timer_id >= 0 && timer_id < MAX_TIMERS) {
+    if (timer_id >= 0 && timer_id < SCRIPT_MAX_TIMERS) {
         th = &js_timer_list[timer_id];
         if (th->allocated) {
             JS_DeleteGCRef(ctx, &th->func);

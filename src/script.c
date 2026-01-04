@@ -19,8 +19,7 @@ extern const JSSTDLibraryDef js_stdlib;
 
 uint32_t g_script_watcher_mask[KEY_BITMAP_SIZE];
 
-#define JS_MEMORY_SIZE  (4 * 1024)
-uint8_t js_memory_pool[JS_MEMORY_SIZE];
+static uint8_t js_memory_pool[SCRIPT_MEMORY_SIZE];
 static JSGCRef loop_func_ref; 
 static JSValue *loop_func_ptr = NULL;
 static bool loop_func_set = false;
@@ -103,18 +102,22 @@ void script_init(void)
     //    printf("not valid bytecode\n");
     //    return;
     //}
-    char code[] ="kb.watch(2,[0,3]);var times = 0;var x = 0;console.log('hello');\
+    char code[] ="kb.watch(2,3);var times = 0;var x = 0;console.log('hello');var keycode = 0x000B;\
+    function release_key(){kb.release(keycode)};\
     function loop(){times+=1;if(times<10){console.log('times',times);}}\
-    function on_key_down(key){console.log('key down event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
+    function on_key_down(key){if(key.id == 2){kb.tap(keycode, 1000);} console.log('key down event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
     function on_key_up(key){console.log('key up event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
-    function funp(){console.log('time',kb.get_time());}console.log('waiting...');";
+    function funp(){console.log('time',kb.get_time());}\
+    console.log('waiting...');";
     val = JS_Parse(js_ctx, (char *)code, sizeof(code), "", FALSE);
     if (JS_IsException(val)) {
         dump_error(js_ctx);
     }
     JSValue ret = JS_Run(js_ctx, val);
-    //script_run_function(js_ctx, "funp");
-    JSValue global_obj = JS_GetGlobalObject(js_ctx);
+    if (JS_IsException(ret))
+    {
+        dump_error(js_ctx);
+    }
     loop_func_set = find_function_by_name(js_ctx, &loop_func_ptr, &loop_func_ref, "loop");
     on_key_down_func_set = find_function_by_name(js_ctx, &on_key_down_func_ptr, &on_key_down_func_ref, "on_key_down");
     on_key_up_func_set = find_function_by_name(js_ctx, &on_key_up_func_ptr, &on_key_up_func_ref, "on_key_up");
@@ -130,29 +133,43 @@ static void run_timers(JSContext *ctx)
     min_delay = 1000;
     cur_time = get_time_ms();
     has_timer = FALSE;
-    for(i = 0; i < MAX_TIMERS; i++) {
+    for(i = 0; i < SCRIPT_MAX_TIMERS; i++) {
         th = &js_timer_list[i];
         if (th->allocated) {
             has_timer = TRUE;
             delay = th->timeout - cur_time;
             if (delay <= 0) {
                 JSValue ret;
-                /* the timer expired */
-                if (JS_StackCheck(ctx, 2))
-                    goto fail;
-                JS_PushArg(ctx, th->func.val); /* func name */
-                JS_PushArg(ctx, JS_NULL); /* this */
-                
-                JS_DeleteGCRef(ctx, &th->func);
-                th->allocated = FALSE;
-                
-                ret = JS_Call(ctx, 0);
-                if (JS_IsException(ret)) {
-                fail:
-                    dump_error(js_ctx);
-                    return;
+                switch (th->type)
+                {
+                case TIMER_TYPE_JS_TIMEOUT:
+                    /* the timer expired */
+                    if (JS_StackCheck(ctx, 2))
+                        goto fail;
+                    JS_PushArg(ctx, th->func.val); /* func name */
+                    JS_PushArg(ctx, JS_NULL); /* this */
+                    
+                    JS_DeleteGCRef(ctx, &th->func);
+                    th->allocated = FALSE;
+                    
+                    ret = JS_Call(ctx, 0);
+                    if (JS_IsException(ret)) {
+                    fail:
+                        dump_error(js_ctx);
+                        return;
+                    }
+                    min_delay = 0;
+                    break;
+                case TIMER_TYPE_JS_RELEASE_KEYCODE:
+                    /* the timer expired */
+                    js_keyboard_release(ctx, th->keycode);
+                    th->allocated = FALSE;
+                    min_delay = 0;
+                    
+                    break;
+                default:
+                    break;
                 }
-                min_delay = 0;
                 break;
             } else if (delay < min_delay) {
                 min_delay = delay;
@@ -192,63 +209,66 @@ void script_event_handler(KeyboardEvent event)
     JSGCRef func_ref;
     JSValue *pfunc;
     const uint16_t id = ((Key*)event.key)->id;
+    if (!(BIT_GET(g_script_watcher_mask[id / 32], id % 32) || KEYCODE_GET_MAIN(event.keycode) == MACRO_COLLECTION))
+    {
+        return;
+    }
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
+        //if (!event.is_virtual)
+        //{
+        //    keyboard_key_event_down_callback((Key*)event.key);
+        //}
     case KEYBOARD_EVENT_KEY_UP:
-        if (BIT_GET(g_script_watcher_mask[id / 32], id % 32))
+        if (event.event == KEYBOARD_EVENT_KEY_UP)
         {
-            if (event.event == KEYBOARD_EVENT_KEY_UP)
+            if (on_key_up_func_set)
             {
-                if (on_key_up_func_set)
+                pfunc = JS_PushGCRef(js_ctx, &func_ref);
+                *pfunc = *on_key_up_func_ptr;
+                if (JS_StackCheck(js_ctx, 3))
                 {
-                    JSGCRef obj_ref;
-                    pfunc = JS_PushGCRef(js_ctx, &func_ref);
-                    *pfunc = *on_key_up_func_ptr;
-                    if (JS_StackCheck(js_ctx, 3))
-                    {
-                        JS_PopGCRef(js_ctx, &func_ref);
-                        return;
-                    }
-                    JS_PushArg(js_ctx, new_key_instance(js_ctx, event.key));
-                    JS_PushArg(js_ctx, *pfunc); /* func name */
-                    JS_PushArg(js_ctx, JS_NULL); /* this */
-                    JSValue ret = JS_Call(js_ctx, 1);
                     JS_PopGCRef(js_ctx, &func_ref);
-                    if (JS_IsException(ret)) {
-                        dump_error(js_ctx);
-                    }
+                    return;
                 }
-                else
-                {
-                    printf("no on_key_up function\n");
+                JS_PushArg(js_ctx, new_key_instance(js_ctx, event.key));
+                JS_PushArg(js_ctx, *pfunc); /* func name */
+                JS_PushArg(js_ctx, JS_NULL); /* this */
+                JSValue ret = JS_Call(js_ctx, 1);
+                JS_PopGCRef(js_ctx, &func_ref);
+                if (JS_IsException(ret)) {
+                    dump_error(js_ctx);
                 }
             }
             else
             {
-                if (on_key_down_func_set)
+                printf("no on_key_up function\n");
+            }
+        }
+        else
+        {
+            if (on_key_down_func_set)
+            {
+                pfunc = JS_PushGCRef(js_ctx, &func_ref);
+                *pfunc = *on_key_down_func_ptr;
+                if (JS_StackCheck(js_ctx, 3))
                 {
-                    JSGCRef obj_ref;
-                    pfunc = JS_PushGCRef(js_ctx, &func_ref);
-                    *pfunc = *on_key_down_func_ptr;
-                    if (JS_StackCheck(js_ctx, 3))
-                    {
-                        JS_PopGCRef(js_ctx, &func_ref);
-                        return;
-                    }
-                    JS_PushArg(js_ctx, new_key_instance(js_ctx, event.key));
-                    JS_PushArg(js_ctx, *pfunc); /* func name */
-                    JS_PushArg(js_ctx, JS_NULL); /* this */
-                    JSValue ret = JS_Call(js_ctx, 1);
                     JS_PopGCRef(js_ctx, &func_ref);
-                    if (JS_IsException(ret)) {
-                        dump_error(js_ctx);
-                    }
+                    return;
                 }
-                else
-                {
-                    printf("no on_key_down function\n");
+                JS_PushArg(js_ctx, new_key_instance(js_ctx, event.key));
+                JS_PushArg(js_ctx, *pfunc); /* func name */
+                JS_PushArg(js_ctx, JS_NULL); /* this */
+                JSValue ret = JS_Call(js_ctx, 1);
+                JS_PopGCRef(js_ctx, &func_ref);
+                if (JS_IsException(ret)) {
+                    dump_error(js_ctx);
                 }
+            }
+            else
+            {
+                printf("no on_key_down function\n");
             }
         }
         break;

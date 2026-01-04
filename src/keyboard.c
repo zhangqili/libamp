@@ -48,6 +48,7 @@
 #ifdef SCRIPT_ENABLE
 #include "script.h"
 #endif
+#include "event_buffer.h"
 
 __WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
 __WEAK Key g_keyboard_keys[KEY_NUM];
@@ -68,29 +69,41 @@ static Keyboard_6KROBuffer keyboard_6kro_buffer;
 
 volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 
+
+void keyboard_keycode_event_handler(KeyboardEvent event)
+{
+    switch (event.event)
+    {
+    case KEYBOARD_EVENT_KEY_DOWN:
+        if (!event.is_virtual)
+        {    
+            keyboard_key_event_down_callback((Key*)event.key);
+        }
+        g_keyboard_report_flags.keyboard = true;
+        break;
+    case KEYBOARD_EVENT_KEY_TRUE:
+        break;
+    case KEYBOARD_EVENT_KEY_UP:
+        g_keyboard_report_flags.keyboard = true;
+        break;
+    case KEYBOARD_EVENT_KEY_FALSE:
+        break;
+    default:
+        break;
+    }
+}
+
 void keyboard_event_handler(KeyboardEvent event)
 {
-    Key* key = (Key*)event.key;
 #ifdef SCRIPT_ENABLE
     script_event_handler(event);
 #endif
 #ifdef MACRO_ENABLE
     macro_record_handler(event);
 #endif
-    switch (event.event)
+    if (!event.is_virtual)
     {
-    case KEYBOARD_EVENT_KEY_DOWN:
-        layer_lock(key->id);
-        break;
-    case KEYBOARD_EVENT_KEY_TRUE:
-        break;
-    case KEYBOARD_EVENT_KEY_UP:
-        layer_unlock(key->id);
-        break;
-    case KEYBOARD_EVENT_KEY_FALSE:
-        break;
-    default:
-        break;
+        layer_lock_handler(event);
     }
     switch (KEYCODE_GET_MAIN(event.keycode))
     {
@@ -127,7 +140,7 @@ void keyboard_event_handler(KeyboardEvent event)
         break;
 #endif
     case LAYER_CONTROL:
-        layer_control(event);
+        layer_event_handler(event);
         break;
     case KEYBOARD_OPERATION:
         keyboard_operation_event_handler(event);
@@ -136,22 +149,7 @@ void keyboard_event_handler(KeyboardEvent event)
         keyboard_user_event_handler(event);
         break;
     default:
-        switch (event.event)
-        {
-        case KEYBOARD_EVENT_KEY_DOWN:
-            keyboard_key_event_down_callback(key);
-            g_keyboard_report_flags.keyboard = true;
-            break;
-        case KEYBOARD_EVENT_KEY_TRUE:
-            break;
-        case KEYBOARD_EVENT_KEY_UP:
-            g_keyboard_report_flags.keyboard = true;
-            break;
-        case KEYBOARD_EVENT_KEY_FALSE:
-            break;
-        default:
-            break;
-        }
+        keyboard_keycode_event_handler(event);
         break;
     }
 }
@@ -210,7 +208,10 @@ void keyboard_operation_event_handler(KeyboardEvent event)
     case KEYBOARD_EVENT_KEY_UP:
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
-        keyboard_key_event_down_callback((Key*)event.key);
+        if (!event.is_virtual)
+        {
+            keyboard_key_event_down_callback((Key*)event.key);
+        }
         uint8_t modifier = KEYCODE_GET_SUB(event.keycode);
         if ((modifier & 0x3F) < KEYBOARD_CONFIG_BASE)
         {
@@ -423,6 +424,9 @@ void keyboard_init(void)
 #ifdef MIDI_ENABLE
     setup_midi();
 #endif
+#if defined(MACRO_ENABLE) || defined(SCRIPT_ENABLE)
+    event_buffer_init();
+#endif
 #ifdef MACRO_ENABLE
     macro_init();
 #endif
@@ -578,8 +582,8 @@ void keyboard_fill_buffer(void)
 #ifdef DYNAMICKEY_ENABLE
     dynamic_key_add_buffer();
 #endif
-#ifdef MACRO_ENABLE
-    macro_add_buffer();
+#if defined(MACRO_ENABLE) || defined(SCRIPT_ENABLE)
+    event_buffer_add_buffer();
 #endif
 }
 

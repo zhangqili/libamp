@@ -67,27 +67,6 @@ typedef struct __Macro
 
 extern Macro g_macros[MACRO_NUMS];
 
-typedef struct __MacroArgument
-{
-    KeyboardEvent*event;
-    uint8_t owner;
-} MacroArgument;
-
-typedef struct __MacroArgumentListNode
-{
-    MacroArgument data;
-    int16_t next;
-} MacroArgumentListNode;
-
-typedef struct __MacroArgumentList
-{
-    MacroArgumentListNode *data;
-    int16_t head;
-    int16_t tail;
-    int16_t len;
-    int16_t free_node;
-} MacroArgumentList;
-
 void macro_init(void);
 
 void macro_event_handler(KeyboardEvent event);
@@ -99,14 +78,6 @@ void macro_start_play_once(Macro*macro);
 void macro_start_play_circularly(Macro*macro);
 void macro_stop_play(Macro*macro);
 void macro_process(void);
-void macro_add_buffer(void);
-
-void macro_forward_list_init(MacroArgumentList* list, MacroArgumentListNode* data, uint16_t len);
-void macro_forward_list_erase_after(MacroArgumentList* list, MacroArgumentListNode* data);
-void macro_forward_list_insert_after(MacroArgumentList* list, MacroArgumentListNode* data, MacroArgument t);
-void macro_forward_list_push_front(MacroArgumentList* list, MacroArgument t);
-void macro_forward_list_remove_first(MacroArgumentList* list, MacroArgument t);
-void macro_forward_list_remove_specific_owner(MacroArgumentList* list, uint8_t owner);
 
 #ifdef __cplusplus
 }

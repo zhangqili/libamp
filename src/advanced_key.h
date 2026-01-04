@@ -43,6 +43,7 @@ typedef int16_t AnalogRawValue;
 #define A_NORM ANALOG_VALUE_NORMALIZE
 #define A_ANTI_NORM ANALOG_VALUE_ANTI_NORMALIZE
 
+#define IS_KEY(key) (((Key*)(key))->id < (TOTAL_KEY_NUM))
 #define IS_ADVANCED_KEY(key) (((Key*)(key))->id < ADVANCED_KEY_NUM)
 
 typedef enum

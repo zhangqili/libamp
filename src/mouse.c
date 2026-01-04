@@ -14,13 +14,19 @@ void mouse_event_handler(KeyboardEvent event)
     if (MOUSE_KEYCODE_IS_MOVE(event.keycode))
     {
         g_keyboard_report_flags.mouse = true;
-        keyboard_key_set_report_state((Key*)event.key, true);
+        if (event.is_virtual)
+        {
+            keyboard_key_set_report_state((Key*)event.key, true);
+        }
         return;
     }
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
-        keyboard_key_event_down_callback((Key*)event.key);
+        if (event.is_virtual)
+        {
+            keyboard_key_event_down_callback((Key*)event.key);
+        }
         g_keyboard_report_flags.mouse = true;
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
@@ -34,7 +40,6 @@ void mouse_event_handler(KeyboardEvent event)
         break;
     }
 }
-
 
 void mouse_buffer_clear(void)
 {

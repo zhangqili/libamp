@@ -55,6 +55,9 @@ static const JSPropDef js_keyboard[] = {
     JS_CFUNC_MAGIC_DEF("get_tick", 0, js_keyboard_get_tick,0),
     JS_CFUNC_MAGIC_DEF("get_time", 0, js_keyboard_get_tick,1),
     JS_CFUNC_DEF("watch", 1, js_keyboard_watch),
+    JS_CFUNC_MAGIC_DEF("press", 1, js_keyboard_press_release,0),
+    JS_CFUNC_MAGIC_DEF("release", 1, js_keyboard_press_release,1),
+    JS_CFUNC_DEF("tap", 1, js_keyboard_tap),
     JS_PROP_END,
 };
 static const JSClassDef js_keyboard_obj =
