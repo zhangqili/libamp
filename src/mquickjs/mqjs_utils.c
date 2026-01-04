@@ -425,6 +425,72 @@ static JSValue js_keyboard_tap(JSContext *ctx, JSValue *this_val, int argc, JSVa
 
     return JS_UNDEFINED;
 }
+#ifdef RGB_ENABLE
+#include "rgb.h"
+#endif
+
+static JSValue js_rgb_set_led(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv, int magic)
+{
+    int index = 0, r = 0, g = 0, b = 0;
+    for (int i = 0; i < argc; i++)
+    {
+        switch (i)
+        {
+        case 0:
+            JS_ToInt32(ctx, &index, argv[0]);
+            break;
+        case 1:
+            JS_ToInt32(ctx, &r, argv[1]);
+            break;
+        case 2:
+            JS_ToInt32(ctx, &g, argv[2]);
+            break;
+        case 3:
+            JS_ToInt32(ctx, &b, argv[3]);
+            break;
+        default:
+            break;
+        }
+    }
+    RGBConfig* config = &g_rgb_configs[g_rgb_inverse_mapping[index]];
+    if (magic)
+    {
+        config->hsv.h = r;
+        config->hsv.s = g;
+        config->hsv.v = b;
+        hsv_to_rgb(&config->rgb, &config->hsv);
+    }
+    else
+    {
+        config->rgb.r = r;
+        config->rgb.g = g;
+        config->rgb.b = b;
+        rgb_to_hsv(&config->hsv, &config->rgb);
+    }
+    return JS_UNDEFINED;
+}
+
+
+static JSValue js_rgb_set_led_mode(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    int index = 0, mode = 0;
+    for (int i = 0; i < argc; i++)
+    {
+        switch (i)
+        {
+        case 0:
+            JS_ToInt32(ctx, &index, argv[0]);
+            break;
+        case 1:
+            JS_ToInt32(ctx, &mode, argv[1]);
+            break;
+        default:
+            break;
+        }
+    }
+    g_rgb_configs[g_rgb_inverse_mapping[index]].mode = mode;
+    return JS_UNDEFINED;
+}
 
 //static JSValue js_keyboard_suspend(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 //{
