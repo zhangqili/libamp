@@ -40,7 +40,7 @@ void event_forward_list_init(EventBufferList* list, EventBufferListNode* data, u
     }
     list->data[len - 1].next = -1;
     list->free_node = 0;
-    event_forward_list_push_front(list, (EventBuffer){NULL,NULL});
+    event_forward_list_push_front(list, (EventBuffer){MK_EVENT(0,0,NULL),NULL});
 }
 
 void event_forward_list_erase_after(EventBufferList* list, EventBufferListNode* data)

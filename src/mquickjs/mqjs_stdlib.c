@@ -384,7 +384,7 @@ static const JSPropDef js_global_object[] = {
     JS_CFUNC_DEF("clearTimeout", 1, js_clearTimeout),
 #endif
 #ifdef LIBAMP_CONFIG_CLASS
-    JS_PROP_CLASS_DEF("kb", &js_keyboard_obj),
+    JS_PROP_CLASS_DEF("keyboard", &js_keyboard_obj),
     JS_PROP_CLASS_DEF("Key", &js_key_class),
     JS_PROP_CLASS_DEF("AdvancedKey", &js_advanced_key_class),
     JS_PROP_CLASS_DEF("led", &js_rgb_obj),

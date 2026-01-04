@@ -425,6 +425,35 @@ static JSValue js_keyboard_tap(JSContext *ctx, JSValue *this_val, int argc, JSVa
 
     return JS_UNDEFINED;
 }
+
+static JSValue js_keyboard_command(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv, int magic)
+{
+    int keycode = magic;
+    int index;
+    if (magic == KEYBOARD_CONFIG0)
+    {
+        if (JS_ToInt32(ctx, &index, argv[0]))
+        {
+            return JS_UNDEFINED;
+        }
+        if (index >= KEYBOARD_CONFIG_NUM)
+        {
+            return JS_EXCEPTION;
+        }
+        keyboard_operation_event_handler(MK_VIRTUAL_EVENT(((KEYBOARD_CONFIG0 + index) << 8) | KEYBOARD_OPERATION, KEYBOARD_EVENT_KEY_DOWN, NULL));
+        return JS_UNDEFINED;
+    }
+    if (magic == KEYBOARD_CONFIG_BASE)
+    {
+        if (JS_ToInt32(ctx, &keycode, argv[0]))
+        {
+            return JS_UNDEFINED;
+        }
+    }
+    keyboard_operation_event_handler(MK_VIRTUAL_EVENT((keycode << 8) | KEYBOARD_OPERATION, KEYBOARD_EVENT_KEY_DOWN, NULL));
+    return JS_UNDEFINED;
+}
+
 #ifdef RGB_ENABLE
 #include "rgb.h"
 #endif

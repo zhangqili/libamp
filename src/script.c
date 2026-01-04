@@ -102,12 +102,12 @@ void script_init(void)
     //    printf("not valid bytecode\n");
     //    return;
     //}
-    char code[] ="kb.watch(2,3);var times = 0;var x = 0;console.log('hello');var keycode = 0x000B;\
-    function release_key(){kb.release(keycode)};\
+    char code[] ="keyboard.watch(2,3);var times = 0;var x = 0;console.log('hello');var keycode = 0x000B;\
+    function release_key(){keyboard.release(keycode)};\
     function loop(){times+=1;if(times<10){console.log('times',times);}}\
-    function on_key_down(key){if(key.id == 2){kb.tap(keycode, 1000);} console.log('key down event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
+    function on_key_down(key){if(key.id == 2){keyboard.tap(keycode, 1000);} console.log('key down event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
     function on_key_up(key){console.log('key up event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
-    function funp(){console.log('time',kb.get_time());}\
+    function funp(){console.log('time',keyboard.get_time());}\
     console.log('waiting...');";
     val = JS_Parse(js_ctx, (char *)code, sizeof(code), "", FALSE);
     if (JS_IsException(val)) {

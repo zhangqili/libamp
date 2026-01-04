@@ -1,9 +1,17 @@
 cmake_minimum_required(VERSION 3.14)
 # Set the project name
 project (libamp)
+include(CheckTypeSize)
+check_type_size("size_t" SIZEOF_SIZE_T)
+if(${SIZEOF_SIZE_T} EQUAL 4)
+    set(M32_FLAG -m32)
+endif()
 
 if(NOT DEFINED LIBAMP_INCLUDE_DIR AND NOT DEFINED LIBAMP_BUILD_TESTS)
     message(FATAL_ERROR "Error: LIBAMP_INCLUDE_DIR is not defined!\n")
+endif()
+if(DEFINED LIBAMP_BUILD_TESTS)
+    set(LIBAMP_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/test/test_common")
 endif()
 
 set(MQJS_GEN_SRC_1 "${PROJECT_SOURCE_DIR}/src/mquickjs/mqjs_libamp_stdlib.c")
@@ -24,8 +32,8 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT ${MQJS_GEN_HEADER_ATOM} ${MQJS_GEN_HEADER_LIB}
-    COMMAND sh -c "${MQJS_GEN_TOOL_EXE} -a -m32 > ${MQJS_GEN_HEADER_ATOM}"
-    COMMAND sh -c "${MQJS_GEN_TOOL_EXE} -m32 > ${MQJS_GEN_HEADER_LIB}"
+    COMMAND sh -c "${MQJS_GEN_TOOL_EXE} -a ${M32_FLAG} > ${MQJS_GEN_HEADER_ATOM}"
+    COMMAND sh -c "${MQJS_GEN_TOOL_EXE} ${M32_FLAG} > ${MQJS_GEN_HEADER_LIB}"
     DEPENDS ${MQJS_GEN_TOOL_EXE}
     COMMENT "Host: Generating QuickJS headers..."
     VERBATIM

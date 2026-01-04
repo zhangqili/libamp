@@ -100,7 +100,7 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         }
         break;
     case PACKET_CODE_ACTION:
-        keyboard_operation_event_handler(MK_EVENT(((((PacketBase*)packet)->buf[0]) << 8) | KEYBOARD_OPERATION, KEYBOARD_EVENT_KEY_DOWN, NULL));
+        keyboard_operation_event_handler(MK_VIRTUAL_EVENT(((((PacketBase*)packet)->buf[0]) << 8) | KEYBOARD_OPERATION, KEYBOARD_EVENT_KEY_DOWN, NULL));
         break;
     default:
         packet_process_user(buf, len);

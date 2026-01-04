@@ -161,5 +161,10 @@
 #define MIDI_ENABLE
 //#define LIGHTING_ENABLE
 
+/**********/
+/* Script */
+/**********/
+#define SCRIPT_ENABLE
+//#define MQJS_MINIMAL
 
 #endif /* KEYBOARD_CONF_H_ */
