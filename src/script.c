@@ -103,11 +103,11 @@ void script_init(void)
     //    return;
     //}
     char code[] ="keyboard.watch(2,3);var times = 0;var x = 0;console.log('hello');var keycode = 0x000B;\
-    function release_key(){keyboard.release(keycode)};\
+    function releaseKey(){keyboard.release(keycode)};\
     function loop(){times+=1;if(times<10){console.log('times',times);}}\
-    function on_key_down(key){if(key.id == 2){keyboard.tap(keycode, 1000);} console.log('key down event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
-    function on_key_up(key){console.log('key up event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
-    function funp(){console.log('time',keyboard.get_time());}\
+    function onKeyDown(key){if(key.id == 2){keyboard.tap(keycode, 1000);} console.log('key down event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
+    function onKeyUp(key){console.log('key up event',key.id);setTimeout(funp, 10);console.log('value',key.value);}\
+    function funp(){console.log('time',keyboard.getTime());}\
     console.log('waiting...');";
     val = JS_Parse(js_ctx, (char *)code, sizeof(code), "", FALSE);
     if (JS_IsException(val)) {
@@ -119,8 +119,8 @@ void script_init(void)
         dump_error(js_ctx);
     }
     loop_func_set = find_function_by_name(js_ctx, &loop_func_ptr, &loop_func_ref, "loop");
-    on_key_down_func_set = find_function_by_name(js_ctx, &on_key_down_func_ptr, &on_key_down_func_ref, "on_key_down");
-    on_key_up_func_set = find_function_by_name(js_ctx, &on_key_up_func_ptr, &on_key_up_func_ref, "on_key_up");
+    on_key_down_func_set = find_function_by_name(js_ctx, &on_key_down_func_ptr, &on_key_down_func_ref, "onKeyDown");
+    on_key_up_func_set = find_function_by_name(js_ctx, &on_key_up_func_ptr, &on_key_up_func_ref, "onKeyUp");
     //JS_FreeContext(ctx);
 }
 
