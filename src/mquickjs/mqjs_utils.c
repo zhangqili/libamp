@@ -426,6 +426,11 @@ static JSValue js_keyboard_tap(JSContext *ctx, JSValue *this_val, int argc, JSVa
     return JS_UNDEFINED;
 }
 
+static JSValue js_keyboard_get_layer_index(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv, int magic)
+{
+    return JS_NewInt32(ctx, g_current_layer);
+}
+
 static JSValue js_keyboard_command(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv, int magic)
 {
     int keycode = magic;
