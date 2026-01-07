@@ -84,7 +84,7 @@ target_include_directories( ${PROJECT_NAME} PUBLIC
     ${MQJS_GEN_DIR}
 )
 
-target_include_directories( ${PROJECT_NAME} PRIVATE
+target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src/mquickjs
 )
 

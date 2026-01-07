@@ -426,7 +426,7 @@ static JSValue js_keyboard_tap(JSContext *ctx, JSValue *this_val, int argc, JSVa
     return JS_UNDEFINED;
 }
 
-static JSValue js_keyboard_get_layer_index(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv, int magic)
+static JSValue js_keyboard_get_layer_index(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 {
     return JS_NewInt32(ctx, g_current_layer);
 }
