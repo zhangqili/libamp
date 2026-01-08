@@ -2,8 +2,11 @@ cmake_minimum_required(VERSION 3.14)
 # Set the project name
 project (libamp)
 include(CheckTypeSize)
-check_type_size("size_t" SIZEOF_SIZE_T)
-if(${SIZEOF_SIZE_T} EQUAL 4)
+check_type_size("void*" SIZEOF_VOID_P)
+if(SIZEOF_VOID_P EQUAL 4)
+    set(M32_FLAG -m32)
+endif()
+if("${SIZEOF_VOID_P}" STREQUAL "")
     set(M32_FLAG -m32)
 endif()
 
