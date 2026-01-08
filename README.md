@@ -9,13 +9,12 @@ git submodule update --init --recursive
 
 Make sure you have provided the keyboard_conf.h
 ```cmake
+# Define user config header directory
+# This folder contains keyboard_conf.h
+set(LIBAMP_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/libamp_user)
+# Then add subdirectory
 add_subdirectory(libamp)
-# Add user defined header
-target_include_directories(libamp PUBLIC
-    # This folder contains keyboard_conf.h
-    ./libamp_user/
-)
-# Add linked libraries
+# Don't forget to link library
 target_link_libraries(${CMAKE_PROJECT_NAME}
     libamp
 )
