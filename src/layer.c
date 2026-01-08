@@ -12,13 +12,16 @@ static uint16_t layer_state;
 __WEAK Keycode g_keymap_cache[TOTAL_KEY_NUM];
 bool g_keymap_lock[TOTAL_KEY_NUM];
 
-void layer_control(KeyboardEvent event)
+void layer_event_handler(KeyboardEvent event)
 {
     const uint8_t layer = ((event.keycode >> 8) & 0x0F);
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
-        keyboard_key_event_down_callback((Key*)event.key);
+        if (!event.is_virtual)
+        {
+            keyboard_key_event_down_callback((Key*)event.key);
+        }
         switch ((event.keycode >> 12) & 0x0F)
         {
         case LAYER_MOMENTARY:

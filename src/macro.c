@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "macro.h"
+#include "event_buffer.h"
 
 Macro g_macros[MACRO_NUMS];
 static MacroAction actions[MACRO_NUMS][MACRO_MAX_ACTIONS];
-MacroArgumentList macro_argument_list;
-static MacroArgumentListNode macro_argument_list_buffer[MACRO_BUFFER_LENGTH];
 
 void macro_init(void)
 {
@@ -16,7 +15,6 @@ void macro_init(void)
     {
         g_macros[i].actions = actions[i];
     }
-    macro_forward_list_init(&macro_argument_list, macro_argument_list_buffer, MACRO_BUFFER_LENGTH);
 }
 
 void macro_event_handler(KeyboardEvent event)
@@ -56,7 +54,7 @@ void macro_event_handler(KeyboardEvent event)
             break;
         case MACRO_PLAYING_STOP:
             macro_stop_play(&g_macros[index]);
-            macro_forward_list_remove_specific_owner(&macro_argument_list, index);
+            event_forward_list_remove_specific_owner(&g_event_buffer_list, &g_macros[index]);
             break;
         case MACRO_PLAYING_PAUSE:
             break;
@@ -158,9 +156,9 @@ void macro_process(void)
         case MACRO_STATE_PLAYING_CIRCULARLY:
             while (macro->actions[macro->index].delay + macro->begin_tick <= g_keyboard_tick)
             {
-                KeyboardEvent*event = &(macro->actions[macro->index].event);
-                uint8_t report_state = ((Key*)event->key)->report_state;
-                if (!event->keycode)
+                KeyboardEvent event = macro->actions[macro->index].event;
+                uint8_t report_state = ((Key*)event.key)->report_state;
+                if (!event.keycode)
                 {
                     if (macro->state == MACRO_STATE_PLAYING_ONCE)
                     {
@@ -171,18 +169,21 @@ void macro_process(void)
                         macro_start_play_circularly(macro);
                         macro->begin_tick = g_keyboard_tick + macro->actions[0].delay;
                     }
-                    macro_forward_list_remove_specific_owner(&macro_argument_list, i);
+                    event_forward_list_remove_specific_owner(&g_event_buffer_list, macro);
                     break;
                 }
                 keyboard_event_handler(macro->actions[macro->index].event);
-                keyboard_key_set_report_state((Key*)event->key, report_state);//protect key state
+                if (!event.is_virtual)
+                {
+                    keyboard_key_set_report_state((Key*)event.key, report_state);//protect key state
+                }
                 if (macro->actions[macro->index].event.event == KEYBOARD_EVENT_KEY_DOWN)
                 {
-                    macro_forward_list_insert_after(&macro_argument_list, &macro_argument_list.data[macro_argument_list.head], (MacroArgument){event,i});
+                    event_forward_list_insert_after(&g_event_buffer_list, &g_event_buffer_list.data[g_event_buffer_list.head], (EventBuffer){event,macro});
                 }
                 else
                 {
-                    macro_forward_list_remove_first(&macro_argument_list, (MacroArgument){event,i});
+                    event_forward_list_remove_first(&g_event_buffer_list, (EventBuffer){event,macro});
                 }
                 macro->index++;
             }
@@ -191,110 +192,5 @@ void macro_process(void)
         default:
             break;
         } 
-    }
-}
-
-void macro_add_buffer(void)
-{
-    MacroArgumentList * list = &macro_argument_list;
-    MacroArgumentListNode * last_node = &list->data[list->head];
-    UNUSED(last_node);
-    for (int16_t iterator = list->data[list->head].next; iterator >= 0;)
-    {
-        MacroArgumentListNode* node = &(list->data[iterator]);
-        MacroArgument *item = &(node->data);
-        keyboard_add_buffer(*item->event);
-        last_node = node;
-        iterator = list->data[iterator].next;
-    }
-}
-
-void macro_forward_list_init(MacroArgumentList* list, MacroArgumentListNode* data, uint16_t len)
-{
-    list->data = data;
-    list->head = -1;
-    list->tail = 0;
-    list->len = len;
-    for (int i = 0; i < len; i++)
-    {
-        list->data[i].next = i + 1;
-    }
-    list->data[len - 1].next = -1;
-    list->free_node = 0;
-    macro_forward_list_push_front(list, (MacroArgument){NULL,MACRO_NUMS});
-}
-
-void macro_forward_list_erase_after(MacroArgumentList* list, MacroArgumentListNode* data)
-{
-    int16_t target = 0;
-    target = data->next;
-    data->next = list->data[target].next;
-    list->data[target].next = list->free_node;
-    list->free_node = target;
-}
-
-void macro_forward_list_insert_after(MacroArgumentList* list, MacroArgumentListNode* data, MacroArgument t)
-{
-    if (list->free_node == -1)
-    {
-        return;
-    }
-    int16_t new_node = list->free_node;
-    list->free_node = list->data[list->free_node].next;
-
-    list->data[new_node].data = t;
-    list->data[new_node].next = data->next;
-
-    data->next = new_node;
-}
-
-void macro_forward_list_push_front(MacroArgumentList* list, MacroArgument t)
-{
-    if (list->free_node == -1)
-    {
-        return;
-    }
-    int16_t new_node = list->free_node;
-    list->free_node = list->data[list->free_node].next;
-
-    list->data[new_node].data = t;
-    list->data[new_node].next = list->head;
-
-    list->head = new_node;
-}
-
-void macro_forward_list_remove_first(MacroArgumentList* list, MacroArgument t)
-{
-    MacroArgumentListNode * last_node = &list->data[list->head];
-    for (int16_t iterator = list->data[list->head].next; iterator >= 0;)
-    {
-        MacroArgumentListNode* node = &(list->data[iterator]);
-        MacroArgument *item = &(node->data);
-        if ((*item).event->key == t.event->key && (*item).event->keycode == t.event->keycode)
-        {
-            macro_forward_list_erase_after(list, last_node);
-            return;
-        }
-        last_node = node;
-        iterator = list->data[iterator].next;
-    }
-}
-
-void macro_forward_list_remove_specific_owner(MacroArgumentList* list, uint8_t owner)
-{
-    for (int16_t *iterator_ptr = &list->data[list->head].next; *iterator_ptr >= 0;)
-    {
-        MacroArgumentListNode* node = &(list->data[*iterator_ptr]);
-        MacroArgument *item = &(node->data);
-        if ((*item).owner == owner)
-        {
-            int16_t free_node = *iterator_ptr;
-            keyboard_event_handler(MK_EVENT((*item).event->keycode,KEYBOARD_EVENT_KEY_UP,(*item).event->key));
-            *iterator_ptr = node->next;
-            node->next = list->free_node;
-            list->free_node = free_node;
-            continue;
-        }
-        iterator_ptr = &list->data[*iterator_ptr].next;
     }
 }

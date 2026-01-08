@@ -14,13 +14,19 @@ void joystick_event_handler(KeyboardEvent event)
     if (JOYSTICK_KEYCODE_IS_AXIS(event.keycode))
     {
         g_keyboard_report_flags.joystick = true;
-        keyboard_key_set_report_state((Key*)(event.key), true);
+        if (!event.is_virtual)
+        {
+            keyboard_key_set_report_state((Key*)(event.key), true);
+        }
         return;
     }
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
-        keyboard_key_event_down_callback((Key*)event.key);
+        if (!event.is_virtual)
+        {
+            keyboard_key_event_down_callback((Key*)event.key);
+        }
         g_keyboard_report_flags.joystick = true;
         break;
     case KEYBOARD_EVENT_KEY_TRUE:

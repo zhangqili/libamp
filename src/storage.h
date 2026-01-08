@@ -7,9 +7,7 @@
 #define STORAGE_H_
 
 #include "keyboard.h"
-#ifdef DYNAMICKEY_ENABLE
 #include "dynamic_key.h"
-#endif
 
 #include "lfs.h"
 

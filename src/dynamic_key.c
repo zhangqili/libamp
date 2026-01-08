@@ -238,11 +238,11 @@ void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
     }
     bool last_report_state = dynamic_key_mt->key_report_state;
     bool next_report_state = dynamic_key_mt->key_report_state;
-    if (!dynamic_key_mt->key_state && key->state)
+    if (IS_POS_EDGE(dynamic_key_mt->key_state , key->state))
     {
         dynamic_key_mt->begin_tick = g_keyboard_tick;
     }
-    if (dynamic_key_mt->key_state && !key->state)
+    if (IS_NEG_EDGE(dynamic_key_mt->key_state, key->state))
     {
         if (g_keyboard_tick - dynamic_key_mt->begin_tick < dynamic_key_mt->duration)
         {
@@ -268,11 +268,12 @@ void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
     }
     keyboard_event_handler(MK_EVENT(dynamic_key_mt->key_binding[DYNAMIC_KEY_ACTION_TAP], 
         CALC_EVENT(dynamic_key_mt->state == DYNAMIC_KEY_ACTION_TAP && last_report_state, dynamic_key_mt->state == DYNAMIC_KEY_ACTION_TAP && next_report_state), key));
+    keyboard_key_set_report_state(key, next_report_state);
     keyboard_event_handler(MK_EVENT(dynamic_key_mt->key_binding[DYNAMIC_KEY_ACTION_HOLD], 
         CALC_EVENT(dynamic_key_mt->state == DYNAMIC_KEY_ACTION_HOLD && last_report_state, dynamic_key_mt->state == DYNAMIC_KEY_ACTION_HOLD && next_report_state), key));
+    keyboard_key_set_report_state(key, next_report_state);
     dynamic_key_mt->key_state = key->state;
     dynamic_key_mt->key_report_state = next_report_state;
-    keyboard_key_set_report_state(key, next_report_state);
 }
 
 void dynamic_key_tk_process(DynamicKeyToggleKey*dynamic_key)

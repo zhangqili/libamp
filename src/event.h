@@ -21,10 +21,12 @@ typedef enum
 typedef struct
 {
     Keycode keycode;
-    uint16_t event;
+    uint8_t event;
+    uint8_t is_virtual;
     void* key;
 } KeyboardEvent;
-#define MK_EVENT(keycode, event, key) ((KeyboardEvent){(keycode), (event), (key)})
+#define MK_EVENT(keycode, event, key) ((KeyboardEvent){(keycode), (event), false, (key)})
+#define MK_VIRTUAL_EVENT(keycode, event, key) ((KeyboardEvent){(keycode), (event), true, (key)})
 #define CALC_EVENT(state, next_state) ((((bool)(state)) != ((bool)(next_state))) | (((bool)(next_state)) << 1))
 
 #endif //EVENT_H

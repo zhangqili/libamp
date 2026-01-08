@@ -226,7 +226,14 @@ static inline bool keyboard_key_set_report_state(Key*key, bool state)
     key->report_state = state;
     const uint32_t index = key->id / 32;
     const uint32_t mask = 1U << (key->id % 32);
-    g_keyboard_bitmap[index] ^= mask;
+    if (state)
+    {
+        g_keyboard_bitmap[index] |= mask;
+    } 
+    else
+    {
+        g_keyboard_bitmap[index] &= ~mask;
+    }
     return true;
 }
 

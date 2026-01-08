@@ -15,7 +15,7 @@ extern uint8_t g_current_layer;
 extern Keycode g_keymap_cache[TOTAL_KEY_NUM];
 extern bool g_keymap_lock[TOTAL_KEY_NUM];
 
-void layer_control(KeyboardEvent event);
+void layer_event_handler(KeyboardEvent event);
 uint8_t layer_get(void);
 void layer_set(uint8_t layer);
 void layer_reset(uint8_t layer);
@@ -36,6 +36,26 @@ static inline void layer_unlock(uint16_t id)
 {
     g_keymap_lock[id] = false;
     g_keymap_cache[id] = layer_get_keycode(id, g_current_layer);
+}
+
+static inline void layer_lock_handler(KeyboardEvent event)
+{
+    Key* key = (Key*)event.key;
+    switch (event.event)
+    {
+    case KEYBOARD_EVENT_KEY_DOWN:
+        layer_lock(key->id);
+        break;
+    case KEYBOARD_EVENT_KEY_TRUE:
+        break;
+    case KEYBOARD_EVENT_KEY_UP:
+        layer_unlock(key->id);
+        break;
+    case KEYBOARD_EVENT_KEY_FALSE:
+        break;
+    default:
+        break;
+    }
 }
 
 static inline void layer_cache_refresh(void)
