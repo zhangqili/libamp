@@ -9,6 +9,10 @@ endif()
 if("${SIZEOF_VOID_P}" STREQUAL "")
     set(M32_FLAG -m32)
 endif()
+find_program(HOST_GCC gcc DOC "Host GCC for generator tools")
+if(NOT HOST_GCC)
+    set(HOST_GCC "gcc")
+endif()
 
 if(NOT DEFINED LIBAMP_INCLUDE_DIR AND NOT DEFINED LIBAMP_BUILD_TESTS)
     message(FATAL_ERROR "Error: LIBAMP_INCLUDE_DIR is not defined!\n")
@@ -21,22 +25,36 @@ set(MQJS_GEN_SRC_1 "${PROJECT_SOURCE_DIR}/src/mquickjs/mqjs_libamp_stdlib.c")
 set(MQJS_GEN_SRC_2 "${PROJECT_SOURCE_DIR}/lib/mquickjs/mquickjs_build.c")
 set(MQJS_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 file(MAKE_DIRECTORY ${MQJS_GEN_DIR})
-set(MQJS_GEN_TOOL_EXE "${CMAKE_CURRENT_BINARY_DIR}/mqjs_libamp_stdlib")
+
+if(WIN32)
+    set(MQJS_GEN_TOOL_EXE "${MQJS_GEN_DIR}/mqjs_libamp_stdlib.exe")
+else()
+    set(MQJS_GEN_TOOL_EXE "${MQJS_GEN_DIR}/mqjs_libamp_stdlib")
+endif()
+
 set(MQJS_GEN_HEADER_ATOM "${MQJS_GEN_DIR}/mquickjs_atom.h")
 set(MQJS_GEN_HEADER_LIB  "${MQJS_GEN_DIR}/mqjs_stdlib.h")
 
 add_custom_command(
     OUTPUT ${MQJS_GEN_TOOL_EXE}
-    COMMAND gcc -O2 -o ${MQJS_GEN_TOOL_EXE} ${MQJS_GEN_SRC_1} ${MQJS_GEN_SRC_2} -I ${PROJECT_SOURCE_DIR}/lib/mquickjs/ -I ${LIBAMP_INCLUDE_DIR}
+    COMMAND ${HOST_GCC} -O2 -o ${MQJS_GEN_TOOL_EXE} ${MQJS_GEN_SRC_1} ${MQJS_GEN_SRC_2} 
+            -I ${PROJECT_SOURCE_DIR}/lib/mquickjs/ 
+            -I ${LIBAMP_INCLUDE_DIR}
     DEPENDS ${MQJS_GEN_SRC_1} ${MQJS_GEN_SRC_2}
     COMMENT "Host: Compiling QuickJS generator tool..."
     VERBATIM
 )
 
+if(CMAKE_HOST_WIN32)
+    set(SHELL_WRAPPER cmd /c)
+else()
+    set(SHELL_WRAPPER sh -c)
+endif()
+
 add_custom_command(
     OUTPUT ${MQJS_GEN_HEADER_ATOM} ${MQJS_GEN_HEADER_LIB}
-    COMMAND sh -c "${MQJS_GEN_TOOL_EXE} -a ${M32_FLAG} > ${MQJS_GEN_HEADER_ATOM}"
-    COMMAND sh -c "${MQJS_GEN_TOOL_EXE} ${M32_FLAG} > ${MQJS_GEN_HEADER_LIB}"
+    COMMAND ${SHELL_WRAPPER} "${MQJS_GEN_TOOL_EXE} -a ${M32_FLAG} > ${MQJS_GEN_HEADER_ATOM}"
+    COMMAND ${SHELL_WRAPPER} "${MQJS_GEN_TOOL_EXE} ${M32_FLAG} > ${MQJS_GEN_HEADER_LIB}"
     DEPENDS ${MQJS_GEN_TOOL_EXE}
     COMMENT "Host: Generating QuickJS headers..."
     VERBATIM
@@ -56,7 +74,6 @@ file(GLOB COMPONENT_SRCS
 )
 
 file(GLOB MQJS_SRCS
-    ${PROJECT_SOURCE_DIR}/lib/mquickjs/cutils.c
     ${PROJECT_SOURCE_DIR}/lib/mquickjs/cutils.c
     ${PROJECT_SOURCE_DIR}/lib/mquickjs/dtoa.c
     ${PROJECT_SOURCE_DIR}/lib/mquickjs/libm.c
