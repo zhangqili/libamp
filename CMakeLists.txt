@@ -56,8 +56,8 @@ else()
 endif()
 add_custom_command(
     OUTPUT ${MQJS_GEN_HEADER_ATOM} ${MQJS_GEN_HEADER_LIB}
-    COMMAND ${SHELL_WRAPPER} "\"${MQJS_GEN_TOOL_EXE}\" -a ${M32_FLAG} > \"${MQJS_GEN_HEADER_ATOM}\""
-    COMMAND ${SHELL_WRAPPER} "\"${MQJS_GEN_TOOL_EXE}\" ${M32_FLAG} > \"${MQJS_GEN_HEADER_LIB}\""
+    COMMAND ${SHELL_WRAPPER} "${MQJS_GEN_TOOL_EXE} -a ${M32_FLAG} > ${MQJS_GEN_HEADER_ATOM}"
+    COMMAND ${SHELL_WRAPPER} "${MQJS_GEN_TOOL_EXE} ${M32_FLAG} > ${MQJS_GEN_HEADER_LIB}"
     DEPENDS host_generator_project
     COMMENT "Host: Generating QuickJS headers..."
     VERBATIM

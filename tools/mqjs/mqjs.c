@@ -80,12 +80,12 @@ static void dump_error(JSContext *ctx);
 //    return (uint64_t)ts.tv_sec * 1000 + (ts.tv_nsec / 1000000);
 //}
 #else
-static int64_t get_time_ms(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_sec * 1000 + (tv.tv_usec / 1000);
-}
+//static int64_t get_time_ms(void)
+//{
+//    struct timeval tv;
+//    gettimeofday(&tv, NULL);
+//    return (int64_t)tv.tv_sec * 1000 + (tv.tv_usec / 1000);
+//}
 #endif
 
 //static JSValue js_date_now(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
