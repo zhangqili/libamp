@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 # Set the project name
 project (libamp)
+include(ExternalProject)
 include(CheckTypeSize)
 check_type_size("void*" SIZEOF_VOID_P)
 if(SIZEOF_VOID_P EQUAL 4)
@@ -21,46 +22,48 @@ if(DEFINED LIBAMP_BUILD_TESTS)
     set(LIBAMP_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/test/test_common")
 endif()
 
-set(MQJS_GEN_SRC_1 "${PROJECT_SOURCE_DIR}/src/mquickjs/mqjs_libamp_stdlib.c")
-set(MQJS_GEN_SRC_2 "${PROJECT_SOURCE_DIR}/lib/mquickjs/mquickjs_build.c")
 set(MQJS_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 file(MAKE_DIRECTORY ${MQJS_GEN_DIR})
 
-if(WIN32)
-    set(MQJS_GEN_TOOL_EXE "${MQJS_GEN_DIR}/mqjs_libamp_stdlib.exe")
+set(GEN_EXE_NAME "mqjs_header_generator")
+if(CMAKE_HOST_WIN32)
+    set(MQJS_GEN_TOOL_EXE "${MQJS_GEN_DIR}/${GEN_EXE_NAME}.exe")
 else()
-    set(MQJS_GEN_TOOL_EXE "${MQJS_GEN_DIR}/mqjs_libamp_stdlib")
+    set(MQJS_GEN_TOOL_EXE "${MQJS_GEN_DIR}/${GEN_EXE_NAME}")
 endif()
+
+ExternalProject_Add(host_generator_project
+    SOURCE_DIR "${PROJECT_SOURCE_DIR}/tools/mqjs_header_generator"
+    BINARY_DIR "${MQJS_GEN_DIR}"
+    INSTALL_COMMAND ""
+
+    CMAKE_ARGS 
+        "-DCMAKE_TOOLCHAIN_FILE=" 
+        "-DCMAKE_C_COMPILER=${HOST_GCC}"
+        "-DCMAKE_BUILD_TYPE=Release"
+        "-DLIBAMP_INCLUDE_DIR=${LIBAMP_INCLUDE_DIR}" 
+    
+    BUILD_ALWAYS 1
+)
 
 set(MQJS_GEN_HEADER_ATOM "${MQJS_GEN_DIR}/mquickjs_atom.h")
 set(MQJS_GEN_HEADER_LIB  "${MQJS_GEN_DIR}/mqjs_stdlib.h")
-
-add_custom_command(
-    OUTPUT ${MQJS_GEN_TOOL_EXE}
-    COMMAND ${HOST_GCC} -O2 -o ${MQJS_GEN_TOOL_EXE} ${MQJS_GEN_SRC_1} ${MQJS_GEN_SRC_2} 
-            -I ${PROJECT_SOURCE_DIR}/lib/mquickjs/ 
-            -I ${LIBAMP_INCLUDE_DIR}
-    DEPENDS ${MQJS_GEN_SRC_1} ${MQJS_GEN_SRC_2}
-    COMMENT "Host: Compiling QuickJS generator tool..."
-    VERBATIM
-)
 
 if(CMAKE_HOST_WIN32)
     set(SHELL_WRAPPER cmd /c)
 else()
     set(SHELL_WRAPPER sh -c)
 endif()
-
 add_custom_command(
     OUTPUT ${MQJS_GEN_HEADER_ATOM} ${MQJS_GEN_HEADER_LIB}
-    COMMAND ${SHELL_WRAPPER} "${MQJS_GEN_TOOL_EXE} -a ${M32_FLAG} > ${MQJS_GEN_HEADER_ATOM}"
-    COMMAND ${SHELL_WRAPPER} "${MQJS_GEN_TOOL_EXE} ${M32_FLAG} > ${MQJS_GEN_HEADER_LIB}"
-    DEPENDS ${MQJS_GEN_TOOL_EXE}
+    COMMAND ${SHELL_WRAPPER} "\"${MQJS_GEN_TOOL_EXE}\" -a ${M32_FLAG} > \"${MQJS_GEN_HEADER_ATOM}\""
+    COMMAND ${SHELL_WRAPPER} "\"${MQJS_GEN_TOOL_EXE}\" ${M32_FLAG} > \"${MQJS_GEN_HEADER_LIB}\""
+    DEPENDS host_generator_project
     COMMENT "Host: Generating QuickJS headers..."
     VERBATIM
 )
 
-add_custom_target(gen_mqjs_headers
+add_custom_target(generate_mqjs_headers_task
     DEPENDS ${MQJS_GEN_HEADER_ATOM} ${MQJS_GEN_HEADER_LIB}
 )
 
@@ -81,7 +84,7 @@ file(GLOB MQJS_SRCS
 )
 # Add a library with the above sources
 add_library(${PROJECT_NAME} ${COMPONENT_SRCS} ${MQJS_SRCS})
-add_dependencies(${PROJECT_NAME} gen_mqjs_headers)
+add_dependencies(${PROJECT_NAME} generate_mqjs_headers_task)
 target_compile_definitions( ${PROJECT_NAME} PRIVATE 
     #LFS_NO_MALLOC
     LFS_NO_ASSERT

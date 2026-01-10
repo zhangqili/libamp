@@ -12,6 +12,6 @@ set(MQJS_REPL_SRCS
 set(LIBAMP_INCLUDE_DIR ${LIBAMP_SOURCE_DIR}/test/test_common)
 add_subdirectory(${LIBAMP_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/libamp)
 add_executable(mqjs mqjs.c ${MQJS_REPL_SRCS})
-add_dependencies(mqjs gen_mqjs_headers)
+add_dependencies(mqjs generate_mqjs_headers_task)
 target_link_libraries(mqjs PRIVATE libamp m)
 
