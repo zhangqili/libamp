@@ -129,6 +129,11 @@ __WEAK int led_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b)
     return 0;
 }
 
+__WEAK int led_flush(void)
+{
+    return 0;
+}
+
 __WEAK int nexus_send(uint8_t slave_id, uint8_t *report, uint16_t len)
 {
     UNUSED(slave_id);

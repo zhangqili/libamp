@@ -413,6 +413,7 @@ void rgb_init_flash(void)
         {
             rgb_set(i, g_rgb_colors[i].r, g_rgb_colors[i].g, g_rgb_colors[i].b);
         }
+        led_flush();
     }
     rgb_turn_off();
 }
@@ -438,6 +439,7 @@ void rgb_flash(void)
         {
             rgb_set(i, g_rgb_colors[i].r, g_rgb_colors[i].g, g_rgb_colors[i].b);
         }
+        led_flush();
     }
     rgb_turn_off();
 }
@@ -448,6 +450,7 @@ void rgb_turn_off(void)
     {
         rgb_set(i, 0, 0, 0);
     }
+    led_flush();
 }
 
 void rgb_factory_reset(void)
@@ -478,6 +481,7 @@ void rgb_flush(void)
     {
         rgb_set(i, g_rgb_colors[i].r, g_rgb_colors[i].g, g_rgb_colors[i].b);
     }
+    led_flush();
 }
 
 void rgb_activate(uint16_t id)

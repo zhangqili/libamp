@@ -44,7 +44,7 @@ ExternalProject_Add(host_generator_project
         "-DCMAKE_BUILD_TYPE=Release"
         "-DLIBAMP_INCLUDE_DIR=${LIBAMP_INCLUDE_DIR}" 
     
-    BUILD_ALWAYS 1
+    #BUILD_ALWAYS 1
 )
 
 set(MQJS_GEN_HEADER_ATOM "${MQJS_GEN_DIR}/mquickjs_atom.h")
