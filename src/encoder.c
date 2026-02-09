@@ -18,6 +18,16 @@ void encoder_input_delta(uint16_t id, int16_t delta)
     }
 }
 
+void encoder_input(uint16_t id, int32_t count)
+{
+    if (id<ENCODER_NUM)
+    {
+        g_encoders[id].delta = count - g_encoders[id].count;
+        g_encoders[id].count = count;
+        g_encoders[id].flag = ENCODER_TAP_DElAY;
+    }
+}
+
 void encoder_process(void)
 {
     for (int i = 0; i < ENCODER_NUM; i++)

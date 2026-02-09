@@ -156,6 +156,21 @@ void keyboard_event_handler(KeyboardEvent event)
 
 void keyboard_add_buffer(KeyboardEvent event)
 {
+    const uint8_t keycode = KEYCODE_GET_MAIN(event.keycode);
+    if (keycode <= KEY_EXSEL)
+    {
+#ifdef NKRO_ENABLE
+        if (g_keyboard_config.nkro)
+        {
+            keyboard_NKRObuffer_add(&keyboard_nkro_buffer, event.keycode);
+        }
+        else
+#endif
+        {
+            keyboard_6KRObuffer_add(&keyboard_6kro_buffer, event.keycode);
+        }
+        return;
+    }
     switch (KEYCODE_GET_MAIN(event.keycode))
     {
 #ifdef MOUSE_ENABLE
@@ -181,23 +196,7 @@ void keyboard_add_buffer(KeyboardEvent event)
     case KEY_USER:
         break;
     default:
-    {
-        const uint8_t keycode = KEYCODE_GET_MAIN(event.keycode);
-        if (keycode <= KEY_EXSEL)
-        {
-#ifdef NKRO_ENABLE
-            if (g_keyboard_config.nkro)
-            {
-                keyboard_NKRObuffer_add(&keyboard_nkro_buffer, event.keycode);
-            }
-            else
-#endif
-            {
-                keyboard_6KRObuffer_add(&keyboard_6kro_buffer, event.keycode);
-            }
-        }
         break;
-    }
     }
 }
 

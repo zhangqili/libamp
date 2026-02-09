@@ -33,6 +33,7 @@ typedef struct __Encoder
 extern Encoder g_encoders[ENCODER_NUM];
 
 void encoder_input_delta(uint16_t id, int16_t delta);
+void encoder_input(uint16_t id, int32_t count);
 void encoder_process(void);
 #endif
 
