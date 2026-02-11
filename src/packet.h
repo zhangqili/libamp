@@ -32,6 +32,7 @@ enum {
   PACKET_DATA_DEBUG = 0x07,
   PACKET_DATA_REPORT = 0x08,
   PACKET_DATA_VERSION = 0x09,
+  PACKET_DATA_MACRO = 0x0A,
 };
 
 typedef struct __PacketBase
@@ -179,6 +180,23 @@ typedef struct __PacketVersion
   uint8_t info[];
 } __PACKED PacketVersion;
 
+typedef struct __PacketMacro
+{
+  uint8_t code;
+  uint8_t type;
+  uint8_t macro_index;
+  uint16_t length;
+  struct
+  {
+    uint32_t delay;
+    uint16_t index;
+    uint16_t key_id;
+    uint8_t is_virtual;
+    uint8_t event;
+    uint16_t keycode;
+  } __PACKED data[];
+} __PACKED PacketMacro;
+
 typedef struct __PacketLog
 {
   uint8_t code;
@@ -197,6 +215,7 @@ void packet_process_dynamic_key(PacketData*data);
 void packet_process_config_index(PacketData*data);
 void packet_process_config(PacketData*data);
 void packet_process_debug(PacketData*data);
+void packet_process_macro(PacketData*data);
 void packet_process_user(uint8_t *buf, uint16_t len);
 
 #ifdef __cplusplus

@@ -4,6 +4,9 @@
 #include "driver.h"
 
 #include "string.h"
+#ifdef MACRO_ENABLE
+#include "macro.h"
+#endif
 
 static inline void command_advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, AdvancedKeyConfiguration* config)
 {
@@ -83,6 +86,11 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         case PACKET_DATA_DEBUG:
             packet_process_debug(packet);
             break;
+#ifdef MACRO_ENABLE
+        case PACKET_DATA_MACRO:
+            packet_process_macro(packet);
+            break;
+#endif
         case PACKET_DATA_VERSION:
             if (packet->code == PACKET_CODE_GET)
             {
@@ -306,6 +314,50 @@ void packet_process_config(PacketData*data)
 }
 
 void packet_process_debug(PacketData*data)
+{
+#ifdef MACRO_ENABLE
+    PacketMacro* packet = (PacketMacro*)data;
+    if (data->code == PACKET_CODE_SET)
+    {
+        for (uint8_t i = 0; i < packet->length; i++)
+        {
+            uint16_t index = packet->data[i].index;
+            if (index < MACRO_MAX_ACTIONS)
+            {
+                MacroAction *action = &g_macros[packet->macro_index].actions[index];
+                action->event.event = packet->data[i].event;
+                action->event.is_virtual = packet->data[i].is_virtual;
+                action->event.keycode = packet->data[i].keycode;
+                void * key = keyboard_get_key(packet->data[i].key_id);
+                if (key != NULL)
+                {
+                    action->event.key = key;
+                }
+            }
+        }
+    }
+    else if (data->code == PACKET_CODE_GET)
+    {
+        for (uint8_t i = 0; i < packet->length; i++)
+        {
+            uint8_t index = packet->data[i].index;
+            if (index < MACRO_MAX_ACTIONS)
+            {
+                MacroAction *action = &g_macros[packet->macro_index].actions[index];
+                packet->data[i].event = action->event.event;
+                packet->data[i].is_virtual = action->event.is_virtual;
+                packet->data[i].keycode = action->event.keycode;
+                if (action->event.key != NULL)
+                {
+                    packet->data[i].key_id = ((Key*)action->event.key)->id;
+                }
+            }
+        }
+    }
+#endif
+}
+
+void packet_process_macro(PacketData*data)
 {
     PacketDebug* packet = (PacketDebug*)data;
     if (data->code == PACKET_CODE_GET)
