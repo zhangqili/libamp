@@ -315,6 +315,25 @@ void packet_process_config(PacketData*data)
 
 void packet_process_debug(PacketData*data)
 {
+    PacketDebug* packet = (PacketDebug*)data;
+    if (data->code == PACKET_CODE_GET)
+    {       
+        for (uint8_t i = 0; i < packet->length; i++)
+        {
+            uint8_t key_index =  packet->data[i].index;
+            if (key_index < ADVANCED_KEY_NUM)
+            {
+                packet->data[i].raw = g_keyboard_advanced_keys[key_index].raw;
+                packet->data[i].value = g_keyboard_advanced_keys[key_index].value;
+                packet->data[i].state = g_keyboard_advanced_keys[key_index].key.state;
+                packet->data[i].report_state = g_keyboard_advanced_keys[key_index].key.report_state;
+            }
+        }
+    }
+}
+
+void packet_process_macro(PacketData*data)
+{
 #ifdef MACRO_ENABLE
     PacketMacro* packet = (PacketMacro*)data;
     if (data->code == PACKET_CODE_SET)
@@ -355,25 +374,6 @@ void packet_process_debug(PacketData*data)
         }
     }
 #endif
-}
-
-void packet_process_macro(PacketData*data)
-{
-    PacketDebug* packet = (PacketDebug*)data;
-    if (data->code == PACKET_CODE_GET)
-    {       
-        for (uint8_t i = 0; i < packet->length; i++)
-        {
-            uint8_t key_index =  packet->data[i].index;
-            if (key_index < ADVANCED_KEY_NUM)
-            {
-                packet->data[i].raw = g_keyboard_advanced_keys[key_index].raw;
-                packet->data[i].value = g_keyboard_advanced_keys[key_index].value;
-                packet->data[i].state = g_keyboard_advanced_keys[key_index].key.state;
-                packet->data[i].report_state = g_keyboard_advanced_keys[key_index].key.report_state;
-            }
-        }
-    }
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)
