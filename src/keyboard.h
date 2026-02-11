@@ -205,7 +205,7 @@ void keyboard_fill_buffer(void);
 void keyboard_send_report(void);
 void keyboard_recovery(void);
 void keyboard_save(void);
-void keyboard_set_config_index(uint8_t index);
+void keyboard_set_profile_index(uint8_t index);
 void keyboard_task(void);
 void keyboard_delay(uint32_t ms);
 

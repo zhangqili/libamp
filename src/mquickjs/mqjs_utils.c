@@ -435,7 +435,7 @@ static JSValue js_keyboard_command(JSContext *ctx, JSValue *this_val, int argc, 
 {
     int keycode = magic;
     int index;
-    if (magic == KEYBOARD_CONFIG0)
+    if (magic == KEYBOARD_PROFILE0)
     {
         if (JS_ToInt32(ctx, &index, argv[0]))
         {
@@ -445,7 +445,7 @@ static JSValue js_keyboard_command(JSContext *ctx, JSValue *this_val, int argc, 
         {
             return JS_EXCEPTION;
         }
-        keyboard_operation_event_handler(MK_VIRTUAL_EVENT(((KEYBOARD_CONFIG0 + index) << 8) | KEYBOARD_OPERATION, KEYBOARD_EVENT_KEY_DOWN, NULL));
+        keyboard_operation_event_handler(MK_VIRTUAL_EVENT(((KEYBOARD_PROFILE0 + index) << 8) | KEYBOARD_OPERATION, KEYBOARD_EVENT_KEY_DOWN, NULL));
         return JS_UNDEFINED;
     }
     if (magic == KEYBOARD_CONFIG_BASE)

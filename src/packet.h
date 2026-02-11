@@ -27,7 +27,7 @@ enum {
   PACKET_DATA_RGB_BASE_CONFIG = 0x02,
   PACKET_DATA_RGB_CONFIG = 0x03,
   PACKET_DATA_DYNAMIC_KEY = 0x04,
-  PACKET_DATA_CONFIG_INDEX = 0x05,
+  PACKET_DATA_PROFILE_INDEX = 0x05,
   PACKET_DATA_CONFIG = 0x06,
   PACKET_DATA_DEBUG = 0x07,
   PACKET_DATA_REPORT = 0x08,
@@ -212,7 +212,7 @@ void packet_process_rgb_base_config(PacketData*data);
 void packet_process_rgb_config(PacketData*data);
 void packet_process_keymap(PacketData*data);
 void packet_process_dynamic_key(PacketData*data);
-void packet_process_config_index(PacketData*data);
+void packet_process_profile_index(PacketData*data);
 void packet_process_config(PacketData*data);
 void packet_process_debug(PacketData*data);
 void packet_process_macro(PacketData*data);

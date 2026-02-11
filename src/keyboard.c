@@ -253,11 +253,11 @@ void keyboard_operation_event_handler(KeyboardEvent event)
                 }
                 break;
 #endif
-            case KEYBOARD_CONFIG0:
-            case KEYBOARD_CONFIG1:
-            case KEYBOARD_CONFIG2:
-            case KEYBOARD_CONFIG3:
-                keyboard_set_config_index((event.keycode >> 8) & 0x0F);
+            case KEYBOARD_PROFILE0:
+            case KEYBOARD_PROFILE1:
+            case KEYBOARD_PROFILE2:
+            case KEYBOARD_PROFILE3:
+                keyboard_set_profile_index((event.keycode >> 8) & 0x0F);
                 break;
             default:
                 break;
@@ -415,7 +415,7 @@ void keyboard_init(void)
     {
         keyboard_factory_reset();
     }
-    storage_read_config_index();
+    storage_read_profile_index();
 #endif
 #ifdef RGB_ENABLE
     rgb_init();
@@ -470,13 +470,13 @@ void keyboard_factory_reset(void)
 {
     keyboard_reset_to_default();
 #ifdef STORAGE_ENABLE
-    for (int i = 0; i < STORAGE_CONFIG_FILE_NUM; i++)
+    for (int i = 0; i < STORAGE_PROFILE_FILE_NUM; i++)
     {
-        g_current_config_index = i;
-        storage_save_config();
+        g_current_profile_index = i;
+        storage_save_profile();
     }
-    g_current_config_index = 0;
-    keyboard_set_config_index(0);
+    g_current_profile_index = 0;
+    keyboard_set_profile_index(0);
 #endif
 }
 
@@ -502,7 +502,7 @@ __WEAK void keyboard_scan(void)
 void keyboard_recovery(void)
 {
 #ifdef STORAGE_ENABLE
-    storage_read_config();
+    storage_read_profile();
 #else
     keyboard_reset_to_default();
 #endif
@@ -511,18 +511,18 @@ void keyboard_recovery(void)
 void keyboard_save(void)
 {
 #ifdef STORAGE_ENABLE
-    storage_save_config();
+    storage_save_profile();
 #endif
 }
 
-void keyboard_set_config_index(uint8_t index)
+void keyboard_set_profile_index(uint8_t index)
 {
 #ifdef STORAGE_ENABLE
-    if (index < STORAGE_CONFIG_FILE_NUM)
+    if (index < STORAGE_PROFILE_FILE_NUM)
     {
-        g_current_config_index = index;
+        g_current_profile_index = index;
     }
-    storage_save_config_index();
+    storage_save_profile_index();
 #else
     UNUSED(index);
 #endif

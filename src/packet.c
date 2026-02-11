@@ -77,8 +77,8 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
             packet_process_dynamic_key(packet);
             break;
 #endif
-        case PACKET_DATA_CONFIG_INDEX:
-            packet_process_config_index(packet);
+        case PACKET_DATA_PROFILE_INDEX:
+            packet_process_profile_index(packet);
             break;
         case PACKET_DATA_CONFIG:
             packet_process_config(packet);
@@ -274,16 +274,16 @@ void packet_process_dynamic_key(PacketData*data)
     }
 }
 
-void packet_process_config_index(PacketData*data)
+void packet_process_profile_index(PacketData*data)
 {
     PacketConfigIndex* packet = (PacketConfigIndex*)data;
     if (data->code == PACKET_CODE_SET)
     {       
-        keyboard_set_config_index(packet->index);
+        keyboard_set_profile_index(packet->index);
     }
     else if (data->code == PACKET_CODE_GET)
     {
-        packet->index = g_current_config_index;
+        packet->index = g_current_profile_index;
     }
 }
 
