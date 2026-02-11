@@ -66,7 +66,7 @@ static const JSPropDef js_keyboard[] = {
     JS_CFUNC_MAGIC_DEF("save",  0, js_keyboard_command, KEYBOARD_SAVE),
     JS_CFUNC_MAGIC_DEF("enterBootloader",  0, js_keyboard_command, KEYBOARD_BOOTLOADER),
     JS_CFUNC_MAGIC_DEF("resetToDefault",  0, js_keyboard_command, KEYBOARD_RESET_TO_DEFAULT),
-    JS_CFUNC_MAGIC_DEF("setConfig",  1, js_keyboard_command, KEYBOARD_CONFIG0),
+    JS_CFUNC_MAGIC_DEF("setConfig",  1, js_keyboard_command, KEYBOARD_PROFILE0),
 #endif
     JS_PROP_END,
 };

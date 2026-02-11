@@ -28,14 +28,14 @@ file(MAKE_DIRECTORY ${MQJS_GEN_DIR})
 
 set(GEN_EXE_NAME "mqjs_header_generator")
 if(CMAKE_HOST_WIN32)
-    set(MQJS_GEN_TOOL_EXE "${MQJS_GEN_DIR}/${GEN_EXE_NAME}.exe")
+    set(MQJS_GEN_TOOL_EXE "${MQJS_GEN_DIR}/host_gen_build/${GEN_EXE_NAME}.exe")
 else()
-    set(MQJS_GEN_TOOL_EXE "${MQJS_GEN_DIR}/${GEN_EXE_NAME}")
+    set(MQJS_GEN_TOOL_EXE "${MQJS_GEN_DIR}/host_gen_build/${GEN_EXE_NAME}")
 endif()
 
 ExternalProject_Add(host_generator_project
     SOURCE_DIR "${PROJECT_SOURCE_DIR}/tools/mqjs_header_generator"
-    BINARY_DIR "${MQJS_GEN_DIR}"
+    BINARY_DIR "${MQJS_GEN_DIR}/host_gen_build"
     INSTALL_COMMAND ""
 
     CMAKE_ARGS 
