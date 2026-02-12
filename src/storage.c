@@ -293,7 +293,7 @@ void storage_read_profile(void)
 {
 #ifdef LFS_ENABLE
     lfs_file_t lfs_file;
-    char config_file_name[8] = "profile0";
+    char config_file_name[16] = "profile0";
     config_file_name[6] = g_current_profile_index + '0';
 
     lfs_file_open(&_lfs, &lfs_file, config_file_name, LFS_O_RDWR | LFS_O_CREAT);
@@ -375,7 +375,7 @@ void storage_save_profile(void)
 {
 #ifdef LFS_ENABLE
     lfs_file_t lfs_file;
-    char config_file_name[8] = "profile0";
+    char config_file_name[16] = "profile0";
     config_file_name[6] = g_current_profile_index + '0';
 
     lfs_file_open(&_lfs, &lfs_file, config_file_name, LFS_O_RDWR | LFS_O_CREAT);

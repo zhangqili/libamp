@@ -344,6 +344,7 @@ void packet_process_macro(PacketData*data)
             if (index < MACRO_MAX_ACTIONS)
             {
                 MacroAction *action = &g_macros[packet->macro_index].actions[index];
+                action->delay = packet->data[i].delay;
                 action->event.event = packet->data[i].event;
                 action->event.is_virtual = packet->data[i].is_virtual;
                 action->event.keycode = packet->data[i].keycode;
@@ -363,6 +364,7 @@ void packet_process_macro(PacketData*data)
             if (index < MACRO_MAX_ACTIONS)
             {
                 MacroAction *action = &g_macros[packet->macro_index].actions[index];
+                packet->data[i].delay = action->delay;
                 packet->data[i].event = action->event.event;
                 packet->data[i].is_virtual = action->event.is_virtual;
                 packet->data[i].keycode = action->event.keycode;
