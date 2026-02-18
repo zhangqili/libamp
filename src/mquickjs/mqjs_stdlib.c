@@ -233,7 +233,9 @@ static const JSClassDef js_math_obj =
     JS_OBJECT_DEF("Math", js_math);
 
 static const JSPropDef js_json[] = {
+#ifndef SCRIPT_NO_EVAL
     JS_CFUNC_DEF("parse", 2, js_json_parse ),
+#endif
     JS_CFUNC_DEF("stringify", 3, js_json_stringify ),
     JS_PROP_END,
 };
@@ -329,7 +331,9 @@ static const JSClassDef js_performance_obj =
 static const JSPropDef js_global_object[] = {
 #ifndef MQJS_MINIMAL
     JS_PROP_CLASS_DEF("Object", &js_object_class),
+#ifndef SCRIPT_NO_EVAL
     JS_PROP_CLASS_DEF("Function", &js_function_class),
+#endif
     JS_PROP_CLASS_DEF("Number", &js_number_class),
     JS_PROP_CLASS_DEF("Boolean", &js_boolean_class),
     JS_PROP_CLASS_DEF("String", &js_string_class),
@@ -337,7 +341,9 @@ static const JSPropDef js_global_object[] = {
     JS_PROP_CLASS_DEF("Math", &js_math_obj),
     JS_PROP_CLASS_DEF("Date", &js_date_class),
     JS_PROP_CLASS_DEF("JSON", &js_json_obj),
+#ifndef SCRIPT_NO_EVAL
     JS_PROP_CLASS_DEF("RegExp", &js_regexp_class),
+#endif
 
     JS_PROP_CLASS_DEF("Error", &js_error_class),
     JS_PROP_CLASS_DEF("EvalError", &js_eval_error_class),
@@ -361,7 +367,9 @@ static const JSPropDef js_global_object[] = {
 
     JS_CFUNC_DEF("parseInt", 2, js_number_parseInt ),
     JS_CFUNC_DEF("parseFloat", 1, js_number_parseFloat ),
+#ifndef SCRIPT_NO_EVAL
     JS_CFUNC_DEF("eval", 1, js_global_eval),
+#endif
     JS_CFUNC_DEF("isNaN", 1, js_global_isNaN ),
     JS_CFUNC_DEF("isFinite", 1, js_global_isFinite ),
 

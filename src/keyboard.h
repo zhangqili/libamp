@@ -33,6 +33,10 @@ extern "C" {
 #define KEYBOARD_VERSION_INFO  LIBAMP_VERSION_INFO
 #endif
 
+#ifndef LAYER_NUM
+#define LAYER_NUM 1
+#endif
+
 #ifndef POLLING_RATE
 #define POLLING_RATE 1000
 #endif

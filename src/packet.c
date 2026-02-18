@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025 Zhangqi Li (@zhangqili)
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #include "packet.h"
 #include "rgb.h"
 #include "layer.h"
@@ -91,6 +96,9 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
             packet_process_macro(packet);
             break;
 #endif
+        case PACKET_DATA_FEATURE:
+            packet_process_feature(packet);
+            break;
         case PACKET_DATA_VERSION:
             if (packet->code == PACKET_CODE_GET)
             {
@@ -109,6 +117,10 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         break;
     case PACKET_CODE_ACTION:
         keyboard_operation_event_handler(MK_VIRTUAL_EVENT(((((PacketBase*)packet)->buf[0]) << 8) | KEYBOARD_OPERATION, KEYBOARD_EVENT_KEY_DOWN, NULL));
+        break;
+    case PACKET_CODE_LARGE_SET:
+    case PACKET_CODE_LARGE_GET:
+        large_packet_process((PacketLargeData*)buf);
         break;
     default:
         packet_process_user(buf, len);
@@ -376,6 +388,16 @@ void packet_process_macro(PacketData*data)
         }
     }
 #endif
+}
+
+void packet_process_feature(PacketData *data)
+{
+    PacketFeature *packet = (PacketFeature *)data;
+
+    if (data->code == PACKET_CODE_GET)
+    {
+        //todo
+    }
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)
