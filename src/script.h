@@ -48,7 +48,7 @@ void script_event_handler(KeyboardEvent event);
 extern uint8_t g_script_bytecode_buffer[SCRIPT_BYTECODE_BUFFER_SIZE];
 #endif
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
-uint8_t g_script_source_buffer[SCRIPT_SOURCE_BUFFER_SIZE];
+extern uint8_t g_script_source_buffer[SCRIPT_SOURCE_BUFFER_SIZE];
 #endif
 
 #ifdef __cplusplus

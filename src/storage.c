@@ -490,7 +490,7 @@ void storage_read_script(void)
     char js_file_name[8] = "main.bin";
     lfs_file_open(&_lfs, &lfs_file, js_file_name, LFS_O_RDWR | LFS_O_CREAT);
     lfs_file_rewind(&_lfs, &lfs_file);
-    lfs_file_write(&_lfs, &lfs_file, g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer));
+    lfs_file_read(&_lfs, &lfs_file, g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer));
     lfs_file_close(&_lfs, &lfs_file);
 #endif
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
@@ -498,7 +498,7 @@ void storage_read_script(void)
     char js_file_name[8] = "main.js";
     lfs_file_open(&_lfs, &lfs_file, js_file_name, LFS_O_RDWR | LFS_O_CREAT);
     lfs_file_rewind(&_lfs, &lfs_file);
-    lfs_file_write(&_lfs, &lfs_file, g_script_source_buffer, sizeof(g_script_source_buffer));
+    lfs_file_read(&_lfs, &lfs_file, g_script_source_buffer, sizeof(g_script_source_buffer));
     lfs_file_close(&_lfs, &lfs_file);
 #endif
 #endif

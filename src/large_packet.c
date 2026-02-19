@@ -31,12 +31,14 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
         switch (sub_cmd)
         {
         case LARGE_DATA_CMD_START:
-            if (script_file_open) {
+            if (script_file_open)
+            {
                 lfs_file_close(_lfs, &script_file);
             }
-            
+
             int err = lfs_file_open(_lfs, &script_file, SCRIPT_FILENAME, LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
-            if (err < 0) {
+            if (err < 0)
+            {
                 return false;
             }
             script_file_open = true;
@@ -59,7 +61,8 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
 
         case LARGE_DATA_CMD_END:
         case LARGE_DATA_CMD_ABORT:
-            if (script_file_open) {
+            if (script_file_open)
+            {
                 lfs_file_close(_lfs, &script_file);
                 script_file_open = false;
             }
@@ -76,17 +79,19 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
         case LARGE_DATA_CMD_START:
             if (val == 0)
             {
-                if (script_file_open) {
+                if (script_file_open)
+                {
                     lfs_file_close(_lfs, &script_file);
                 }
-            
+
                 int err = lfs_file_open(_lfs, &script_file, SCRIPT_FILENAME, LFS_O_RDONLY);
-                if (err < 0) {
+                if (err < 0)
+                {
                     return 0;
                 }
                 script_file_open = true;
                 return lfs_file_size(_lfs, &script_file);
-            } 
+            }
             else if (val == 1)
             {
                 if (!script_file_open)
@@ -107,6 +112,23 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
             return 0;
 
         case LARGE_DATA_CMD_PAYLOAD:
+            if (!script_file_open)
+            {
+                return 0;
+            }
+
+            if (lfs_file_seek(_lfs, &script_file, val, LFS_SEEK_SET) < 0)
+            {
+                return 0;
+            }
+
+            lfs_ssize_t read_len = lfs_file_read(_lfs, &script_file, data, len);
+            if (read_len < 0)
+            {
+                return 0;
+            }
+            return (uint16_t)read_len;
+        case LARGE_DATA_CMD_END:
         case LARGE_DATA_CMD_ABORT:
             if (script_file_open)
             {
@@ -132,12 +154,14 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
         switch (sub_cmd)
         {
         case LARGE_DATA_CMD_START:
-            if (script_file_open) {
+            if (script_file_open)
+            {
                 lfs_file_close(_lfs, &script_file);
             }
-            
+
             int err = lfs_file_open(_lfs, &script_file, SCRIPT_FILENAME, LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
-            if (err < 0) {
+            if (err < 0)
+            {
                 return false;
             }
             script_file_open = true;
@@ -160,7 +184,8 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
 
         case LARGE_DATA_CMD_END:
         case LARGE_DATA_CMD_ABORT:
-            if (script_file_open) {
+            if (script_file_open)
+            {
                 lfs_file_close(_lfs, &script_file);
                 script_file_open = false;
             }
@@ -175,17 +200,19 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
         case LARGE_DATA_CMD_START:
             if (val == 0)
             {
-                if (script_file_open) {
+                if (script_file_open)
+                {
                     lfs_file_close(_lfs, &script_file);
                 }
-            
+
                 int err = lfs_file_open(_lfs, &script_file, SCRIPT_FILENAME, LFS_O_RDONLY);
-                if (err < 0) {
+                if (err < 0)
+                {
                     return 0;
                 }
                 script_file_open = true;
                 return lfs_file_size(_lfs, &script_file);
-            } 
+            }
             else if (val == 1)
             {
                 if (!script_file_open)
@@ -206,6 +233,23 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
             return 0;
 
         case LARGE_DATA_CMD_PAYLOAD:
+            if (!script_file_open)
+            {
+                return 0;
+            }
+
+            if (lfs_file_seek(_lfs, &script_file, val, LFS_SEEK_SET) < 0)
+            {
+                return 0;
+            }
+
+            lfs_ssize_t read_len = lfs_file_read(_lfs, &script_file, data, len);
+            if (read_len < 0)
+            {
+                return 0;
+            }
+            return (uint16_t)read_len;
+        case LARGE_DATA_CMD_END:
         case LARGE_DATA_CMD_ABORT:
             if (script_file_open)
             {
@@ -236,7 +280,7 @@ uint32_t large_packet_dispatch(uint8_t type, uint8_t code, uint8_t sub_cmd, uint
 
 static uint32_t large_rx_total = 0;
 static uint32_t large_rx_recv = 0;
-static uint8_t  large_rx_type = 0;
+static uint8_t large_rx_type = 0;
 
 static void process_large_set(PacketLargeData *pkt)
 {
@@ -245,8 +289,8 @@ static void process_large_set(PacketLargeData *pkt)
 
     if (sub_cmd == LARGE_DATA_CMD_START)
     {
-        uint32_t total_size = pkt->header.total_size; 
-        
+        uint32_t total_size = pkt->header.total_size;
+
         large_rx_type = type;
         large_rx_total = total_size;
         large_rx_recv = 0;
@@ -280,7 +324,6 @@ static void process_large_set(PacketLargeData *pkt)
     }
 }
 
-
 static void process_large_get(PacketLargeData *pkt)
 {
     uint8_t sub_cmd = pkt->sub_cmd;
@@ -299,7 +342,8 @@ static void process_large_get(PacketLargeData *pkt)
         uint32_t offset = pkt->payload.offset;
         uint16_t req_len = pkt->payload.length;
 
-        if (req_len > MAX_PAYLOAD_SIZE) req_len = MAX_PAYLOAD_SIZE;
+        if (req_len > MAX_PAYLOAD_SIZE)
+            req_len = MAX_PAYLOAD_SIZE;
 
         uint16_t actual_len = (uint16_t)large_packet_dispatch(type, PACKET_CODE_LARGE_GET, LARGE_DATA_CMD_PAYLOAD, offset, pkt->payload.data, req_len);
 
