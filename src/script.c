@@ -19,6 +19,10 @@ void script_log_func(void *opaque, const void *buf, size_t buf_len) {
 }
 extern const JSSTDLibraryDef js_stdlib;
 
+#if defined(SCRIPT_ENABLE) && (!defined(LFS_ENABLE) || !defined(STORAGE_ENABLE))
+#error "SCRIPT_ENABLE requires storage support with LFS_ENABLE"
+#endif
+
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
 uint8_t g_script_bytecode_buffer[SCRIPT_BYTECODE_BUFFER_SIZE];
 #endif
@@ -107,7 +111,13 @@ static void script_setup_hooks(JSContext *ctx)
     on_key_up_func_set = find_function_by_name(ctx, &on_key_up_func_ptr, &on_key_up_func_ref, "onKeyUp");
 }
 
-void script_reset(void)
+void script_factory_reset(void)
+{
+    lfs_remove(storage_get_lfs(), "main.js");
+    lfs_remove(storage_get_lfs(), "main.bin");
+}
+
+void script_reset_runtime(void)
 {
     memset(g_script_watcher_mask, 0, sizeof(g_script_watcher_mask));
     if (js_ctx)
@@ -136,8 +146,11 @@ void script_reset(void)
 void script_init(void)
 {
     storage_read_script();
+    //memset(g_script_bytecode_buffer, 0, sizeof(g_script_bytecode_buffer));
+    struct lfs_info info;
+    int err = lfs_stat(storage_get_lfs(), "main.bin", &info);
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
-    script_update_bytecode(g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer));
+    script_update_bytecode(g_script_bytecode_buffer, info.size);
 #endif
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
     script_update_source((char *)g_script_source_buffer, strlen(g_script_source_buffer));
@@ -157,7 +170,7 @@ void script_eval(const char *code_buf, size_t len, const char *filename)
 
 void script_update_source(const char *code, size_t len)
 {
-    script_reset();
+    script_reset_runtime();
     script_eval(code, len, "<runtime>");
     script_setup_hooks(js_ctx);
 }
@@ -192,7 +205,7 @@ void script_load_bytecode(uint8_t *bytecode_buf, size_t len)
 
 void script_update_bytecode(uint8_t *bytecode_buf, size_t len)
 {
-    script_reset();
+    script_reset_runtime();
     script_load_bytecode(bytecode_buf, len);
     script_setup_hooks(js_ctx);
 }

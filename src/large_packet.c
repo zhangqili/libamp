@@ -158,7 +158,7 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
             {
                 lfs_file_close(_lfs, &script_file);
             }
-
+            lfs_remove(_lfs, SCRIPT_FILENAME);
             int err = lfs_file_open(_lfs, &script_file, SCRIPT_FILENAME, LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
             if (err < 0)
             {

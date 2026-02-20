@@ -35,7 +35,8 @@ extern "C" {
 #endif
 
 void script_init(void);
-void script_reset(void);
+void script_factory_reset(void);
+void script_reset_runtime(void);
 void script_process(void);
 void script_eval(const char *code_buf, size_t len, const char *filename);
 void script_update_source(const char *code, size_t len);

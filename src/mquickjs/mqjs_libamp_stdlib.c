@@ -59,7 +59,7 @@ static const JSPropDef js_keyboard[] = {
     JS_CFUNC_MAGIC_DEF("release", 1, js_keyboard_press_release,1),
     JS_CFUNC_DEF("tap", 1, js_keyboard_tap),
     JS_CFUNC_DEF("getLayerIndex", 0, js_keyboard_get_layer_index),
-#ifndef MQJS_MINIMAL
+#ifndef SCRIPT_MINIMAL
     JS_CFUNC_MAGIC_DEF("command", 1, js_keyboard_command, KEYBOARD_CONFIG_BASE),
     JS_CFUNC_MAGIC_DEF("reboot",  0, js_keyboard_command, KEYBOARD_REBOOT),
     JS_CFUNC_MAGIC_DEF("factory_reset",  0, js_keyboard_command, KEYBOARD_FACTORY_RESET),

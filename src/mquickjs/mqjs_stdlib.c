@@ -329,7 +329,7 @@ static const JSClassDef js_performance_obj =
     JS_OBJECT_DEF("Performance", js_performance);
 
 static const JSPropDef js_global_object[] = {
-#ifndef MQJS_MINIMAL
+#ifndef SCRIPT_MINIMAL
     JS_PROP_CLASS_DEF("Object", &js_object_class),
 #ifndef SCRIPT_NO_EVAL
     JS_PROP_CLASS_DEF("Function", &js_function_class),

@@ -464,6 +464,9 @@ __WEAK void keyboard_reset_to_default(void)
 #ifdef DYNAMICKEY_ENABLE
     memset(g_dynamic_keys, 0, sizeof(g_dynamic_keys));
 #endif
+#ifdef SCRIPT_ENABLE
+    script_factory_reset();
+#endif
 }
 
 void keyboard_factory_reset(void)
