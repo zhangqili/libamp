@@ -594,7 +594,7 @@ static JSValue js_clearTimeout(JSContext *ctx, JSValue *this_val, int argc, JSVa
     }
     return JS_UNDEFINED;
 }
-#ifndef MQJS_MINIMAL
+#ifndef SCRIPT_MINIMAL
 static JSValue js_gc(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 {
     JS_GC(ctx);

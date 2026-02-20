@@ -165,6 +165,6 @@
 /* Script */
 /**********/
 #define SCRIPT_ENABLE
-//#define MQJS_MINIMAL
+//#define SCRIPT_MINIMAL
 
 #endif /* KEYBOARD_CONF_H_ */

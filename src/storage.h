@@ -71,6 +71,8 @@ uint8_t storage_read_profile_index(void);
 void storage_save_profile_index(void);
 void storage_read_profile(void);
 void storage_save_profile(void);
+void storage_save_script(void);
+void storage_read_script(void);
 
 #ifdef __cplusplus
 }
