@@ -75,6 +75,7 @@ file(GLOB COMPONENT_SRCS
     ${PROJECT_SOURCE_DIR}/src/midi/*.c
     ${PROJECT_SOURCE_DIR}/src/midi/bytequeue/*.c
     ${PROJECT_SOURCE_DIR}/src/lamp_array/*.c
+    ${PROJECT_SOURCE_DIR}/src/log/*.c
 )
 
 file(GLOB MQJS_SRCS
@@ -101,6 +102,7 @@ target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src/midi
     ${PROJECT_SOURCE_DIR}/src/midi/bytequeue
     ${PROJECT_SOURCE_DIR}/src/lamp_array
+    ${PROJECT_SOURCE_DIR}/src/log
     ${PROJECT_SOURCE_DIR}/lib/littlefs
     ${PROJECT_SOURCE_DIR}/lib/lufa
     ${PROJECT_SOURCE_DIR}/lib/mquickjs
