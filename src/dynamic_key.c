@@ -101,6 +101,31 @@ void dynamic_key_add_buffer(void)
 #define DKS_RELEASE_BEGIN 4
 #define DKS_RELEASE_FULLY 6
 #define DKS_GET_KEY_CONTROL(key_ctrl, n) (((key_ctrl) >> (n)) & 0x03)
+
+static inline void dynamic_key_s_update_state(DynamicKeyStroke4x4 *dk, uint8_t stage_shift)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        switch (DKS_GET_KEY_CONTROL(dk->key_control[i], stage_shift))
+        {
+        case DKS_RELEASE:
+            BIT_RESET(dk->key_state, i);
+            break;
+        case DKS_TAP:
+            dk->key_end_tick[i] = g_keyboard_tick + DK_TAP_DURATION;
+            BIT_SET(dk->key_state, i);
+            break;
+        case DKS_HOLD:
+            dk->key_end_tick[i] = 0xFFFFFFFF;
+            BIT_SET(dk->key_state, i);
+            break;
+        default:
+            BIT_RESET(dk->key_state, i);
+            break;
+        }
+    }
+}
+
 void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
 {
     DynamicKeyStroke4x4*dynamic_key_s=(DynamicKeyStroke4x4*)dynamic_key;
@@ -112,109 +137,32 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
     AnalogValue last_value = dynamic_key_s->value;
     AnalogValue current_value = keyboard_get_key_analog_value(key);
     uint8_t last_key_state = dynamic_key_s->key_state;
+
+    AnalogValue current_relative_value = current_value - ANALOG_VALUE_MIN;
+    AnalogValue last_relative_value = last_value - ANALOG_VALUE_MIN;
+    
     if (current_value > last_value)
     {
-        if (current_value - ANALOG_VALUE_MIN >= dynamic_key_s->press_begin_distance &&
-            last_value - ANALOG_VALUE_MIN < dynamic_key_s->press_begin_distance)
+        if (current_relative_value >= dynamic_key_s->press_begin_distance && last_relative_value < dynamic_key_s->press_begin_distance)
         {
-            for (int i = 0; i < 4; i++)
-            {
-                switch (DKS_GET_KEY_CONTROL(dynamic_key_s->key_control[i], DKS_PRESS_BEGIN))
-                {
-                case DKS_RELEASE:
-                    BIT_RESET(dynamic_key_s->key_state, i);
-                    break;
-                case DKS_TAP:
-                    dynamic_key_s->key_end_tick[i] = g_keyboard_tick + DK_TAP_DURATION;
-                    BIT_SET(dynamic_key_s->key_state, i);
-                    break;
-                case DKS_HOLD:
-                    dynamic_key_s->key_end_tick[i] = 0xFFFFFFFF;
-                    BIT_SET(dynamic_key_s->key_state, i);
-                    break;
-                default:
-                    BIT_RESET(dynamic_key_s->key_state, i);
-                    break;
-                }
-            }
+            dynamic_key_s_update_state(dynamic_key, DKS_PRESS_BEGIN);
         }
-        if (current_value - ANALOG_VALUE_MIN >= dynamic_key_s->press_fully_distance &&
-            last_value - ANALOG_VALUE_MIN < dynamic_key_s->press_fully_distance)
+        if (current_relative_value >= dynamic_key_s->press_fully_distance && last_relative_value < dynamic_key_s->press_fully_distance)
         {
-            for (int i = 0; i < 4; i++)
-            {
-                switch (DKS_GET_KEY_CONTROL(dynamic_key_s->key_control[i], DKS_PRESS_FULLY))
-                {
-                case DKS_RELEASE:
-                    BIT_RESET(dynamic_key_s->key_state, i);
-                    break;
-                case DKS_TAP:
-                    dynamic_key_s->key_end_tick[i] = g_keyboard_tick + DK_TAP_DURATION;
-                    BIT_SET(dynamic_key_s->key_state, i);
-                    break;
-                case DKS_HOLD:
-                    dynamic_key_s->key_end_tick[i] = 0xFFFFFFFF;
-                    BIT_SET(dynamic_key_s->key_state, i);
-                    break;
-                default:
-                    BIT_RESET(dynamic_key_s->key_state, i);
-                    break;
-                }
-            }
+            dynamic_key_s_update_state(dynamic_key, DKS_PRESS_FULLY);
         }
     }
-    if (current_value < last_value)
+    else if (current_value < last_value)
     {
-        if (current_value - ANALOG_VALUE_MIN <= dynamic_key_s->release_begin_distance &&
-            last_value - ANALOG_VALUE_MIN > dynamic_key_s->release_begin_distance)
+        if (current_relative_value <= dynamic_key_s->release_begin_distance && last_relative_value > dynamic_key_s->release_begin_distance)
         {
-            for (int i = 0; i < 4; i++)
-            {
-                switch (DKS_GET_KEY_CONTROL(dynamic_key_s->key_control[i], DKS_RELEASE_BEGIN))
-                {
-                case DKS_RELEASE:
-                    BIT_RESET(dynamic_key_s->key_state, i);
-                    break;
-                case DKS_TAP:
-                    dynamic_key_s->key_end_tick[i] = g_keyboard_tick + DK_TAP_DURATION;
-                    BIT_SET(dynamic_key_s->key_state, i);
-                    break;
-                case DKS_HOLD:
-                    dynamic_key_s->key_end_tick[i] = 0xFFFFFFFF;
-                    BIT_SET(dynamic_key_s->key_state, i);
-                    break;
-                default:
-                    BIT_RESET(dynamic_key_s->key_state, i);
-                    break;
-                }
-            }
+            dynamic_key_s_update_state(dynamic_key, DKS_RELEASE_BEGIN);
         }
-        if (current_value - ANALOG_VALUE_MIN <= dynamic_key_s->release_fully_distance &&
-            last_value - ANALOG_VALUE_MIN > dynamic_key_s->release_fully_distance)
+        if (current_relative_value <= dynamic_key_s->release_fully_distance && last_relative_value > dynamic_key_s->release_fully_distance)
         {
-            for (int i = 0; i < 4; i++)
-            {
-                switch (DKS_GET_KEY_CONTROL(dynamic_key_s->key_control[i], DKS_RELEASE_FULLY))
-                {
-                case DKS_RELEASE:
-                    BIT_RESET(dynamic_key_s->key_state, i);
-                    break;
-                case DKS_TAP:
-                    dynamic_key_s->key_end_tick[i] = g_keyboard_tick + DK_TAP_DURATION;
-                    BIT_SET(dynamic_key_s->key_state, i);
-                    break;
-                case DKS_HOLD:
-                    dynamic_key_s->key_end_tick[i] = 0xFFFFFFFF;
-                    BIT_SET(dynamic_key_s->key_state, i);
-                    break;
-                default:
-                    BIT_RESET(dynamic_key_s->key_state, i);
-                    break;
-                }
-            }
+            dynamic_key_s_update_state(dynamic_key, DKS_RELEASE_FULLY);
         }
     }
-
     for (int i = 0; i < 4; i++)
     {
         if (g_keyboard_tick > dynamic_key_s->key_end_tick[i])
@@ -299,105 +247,88 @@ void dynamic_key_m_process(DynamicKeyMutex*dynamic_key)
     DynamicKeyMutex*dynamic_key_m=(DynamicKeyMutex*)dynamic_key;
     Key*key0 = (Key*)keyboard_get_key(dynamic_key_m->key_id[0]);
     Key*key1 = (Key*)keyboard_get_key(dynamic_key_m->key_id[1]);
-    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key0))
-    {
-        return;
-    }
-    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key1))
+    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key0) || DYNAMIC_KEY_NOT_MATCH(dynamic_key,key1))
     {
         return;
     }
     bool next_key0_report_state = dynamic_key_m->key_report_state[0];
     bool next_key1_report_state = dynamic_key_m->key_report_state[1];
-
-    if ((dynamic_key_m->mode & 0x0F) == DK_MUTEX_DISTANCE_PRIORITY)
-    {
-        if (!IS_ADVANCED_KEY(key0) || !IS_ADVANCED_KEY(key1))
-        {
-            goto call_event;
-        }
-        AdvancedKey*advanced_key0 = (AdvancedKey*)key0;
-        AdvancedKey*advanced_key1 = (AdvancedKey*)key1;
-        if (advanced_key0->value > advanced_key1->value)
-        {
-            next_key0_report_state = true;
-            next_key1_report_state = false;
-        }
-        if (advanced_key0->value < advanced_key1->value)
-        {
-            next_key0_report_state = false;
-            next_key1_report_state = true;
-        }
-        if (advanced_key0->value < advanced_key0->config.upper_deadzone)
-        {
-            next_key0_report_state = false;
-        }
-        if (advanced_key1->value < advanced_key1->config.upper_deadzone)
-        {
-            next_key1_report_state = false;
-        }
-        //advanced_key_update_state(key0, key0_state);
-        //advanced_key_update_state(key1, key1_state);
-        goto call_event;
-    }
-
-    switch (dynamic_key_m->mode & 0x0F)
-    {
-    case DK_MUTEX_LAST_PRIORITY:
-        if (!dynamic_key_m->key_state[0] && key0->state)
-        {
-            next_key0_report_state = true;
-            next_key1_report_state = false;
-        }
-        if (dynamic_key_m->key_state[0] && !key0->state)
-        {
-            next_key0_report_state = false;
-            next_key1_report_state = key1->state;
-        }
-        if (!dynamic_key_m->key_state[1] && key1->state)
-        {
-            next_key0_report_state = false;
-            next_key1_report_state = true;
-        }
-        if (dynamic_key_m->key_state[1] && !key1->state)
-        {
-            next_key0_report_state = key0->state;
-            next_key1_report_state = false;
-        }
-        break;
-    case DK_MUTEX_KEY1_PRIORITY:
-        next_key0_report_state = key0->state;
-        next_key1_report_state = key0->state ? false : key1->state;
-        break;
-    case DK_MUTEX_KEY2_PRIORITY:
-        next_key0_report_state = key1->state ? false : key0->state;
-        next_key1_report_state = key1->state;
-        break;
-    case DK_MUTEX_NEUTRAL:
-        next_key0_report_state = key0->state;
-        next_key1_report_state = key1->state;
-        if (key0->state && key1->state)
-        {
-            next_key0_report_state = false;
-            next_key1_report_state = false;
-        }
-        break;
-    default:
-        break;
-    }
-    call_event:
-    if (dynamic_key_m->mode & 0xF0)
+    const uint8_t mode = dynamic_key->mode & 0x0F;
+    if (mode == DK_MUTEX_DISTANCE_PRIORITY)
     {
         if (IS_ADVANCED_KEY(key0) && IS_ADVANCED_KEY(key1))
-        {        
-            AdvancedKey*advanced_key0 = (AdvancedKey*)key0;
-            AdvancedKey*advanced_key1 = (AdvancedKey*)key1;
-            if ((advanced_key0->value>= (ANALOG_VALUE_MAX - advanced_key0->config.lower_deadzone))&&
-            (advanced_key1->value>= (ANALOG_VALUE_MAX - advanced_key1->config.lower_deadzone)))
+        {
+            AdvancedKey* advanced_key0 = (AdvancedKey*)key0;
+            AdvancedKey* advanced_key1 = (AdvancedKey*)key1;
+
+            if (advanced_key0->value > advanced_key1->value)
             {
                 next_key0_report_state = true;
+                next_key1_report_state = false;
+            }
+            else if (advanced_key0->value < advanced_key1->value)
+            {
+                next_key0_report_state = false;
                 next_key1_report_state = true;
             }
+
+            if (advanced_key0->value < advanced_key0->config.upper_deadzone)
+                next_key0_report_state = false;
+            if (advanced_key1->value < advanced_key1->config.upper_deadzone)
+                next_key1_report_state = false;
+        }
+    }
+    else
+    {
+        switch (mode)
+        {
+        case DK_MUTEX_LAST_PRIORITY:
+            if (!dynamic_key_m->key_state[0] && key0->state)
+            {
+                next_key0_report_state = true;
+                next_key1_report_state = false;
+            }
+            if (dynamic_key_m->key_state[0] && !key0->state)
+            {
+                next_key0_report_state = false;
+                next_key1_report_state = key1->state;
+            }
+            if (!dynamic_key_m->key_state[1] && key1->state)
+            {
+                next_key0_report_state = false;
+                next_key1_report_state = true;
+            }
+            if (dynamic_key_m->key_state[1] && !key1->state)
+            {
+                next_key0_report_state = key0->state;
+                next_key1_report_state = false;
+            }
+            break;
+        case DK_MUTEX_KEY1_PRIORITY:
+            next_key0_report_state = key0->state;
+            next_key1_report_state = !key0->state && key1->state;
+            break;
+        case DK_MUTEX_KEY2_PRIORITY:
+            next_key0_report_state = !key1->state && key0->state;
+            next_key1_report_state = key1->state;
+            break;
+        case DK_MUTEX_NEUTRAL:
+            next_key0_report_state = key0->state && !key1->state;
+            next_key1_report_state = key1->state && !key0->state;
+            break;
+        default:
+            break;
+        }
+    }
+    if ((dynamic_key_m->mode & 0xF0) && IS_ADVANCED_KEY(key0) && IS_ADVANCED_KEY(key1))
+    {        
+        AdvancedKey*advanced_key0 = (AdvancedKey*)key0;
+        AdvancedKey*advanced_key1 = (AdvancedKey*)key1;
+        if ((advanced_key0->value>= (ANALOG_VALUE_MAX - advanced_key0->config.lower_deadzone))&&
+        (advanced_key1->value>= (ANALOG_VALUE_MAX - advanced_key1->config.lower_deadzone)))
+        {
+            next_key0_report_state = true;
+            next_key1_report_state = true;
         }
     }
     keyboard_event_handler(MK_EVENT(dynamic_key_m->key_binding[0], CALC_EVENT(dynamic_key_m->key_report_state[0], next_key0_report_state), key0));

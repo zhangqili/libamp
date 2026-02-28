@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "keyboard_conf.h"
 #define LOG_VERSION "0.1.0"
