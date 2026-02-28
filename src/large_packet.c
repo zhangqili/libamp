@@ -22,6 +22,7 @@ enum
 
 uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t val, uint8_t *data, uint16_t len)
 {
+#if defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
     static const char *SCRIPT_FILENAME = "main.js";
     static lfs_file_t script_file;
     static bool script_file_open = false;
@@ -138,12 +139,13 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
             return 0;
         }
     }
-
+#endif
     return 0;
 }
 
 uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t val, uint8_t *data, uint16_t len)
 {
+#if defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
     static const char *SCRIPT_FILENAME = "main.bin";
     static lfs_file_t script_file;
@@ -259,6 +261,7 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
             return 0;
         }
     }
+#endif
 #endif
     return 0;
 }
