@@ -59,6 +59,11 @@ void layer_event_handler(KeyboardEvent event)
 
 uint8_t layer_get(void)
 {
+#ifdef __GNUC__
+    if (layer_state == 0)
+        return 0;
+    return 31 - __builtin_clz(layer_state);
+#else
     for (int i = 15; i > 0; i--)
     {
         if (BIT_GET(layer_state,i))
@@ -67,6 +72,7 @@ uint8_t layer_get(void)
         }
     }
     return 0;
+#endif
 }
 
 void layer_set(uint8_t layer)
