@@ -42,10 +42,13 @@
  */
 
 #pragma once
-#include "progmem.h"
 #include <stddef.h>
 #include <inttypes.h>
 #include "keyboard.h"
+
+#define PROGMEM
+#define USBCONCAT(a, b) a##b
+#define USBSTR(s) USBCONCAT(L, s)
 
 #define ATTR_PACKED __attribute__((packed))
 /** Concatenates the given input into a single token, via the C Preprocessor.
@@ -487,9 +490,13 @@ extern const USB_Descriptor_String_t PROGMEM SerialNumberString;
     this software.
 */
 
-#include "util.h"
-//#include "usb_descriptor.h"
-#include "usb_descriptor_common.h"
+#ifndef RAW_USAGE_PAGE
+#    define RAW_USAGE_PAGE 0xFF60
+#endif
+
+#ifndef RAW_USAGE_ID
+#    define RAW_USAGE_ID 0x61
+#endif
 
 #ifdef JOYSTICK_ENABLE
 #    include "joystick.h"

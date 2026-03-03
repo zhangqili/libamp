@@ -18,7 +18,6 @@
 
 #include "midi.h"
 #include <string.h> //for memcpy
-#include "util.h"
 
 #ifndef NULL
 #    define NULL 0
