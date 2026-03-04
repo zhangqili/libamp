@@ -122,11 +122,28 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
     case PACKET_CODE_EVENT:
         {
             PacketEvent* packet_event = (PacketEvent*)packet;
+            const Key *key = packet_event->is_virtual ? NULL : keyboard_get_key(packet_event->id);
+            if (key != NULL)
+            {
+                switch (packet_event->event)
+                {
+                case KEYBOARD_EVENT_KEY_DOWN:
+                    if (key->key_cb[KEY_EVENT_DOWN])
+                        key->key_cb[KEY_EVENT_DOWN](key);
+                    break;
+                case KEYBOARD_EVENT_KEY_UP:
+                    if (key->key_cb[KEY_EVENT_UP])
+                        key->key_cb[KEY_EVENT_UP](key);
+                    break;
+                default:
+                    break;
+                }
+            }
             KeyboardEvent event = {
                 .keycode = packet_event->use_keymap ? layer_cache_get_keycode(packet_event->id) : packet_event->keycode,
                 .event = packet_event->event,
                 .is_virtual = packet_event->is_virtual,
-                .key = packet_event->is_virtual ? NULL : keyboard_get_key(packet_event->id),
+                .key = key,
             };      
             keyboard_event_handler(event);
         }
