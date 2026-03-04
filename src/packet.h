@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 enum {
-  PACKET_CODE_ACTION = 0x00,
+  PACKET_CODE_EVENT = 0x00,
   PACKET_CODE_SET = 0x01,
   PACKET_CODE_GET = 0x02,
   PACKET_CODE_LOG = 0x03,
@@ -45,6 +45,15 @@ typedef struct __PacketBase
   uint8_t code;
   uint8_t buf[];
 } __PACKED PacketBase;
+
+typedef struct __PacketEvent
+{
+  uint8_t code;
+  uint8_t event;
+  uint16_t keycode;
+  uint16_t id;
+  uint8_t is_virtual;
+} __PACKED PacketEvent;
 
 typedef struct __PacketCommand
 {
@@ -155,6 +164,7 @@ typedef struct __PacketDebug
   uint8_t code;
   uint8_t type;
   uint8_t length;
+  uint32_t tick;
   struct
   {
     uint16_t index;
@@ -253,6 +263,7 @@ void packet_process_config(PacketData*data);
 void packet_process_debug(PacketData*data);
 void packet_process_macro(PacketData*data);
 void packet_process_feature(PacketData*data);
+void packet_send_debug_packet(void);
 void packet_process_user(uint8_t *buf, uint16_t len);
 void large_packet_process(PacketLargeData *buf);
 

@@ -694,6 +694,12 @@ __WEAK void keyboard_task(void)
         keyboard_fill_buffer();
         keyboard_send_report();
     }
+#ifdef CONTINOUS_DEBUG
+    if (g_keyboard_config.debug)
+    {   
+        packet_send_debug_packet();
+    }
+#endif
 #endif
 }
 

@@ -12,6 +12,10 @@
 #ifdef MACRO_ENABLE
 #include "macro.h"
 #endif
+#ifdef CONTINOUS_DEBUG
+static uint8_t debug_length;
+static uint16_t debug_buffer[4];
+#endif
 
 static inline void command_advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, AdvancedKeyConfiguration* config)
 {
@@ -115,8 +119,17 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
             break;
         }
         break;
-    case PACKET_CODE_ACTION:
-        keyboard_operation_event_handler(MK_VIRTUAL_EVENT(((((PacketBase*)packet)->buf[0]) << 8) | KEYBOARD_OPERATION, KEYBOARD_EVENT_KEY_DOWN, NULL));
+    case PACKET_CODE_EVENT:
+        {
+            PacketEvent* packet_event = (PacketEvent*)packet;
+            KeyboardEvent event = {
+                .keycode = packet_event->keycode,
+                .event = packet_event->event,
+                .is_virtual = packet_event->is_virtual,
+                .key = packet_event->is_virtual ? NULL : keyboard_get_key(packet_event->id),
+            };      
+            keyboard_event_handler(event);
+        }
         break;
     case PACKET_CODE_LARGE_SET:
     case PACKET_CODE_LARGE_GET:
@@ -330,9 +343,16 @@ void packet_process_debug(PacketData*data)
     PacketDebug* packet = (PacketDebug*)data;
     if (data->code == PACKET_CODE_GET)
     {       
+        packet->tick = g_keyboard_tick;
+#ifdef CONTINOUS_DEBUG
+            debug_length = packet->length;
+#endif
         for (uint8_t i = 0; i < packet->length; i++)
         {
             uint8_t key_index =  packet->data[i].index;
+#ifdef CONTINOUS_DEBUG
+            debug_buffer[i] = key_index;
+#endif
             if (key_index < ADVANCED_KEY_NUM)
             {
                 packet->data[i].raw = g_keyboard_advanced_keys[key_index].raw;
@@ -398,6 +418,30 @@ void packet_process_feature(PacketData *data)
     {
         //todo
     }
+}
+
+void packet_send_debug_packet(void)
+{
+#ifdef DEBUG_INTERVAL
+    static uint16_t timer;
+    timer++;
+    if (timer < DEBUG_INTERVAL)
+    {
+        return;
+    }
+    timer = 0;
+#endif
+    uint8_t buf[64];
+    PacketDebug* packet = (PacketDebug*)buf;
+    packet->code = PACKET_CODE_GET;
+    packet->type = PACKET_DATA_DEBUG;
+    packet->length = debug_length;
+    for (uint8_t i = 0; i < debug_length; i++)
+    {
+        packet->data[i].index = debug_buffer[i];
+    }
+    packet_process((uint8_t*)packet, sizeof(PacketDebug) + debug_length * sizeof(packet->data[0]));
+    hid_send_raw((uint8_t*)packet, 63);
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)
