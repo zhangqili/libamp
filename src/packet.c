@@ -422,6 +422,7 @@ void packet_process_feature(PacketData *data)
 
 void packet_send_debug_packet(void)
 {
+#ifdef CONTINOUS_DEBUG
 #ifdef DEBUG_INTERVAL
     static uint16_t timer;
     timer++;
@@ -442,6 +443,7 @@ void packet_send_debug_packet(void)
     }
     packet_process((uint8_t*)packet, sizeof(PacketDebug) + debug_length * sizeof(packet->data[0]));
     hid_send_raw((uint8_t*)packet, 63);
+#endif
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)
