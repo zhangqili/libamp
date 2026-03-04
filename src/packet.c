@@ -12,7 +12,7 @@
 #ifdef MACRO_ENABLE
 #include "macro.h"
 #endif
-#ifdef CONTINOUS_DEBUG
+#ifdef CONTINUOUS_DEBUG
 static uint8_t debug_length;
 static uint16_t debug_buffer[4];
 #endif
@@ -344,13 +344,13 @@ void packet_process_debug(PacketData*data)
     if (data->code == PACKET_CODE_GET)
     {       
         packet->tick = g_keyboard_tick;
-#ifdef CONTINOUS_DEBUG
+#ifdef CONTINUOUS_DEBUG
             debug_length = packet->length;
 #endif
         for (uint8_t i = 0; i < packet->length; i++)
         {
             uint8_t key_index =  packet->data[i].index;
-#ifdef CONTINOUS_DEBUG
+#ifdef CONTINUOUS_DEBUG
             debug_buffer[i] = key_index;
 #endif
             if (key_index < ADVANCED_KEY_NUM)
@@ -422,7 +422,7 @@ void packet_process_feature(PacketData *data)
 
 void packet_send_debug_packet(void)
 {
-#ifdef CONTINOUS_DEBUG
+#ifdef CONTINUOUS_DEBUG
 #ifdef DEBUG_INTERVAL
     static uint16_t timer;
     timer++;

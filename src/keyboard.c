@@ -684,7 +684,7 @@ __WEAK void keyboard_task(void)
         }
     }
 #endif
-    if (g_keyboard_config.continous_poll)
+    if (g_keyboard_config.continuous_poll)
     {
         g_keyboard_report_flags.keyboard = true;
     }
@@ -694,7 +694,7 @@ __WEAK void keyboard_task(void)
         keyboard_fill_buffer();
         keyboard_send_report();
     }
-#ifdef CONTINOUS_DEBUG
+#ifdef CONTINUOUS_DEBUG
     if (g_keyboard_config.debug)
     {   
         packet_send_debug_packet();

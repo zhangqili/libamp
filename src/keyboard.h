@@ -81,7 +81,7 @@ enum
     KEYBOARD_CONFIG_DEBUG           = 0,
     KEYBOARD_CONFIG_NKRO            = 1,
     KEYBOARD_CONFIG_WINLOCK         = 2,
-    KEYBOARD_CONFIG_CONTINOUS_POLL  = 3,
+    KEYBOARD_CONFIG_CONTINUOUS_POLL  = 3,
     KEYBOARD_CONFIG_ENABLE_REPORT   = 4,
     KEYBOARD_CONFIG_NUM             = 5,
 };
@@ -101,7 +101,7 @@ typedef union
         bool debug : 1;
         bool nkro : 1;
         bool winlock : 1;
-        bool continous_poll : 1;
+        bool continuous_poll : 1;
         bool enable_report : 1;
         uint8_t reserved : 3;
     };
