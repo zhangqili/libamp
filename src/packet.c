@@ -123,7 +123,7 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         {
             PacketEvent* packet_event = (PacketEvent*)packet;
             KeyboardEvent event = {
-                .keycode = packet_event->keycode,
+                .keycode = packet_event->use_keymap ? layer_cache_get_keycode(packet_event->id) : packet_event->keycode,
                 .event = packet_event->event,
                 .is_virtual = packet_event->is_virtual,
                 .key = packet_event->is_virtual ? NULL : keyboard_get_key(packet_event->id),

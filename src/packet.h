@@ -53,6 +53,7 @@ typedef struct __PacketEvent
   uint16_t keycode;
   uint16_t id;
   uint8_t is_virtual;
+  uint8_t use_keymap;
 } __PACKED PacketEvent;
 
 typedef struct __PacketCommand
