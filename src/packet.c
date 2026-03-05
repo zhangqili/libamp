@@ -128,12 +128,10 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
                 switch (packet_event->event)
                 {
                 case KEYBOARD_EVENT_KEY_DOWN:
-                    if (key->key_cb[KEY_EVENT_DOWN])
-                        key->key_cb[KEY_EVENT_DOWN](key);
+                    key_emit(key, KEY_EVENT_DOWN);
                     break;
                 case KEYBOARD_EVENT_KEY_UP:
-                    if (key->key_cb[KEY_EVENT_UP])
-                        key->key_cb[KEY_EVENT_UP](key);
+                    key_emit(key, KEY_EVENT_UP);
                     break;
                 default:
                     break;

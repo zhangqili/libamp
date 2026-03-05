@@ -39,8 +39,38 @@ typedef struct __Key
 #endif
     key_cb_t key_cb[KEY_EVENT_NUM];
 } Key;
-bool key_update(Key *key, bool state);
-void key_attach(Key *key, KEY_EVENT e, key_cb_t cb);
+static inline bool key_update(Key* key,bool state);
+static inline void key_attach(Key* key, KEY_EVENT e, key_cb_t cb);
+static inline void key_emit(Key* key, KEY_EVENT e);
+
+static inline bool key_update(Key* key,bool state)
+{
+    if ((!(key->state)) && state)
+    {
+        key_emit(key, KEY_EVENT_DOWN);
+        key->state = state;
+        return true;
+    }
+    if ((key->state) && (!state))
+    {
+        key_emit(key, KEY_EVENT_UP);
+        key->state = state;
+        return true;
+    }
+    key->state = state;
+    return false;
+}
+
+static inline void key_attach(Key* key, KEY_EVENT e, key_cb_t cb)
+{
+    key->key_cb[e] = cb;
+}
+
+static inline void key_emit(Key* key, KEY_EVENT e)
+{
+    if (key->key_cb[e])
+        key->key_cb[e](key);
+}
 
 #ifdef __cplusplus
 }
