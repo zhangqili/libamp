@@ -316,7 +316,7 @@ void packet_process_dynamic_key(PacketData*data)
 
 void packet_process_profile_index(PacketData*data)
 {
-    PacketConfigIndex* packet = (PacketConfigIndex*)data;
+    PacketProfileIndex* packet = (PacketProfileIndex*)data;
     if (data->code == PACKET_CODE_SET)
     {       
         keyboard_set_profile_index(packet->index);

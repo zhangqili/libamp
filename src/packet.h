@@ -139,12 +139,12 @@ typedef struct __PacketDynamicKey
   uint8_t dynamic_key[];
 } __PACKED PacketDynamicKey;
 
-typedef struct __PacketConfigIndex
+typedef struct __PacketProfileIndex
 {
   uint8_t code;
   uint8_t type;
   uint8_t index;
-} __PACKED PacketConfigIndex;
+} __PACKED PacketProfileIndex;
 
 
 typedef struct __PacketConfig
