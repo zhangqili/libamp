@@ -493,6 +493,7 @@ void rgb_activate(uint16_t id)
     RGBArgument a;
     a.rgb_ptr = g_rgb_inverse_mapping[id];
     a.begin_tick = g_keyboard_tick;
+    g_rgb_configs[a.rgb_ptr].begin_tick = g_keyboard_tick;
     switch (g_rgb_configs[a.rgb_ptr].mode)
     {
     case RGB_MODE_STRING:
