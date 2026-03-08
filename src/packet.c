@@ -12,10 +12,8 @@
 #ifdef MACRO_ENABLE
 #include "macro.h"
 #endif
-#ifdef CONTINUOUS_DEBUG
 static uint8_t debug_length;
 static uint16_t debug_buffer[4];
-#endif
 
 static inline void command_advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, AdvancedKeyConfiguration* config)
 {
@@ -359,15 +357,11 @@ void packet_process_debug(PacketData*data)
     if (data->code == PACKET_CODE_GET)
     {       
         packet->tick = g_keyboard_tick;
-#ifdef CONTINUOUS_DEBUG
             debug_length = packet->length;
-#endif
         for (uint8_t i = 0; i < packet->length; i++)
         {
             uint8_t key_index =  packet->data[i].index;
-#ifdef CONTINUOUS_DEBUG
             debug_buffer[i] = key_index;
-#endif
             if (key_index < ADVANCED_KEY_NUM)
             {
                 packet->data[i].raw = g_keyboard_advanced_keys[key_index].raw;
@@ -437,7 +431,6 @@ void packet_process_feature(PacketData *data)
 
 void packet_send_debug_packet(void)
 {
-#ifdef CONTINUOUS_DEBUG
 #ifdef DEBUG_INTERVAL
     static uint16_t timer;
     timer++;
@@ -458,7 +451,6 @@ void packet_send_debug_packet(void)
     }
     packet_process((uint8_t*)packet, sizeof(PacketDebug) + debug_length * sizeof(packet->data[0]));
     hid_send_raw((uint8_t*)packet, 63);
-#endif
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)
