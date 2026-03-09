@@ -53,6 +53,7 @@ void analog_channel_select(uint8_t x);
 void analog_scan(void);
 void analog_check(void);
 void analog_reset_range(void);
+void analog_calibrate(void);
 
 void ringbuf_push(RingBuf *ringbuf, AnalogRawValue data);
 AnalogRawValue ringbuf_avg(RingBuf *ringbuf);

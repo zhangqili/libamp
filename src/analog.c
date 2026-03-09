@@ -58,6 +58,13 @@ void analog_reset_range(void)
     }
 }
 
+void analog_calibrate(void)
+{
+    filter_reset();
+    analog_reset_range();
+    analog_scan();
+}
+
 void ringbuf_push(RingBuf* ringbuf, AnalogRawValue data)
 {
     ringbuf->pointer++;

@@ -203,7 +203,7 @@ extern const uint16_t g_rgb_mapping[RGB_NUM];
 extern const RGBLocation g_rgb_locations[RGB_NUM];
 
 void rgb_init(void);
-void rgb_update(void);
+void rgb_process(void);
 void rgb_update_callback(void);
 void rgb_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b);
 void rgb_init_flash(void);

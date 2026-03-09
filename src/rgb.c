@@ -54,7 +54,7 @@ void rgb_init(void)
 
 #define COLOR_INTERVAL(key, low, up) (uint8_t)((key) < 0 ? (low) : ((key) > ANALOG_VALUE_MAX ? (up) : (key) * (up)))
 
-void rgb_update(void)
+void rgb_process(void)
 {
     if (!g_rgb_base_config.mode 
 #ifdef SUSPEND_ENABLE

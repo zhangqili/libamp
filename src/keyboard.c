@@ -69,6 +69,7 @@ static Keyboard_6KROBuffer keyboard_6kro_buffer;
 
 volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 
+static uint32_t target_calibration_tick;
 
 void keyboard_keycode_event_handler(KeyboardEvent event)
 {
@@ -202,16 +203,20 @@ void keyboard_add_buffer(KeyboardEvent event)
 
 void keyboard_operation_event_handler(KeyboardEvent event)
 {
+    uint8_t modifier = KEYCODE_GET_SUB(event.keycode);
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_UP:
+        if (modifier == KEYBOARD_CALIBRATE)
+        {
+            target_calibration_tick = g_keyboard_tick + KEYBOARD_TIME_TO_TICK(CALIBRATION_DELAY);
+        }
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
         if (!event.is_virtual)
         {
             keyboard_key_event_down_callback((Key*)event.key);
         }
-        uint8_t modifier = KEYCODE_GET_SUB(event.keycode);
         if ((modifier & 0x3F) < KEYBOARD_CONFIG_BASE)
         {
             switch (modifier & 0x3F)
@@ -698,6 +703,18 @@ __WEAK void keyboard_task(void)
     {   
         packet_send_debug_packet();
     }
+#endif
+}
+
+void keyboard_process(void)
+{
+    if (target_calibration_tick && g_keyboard_tick >= target_calibration_tick)
+    {
+        target_calibration_tick = 0;
+        analog_calibrate();
+    }
+#ifdef RGB_ENABLE
+    rgb_process();
 #endif
 }
 

@@ -41,6 +41,10 @@ extern "C" {
 #define POLLING_RATE 1000
 #endif
 
+#ifndef CALIBRATION_DELAY
+#define CALIBRATION_DELAY 1000
+#endif
+
 #define NKRO_REPORT_BITS 30
 
 #define TOTAL_KEY_NUM (ADVANCED_KEY_NUM + KEY_NUM)
@@ -211,6 +215,7 @@ void keyboard_recovery(void);
 void keyboard_save(void);
 void keyboard_set_profile_index(uint8_t index);
 void keyboard_task(void);
+void keyboard_process(void);
 void keyboard_delay(uint32_t ms);
 
 static inline Key* keyboard_get_key(uint16_t id)

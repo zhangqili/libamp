@@ -242,6 +242,7 @@ enum KeyboardKeycode {
   KEYBOARD_RESET_TO_DEFAULT       = 0x04,
   KEYBOARD_RGB_BRIGHTNESS_UP      = 0x05,
   KEYBOARD_RGB_BRIGHTNESS_DOWN    = 0x06,
+  KEYBOARD_CALIBRATE              = 0x07,
   KEYBOARD_PROFILE0                = 0x10,
   KEYBOARD_PROFILE1                = 0x11,
   KEYBOARD_PROFILE2                = 0x12,
