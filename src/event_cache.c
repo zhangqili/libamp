@@ -3,32 +3,32 @@
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-#include "event_buffer.h"
+#include "event_cache.h"
 
-EventBufferList g_event_buffer_list;
-static EventBufferListNode event_buffer_list_buffer[EVENT_BUFFER_LENGTH];
+EventCacheList g_event_buffer_list;
+static EventCacheListNode event_buffer_list_buffer[EVENT_CACHE_LENGTH];
 
-void event_buffer_init(void)
+void event_cache_init(void)
 {
-    event_forward_list_init(&g_event_buffer_list, event_buffer_list_buffer, EVENT_BUFFER_LENGTH);
+    event_forward_list_init(&g_event_buffer_list, event_buffer_list_buffer, EVENT_CACHE_LENGTH);
 }
 
-void event_buffer_add_buffer(void)
+void event_cache_add_buffer(void)
 {
-    EventBufferList * list = &g_event_buffer_list;
-    EventBufferListNode * last_node = &list->data[list->head];
+    EventCacheList * list = &g_event_buffer_list;
+    EventCacheListNode * last_node = &list->data[list->head];
     UNUSED(last_node);
     for (int16_t iterator = list->data[list->head].next; iterator >= 0;)
     {
-        EventBufferListNode* node = &(list->data[iterator]);
-        EventBuffer *item = &(node->data);
+        EventCacheListNode* node = &(list->data[iterator]);
+        EventCache *item = &(node->data);
         keyboard_add_buffer(item->event);
         last_node = node;
         iterator = list->data[iterator].next;
     }
 }
 
-void event_forward_list_init(EventBufferList* list, EventBufferListNode* data, uint16_t len)
+void event_forward_list_init(EventCacheList* list, EventCacheListNode* data, uint16_t len)
 {
     list->data = data;
     list->head = -1;
@@ -40,10 +40,10 @@ void event_forward_list_init(EventBufferList* list, EventBufferListNode* data, u
     }
     list->data[len - 1].next = -1;
     list->free_node = 0;
-    event_forward_list_push_front(list, (EventBuffer){MK_EVENT(0,0,NULL),NULL});
+    event_forward_list_push_front(list, (EventCache){MK_EVENT(0,0,NULL),NULL});
 }
 
-void event_forward_list_erase_after(EventBufferList* list, EventBufferListNode* data)
+void event_forward_list_erase_after(EventCacheList* list, EventCacheListNode* data)
 {
     int16_t target = 0;
     target = data->next;
@@ -52,7 +52,7 @@ void event_forward_list_erase_after(EventBufferList* list, EventBufferListNode* 
     list->free_node = target;
 }
 
-void event_forward_list_insert_after(EventBufferList* list, EventBufferListNode* data, EventBuffer t)
+void event_forward_list_insert_after(EventCacheList* list, EventCacheListNode* data, EventCache t)
 {
     if (list->free_node == -1)
     {
@@ -67,7 +67,7 @@ void event_forward_list_insert_after(EventBufferList* list, EventBufferListNode*
     data->next = new_node;
 }
 
-void event_forward_list_push_front(EventBufferList* list, EventBuffer t)
+void event_forward_list_push_front(EventCacheList* list, EventCache t)
 {
     if (list->free_node == -1)
     {
@@ -82,13 +82,13 @@ void event_forward_list_push_front(EventBufferList* list, EventBuffer t)
     list->head = new_node;
 }
 
-void event_forward_list_remove_first(EventBufferList* list, EventBuffer t)
+void event_forward_list_remove_first(EventCacheList* list, EventCache t)
 {
-    EventBufferListNode * last_node = &list->data[list->head];
+    EventCacheListNode * last_node = &list->data[list->head];
     for (int16_t iterator = list->data[list->head].next; iterator >= 0;)
     {
-        EventBufferListNode* node = &(list->data[iterator]);
-        EventBuffer *item = &(node->data);
+        EventCacheListNode* node = &(list->data[iterator]);
+        EventCache *item = &(node->data);
         if (item->event.key == t.event.key && item->event.keycode == t.event.keycode)
         {
             event_forward_list_erase_after(list, last_node);
@@ -99,12 +99,12 @@ void event_forward_list_remove_first(EventBufferList* list, EventBuffer t)
     }
 }
 
-void event_forward_list_remove_specific_owner(EventBufferList* list, void* owner)
+void event_forward_list_remove_specific_owner(EventCacheList* list, void* owner)
 {
     for (int16_t *iterator_ptr = &list->data[list->head].next; *iterator_ptr >= 0;)
     {
-        EventBufferListNode* node = &(list->data[*iterator_ptr]);
-        EventBuffer *item = &(node->data);
+        EventCacheListNode* node = &(list->data[*iterator_ptr]);
+        EventCache *item = &(node->data);
         if ((*item).owner == owner)
         {
             int16_t free_node = *iterator_ptr;
@@ -118,12 +118,12 @@ void event_forward_list_remove_specific_owner(EventBufferList* list, void* owner
     }
 }
 
-bool event_forward_list_exists_keycode(EventBufferList* list, void* owner, Keycode keycode)
+bool event_forward_list_exists_keycode(EventCacheList* list, void* owner, Keycode keycode)
 {
     int16_t current_idx = list->data[list->head].next;
     while (current_idx >= 0)
     {
-        EventBufferListNode* node = &list->data[current_idx];
+        EventCacheListNode* node = &list->data[current_idx];
         if (node->data.owner == owner && node->data.event.keycode == keycode)
         {
             return true;
@@ -133,12 +133,12 @@ bool event_forward_list_exists_keycode(EventBufferList* list, void* owner, Keyco
     return false;
 }
 
-void event_forward_list_remove_first_keycode(EventBufferList* list, void* owner, Keycode keycode)
+void event_forward_list_remove_first_keycode(EventCacheList* list, void* owner, Keycode keycode)
 {
     for (int16_t *iterator_ptr = &list->data[list->head].next; *iterator_ptr >= 0;)
     {
-        EventBufferListNode* node = &(list->data[*iterator_ptr]);
-        EventBuffer *item = &(node->data);
+        EventCacheListNode* node = &(list->data[*iterator_ptr]);
+        EventCache *item = &(node->data);
         if ((*item).owner == owner && item->event.keycode == keycode)
         {
             int16_t free_node = *iterator_ptr;

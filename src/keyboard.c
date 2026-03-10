@@ -48,7 +48,7 @@
 #ifdef SCRIPT_ENABLE
 #include "script.h"
 #endif
-#include "event_buffer.h"
+#include "event_cache.h"
 
 __WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
 __WEAK Key g_keyboard_keys[KEY_NUM];
@@ -429,7 +429,7 @@ void keyboard_init(void)
     setup_midi();
 #endif
 #if defined(MACRO_ENABLE) || defined(SCRIPT_ENABLE)
-    event_buffer_init();
+    event_cache_init();
 #endif
 #ifdef MACRO_ENABLE
     macro_init();
@@ -590,7 +590,7 @@ void keyboard_fill_buffer(void)
     dynamic_key_add_buffer();
 #endif
 #if defined(MACRO_ENABLE) || defined(SCRIPT_ENABLE)
-    event_buffer_add_buffer();
+    event_cache_add_buffer();
 #endif
 }
 

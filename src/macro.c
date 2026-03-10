@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "macro.h"
-#include "event_buffer.h"
+#include "event_cache.h"
 
 Macro g_macros[MACRO_NUMS];
 static MacroAction actions[MACRO_NUMS][MACRO_MAX_ACTIONS];
@@ -179,11 +179,11 @@ void macro_process(void)
                 }
                 if (macro->actions[macro->index].event.event == KEYBOARD_EVENT_KEY_DOWN)
                 {
-                    event_forward_list_insert_after(&g_event_buffer_list, &g_event_buffer_list.data[g_event_buffer_list.head], (EventBuffer){event,macro});
+                    event_forward_list_insert_after(&g_event_buffer_list, &g_event_buffer_list.data[g_event_buffer_list.head], (EventCache){event,macro});
                 }
                 else
                 {
-                    event_forward_list_remove_first(&g_event_buffer_list, (EventBuffer){event,macro});
+                    event_forward_list_remove_first(&g_event_buffer_list, (EventCache){event,macro});
                 }
                 macro->index++;
             }
