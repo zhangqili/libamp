@@ -20,6 +20,7 @@ add_executable(libamp_tests
     joystick/test_joystick.cpp
     packet/test_packet.cpp
     storage/test_storage.cpp
+    layer/test_layer.cpp
 )
 
 target_link_libraries(libamp_tests
