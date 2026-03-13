@@ -8,7 +8,7 @@
 
 #include "key.h"
 #include "advanced_key.h"
-#include "keyboard_conf.h"
+#include "keyboard_config.h"
 #include "keyboard_def.h"
 #include "event.h"
 #include "keycode.h"

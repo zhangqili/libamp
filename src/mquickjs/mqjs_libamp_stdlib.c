@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "mquickjs_build.h"
-#include "keyboard_conf.h"
+#include "keyboard_config.h"
 
 static const JSPropDef js_key_proto[] = {
     JS_CGETSET_DEF("id", js_key_get_id, NULL),

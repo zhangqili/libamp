@@ -10,7 +10,7 @@
 #include "stddef.h"
 #include "stdbool.h"
 
-#include "keyboard_conf.h"
+#include "keyboard_config.h"
 
 #ifdef __cplusplus
 extern "C" {

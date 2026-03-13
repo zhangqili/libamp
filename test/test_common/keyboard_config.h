@@ -3,8 +3,8 @@
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-#ifndef KEYBOARD_CONF_H_
-#define KEYBOARD_CONF_H_
+#ifndef KEYBOARD_CONFIG_H_
+#define KEYBOARD_CONFIG_H_
 
 /********************/
 /* Keyboard General */
@@ -167,4 +167,4 @@
 #define SCRIPT_ENABLE
 //#define SCRIPT_MINIMAL
 
-#endif /* KEYBOARD_CONF_H_ */
+#endif /* KEYBOARD_CONFIG_H_ */

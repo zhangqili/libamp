@@ -1,6 +1,6 @@
 #pragma once
 
-#include "keyboard_conf.h"
+#include "keyboard_config.h"
 #include "stdint.h"
 #include "keyboard_def.h"
 /** \brief MIDI Class Driver Event Packet.
