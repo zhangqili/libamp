@@ -24,7 +24,7 @@ if (EMSCRIPTEN)
         "-sEXPORTED_RUNTIME_METHODS=['callMain','FS']" 
         "-sMODULARIZE=1"
         "-sEXPORT_NAME='createMqjsCompiler'"
-        "-sINVOKE_RUN=0"z
+        "-sINVOKE_RUN=0"
         "-sEXIT_RUNTIME=0"
         "-sEXPORT_ES6=1"
         "-sUSE_ES6_IMPORT_META=1"
