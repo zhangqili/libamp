@@ -183,8 +183,13 @@ extern volatile KeyboardReportFlag g_keyboard_report_flags;
 extern volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 
 void keyboard_event_handler(KeyboardEvent event);
+void keyboard_event_poller(KeyboardEvent event, uint32_t tick);
 void keyboard_operation_event_handler(KeyboardEvent event);
+void keyboard_operation_event_poller(KeyboardEvent event, uint32_t tick);
+void keyboard_user_event_handler(KeyboardEvent event);
+void keyboard_user_event_poller(KeyboardEvent event, uint32_t tick);
 void keyboard_key_event_down_callback(Key*key);
+void keyboard_key_event_down_callback_user(Key*key);
 
 void keyboard_add_buffer(KeyboardEvent event);
 int keyboard_buffer_send(void);
@@ -207,7 +212,6 @@ void keyboard_reboot(void);
 void keyboard_reset_to_default(void);
 void keyboard_factory_reset(void);
 void keyboard_jump_to_bootloader(void);
-void keyboard_user_event_handler(KeyboardEvent event);
 void keyboard_scan(void);
 void keyboard_fill_buffer(void);
 void keyboard_send_report(void);

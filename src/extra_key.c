@@ -35,10 +35,6 @@ void extra_key_event_handler(KeyboardEvent event)
     case KEYBOARD_EVENT_KEY_FALSE:
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
-        if (!event.is_virtual)
-        {
-            keyboard_key_event_down_callback((Key*)event.key);
-        }
         switch (KEYCODE_GET_MAIN(event.keycode))
         {
         case CONSUMER_COLLECTION:

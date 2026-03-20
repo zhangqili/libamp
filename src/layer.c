@@ -18,10 +18,6 @@ void layer_event_handler(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
-        if (!event.is_virtual)
-        {
-            keyboard_key_event_down_callback((Key*)event.key);
-        }
         switch ((event.keycode >> 12) & 0x0F)
         {
         case LAYER_MOMENTARY:

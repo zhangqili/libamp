@@ -373,7 +373,11 @@ static void js_keyboard_press(JSContext *ctx, Keycode keycode, bool multi_press)
     keyboard_event_handler(event);
     if (multi_press || !event_forward_list_exists_keycode(&g_event_buffer_list, ctx, keycode))
     {
-        event_forward_list_insert_after(&g_event_buffer_list, &g_event_buffer_list.data[g_event_buffer_list.head], (EventCache){event,ctx});
+#ifdef SCRIPT_POLLING
+        event_cache_buffer_push(event, ctx);
+#else
+        event_cache_push(event, ctx);
+#endif
     }
 }
 

@@ -84,10 +84,6 @@ extern "C" {
 #define RGB_GAMMA 2.2f
 #endif
 
-#ifndef RGB_ARGUMENT_BUFFER_LENGTH
-#define RGB_ARGUMENT_BUFFER_LENGTH 64
-#endif
-
 #ifndef RGB_ARGUMENT_LIST_BUFFER_LENGTH
 #define RGB_ARGUMENT_LIST_BUFFER_LENGTH 64
 #endif
@@ -155,8 +151,6 @@ typedef struct __RGBArgument
     uint8_t rgb_ptr;
 }RGBArgument;
 
-typedef RGBArgument RGBLoopQueueElm;
-
 typedef struct __RGBArgumentListNode
 {
     RGBArgument data;
@@ -171,18 +165,6 @@ typedef struct __RGBArgumentList
     int16_t len;
     int16_t free_node;
 } RGBArgumentList;
-
-typedef struct __RGBLoopQueue
-{
-    RGBLoopQueueElm *data;
-    int16_t front;
-    int16_t rear;
-    int16_t len;
-} RGBLoopQueue;
-
-void rgb_loop_queue_init(RGBLoopQueue* q, RGBLoopQueueElm*data, uint16_t len);
-RGBLoopQueueElm rgb_loop_queue_pop(RGBLoopQueue* q);
-void rgb_loop_queue_push(RGBLoopQueue* q, RGBLoopQueueElm t);
 
 void rgb_forward_list_init(RGBArgumentList* list, RGBArgumentListNode*data, uint16_t len);
 void rgb_forward_list_erase_after(RGBArgumentList* list, RGBArgumentListNode*data);
@@ -211,7 +193,7 @@ void rgb_flash(void);
 void rgb_turn_off(void);
 void rgb_flush(void);
 void rgb_factory_reset(void);
-void rgb_activate(uint16_t id);
+void rgb_activate(uint16_t id, uint32_t tick);
 
 #ifdef __cplusplus
 }

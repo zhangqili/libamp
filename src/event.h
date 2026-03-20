@@ -28,5 +28,7 @@ typedef struct
 #define MK_EVENT(keycode, event, key) ((KeyboardEvent){(keycode), (event), false, (key)})
 #define MK_VIRTUAL_EVENT(keycode, event, key) ((KeyboardEvent){(keycode), (event), true, (key)})
 #define CALC_EVENT(state, next_state) ((((bool)(state)) != ((bool)(next_state))) | (((bool)(next_state)) << 1))
+#define EVENT_CHANGED(event) ((event) & 0x01)
+#define EVENT_STATE(event) (((event) >> 1) & 0x01)
 
 #endif //EVENT_H

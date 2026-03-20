@@ -49,6 +49,7 @@
 #include "script.h"
 #endif
 #include "event_cache.h"
+#include "event_buffer.h"
 
 __WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
 __WEAK Key g_keyboard_keys[KEY_NUM];
@@ -71,15 +72,14 @@ volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 
 static uint32_t target_calibration_tick;
 
+static EventLoopQueue event_buffer;
+static EventLoopQueueElm event_buffers[EVENT_BUFFER_LENGTH];
+
 void keyboard_keycode_event_handler(KeyboardEvent event)
 {
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
-        if (!event.is_virtual)
-        {    
-            keyboard_key_event_down_callback((Key*)event.key);
-        }
         g_keyboard_report_flags.keyboard = true;
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
@@ -96,6 +96,10 @@ void keyboard_keycode_event_handler(KeyboardEvent event)
 
 void keyboard_event_handler(KeyboardEvent event)
 {
+    if (EVENT_CHANGED(event.event))
+    {
+        event_loop_queue_push(&event_buffer, (EventLoopQueueElm){event, g_keyboard_tick});
+    }
 #ifdef SCRIPT_ENABLE
     script_event_handler(event);
 #endif
@@ -105,6 +109,10 @@ void keyboard_event_handler(KeyboardEvent event)
     if (!event.is_virtual)
     {
         layer_lock_handler(event);
+    }
+    if (!event.is_virtual && event.event == KEYBOARD_EVENT_KEY_DOWN)
+    {    
+        keyboard_key_event_down_callback((Key*)event.key);
     }
     switch (KEYCODE_GET_MAIN(event.keycode))
     {
@@ -155,6 +163,32 @@ void keyboard_event_handler(KeyboardEvent event)
     }
 }
 
+void keyboard_event_poller(KeyboardEvent event, uint32_t tick)
+{
+#ifdef SCRIPT_ENABLE
+    script_event_poller(event, tick);
+#endif
+    if (!event.is_virtual && event.event == KEYBOARD_EVENT_KEY_DOWN)
+    {    
+        Key * key = (Key*)event.key;
+#ifdef RGB_ENABLE
+        rgb_activate(key->id, g_keyboard_tick);
+#endif
+        // keyboard_key_event_down_callback((Key*)event.key);
+    }
+    switch (KEYCODE_GET_MAIN(event.keycode))
+    {
+    case KEYBOARD_OPERATION:
+        keyboard_operation_event_poller(event, tick);
+        break;
+    case KEY_USER:
+        keyboard_user_event_poller(event, tick);
+        break;
+    default:
+        break;
+    }
+}
+
 void keyboard_add_buffer(KeyboardEvent event)
 {
     const uint8_t keycode = KEYCODE_GET_MAIN(event.keycode);
@@ -201,7 +235,7 @@ void keyboard_add_buffer(KeyboardEvent event)
     }
 }
 
-void keyboard_operation_event_handler(KeyboardEvent event)
+static void keyboard_operation_event_handler_(KeyboardEvent event)
 {
     uint8_t modifier = KEYCODE_GET_SUB(event.keycode);
     switch (event.event)
@@ -213,10 +247,6 @@ void keyboard_operation_event_handler(KeyboardEvent event)
         }
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
-        if (!event.is_virtual)
-        {
-            keyboard_key_event_down_callback((Key*)event.key);
-        }
         if ((modifier & 0x3F) < KEYBOARD_CONFIG_BASE)
         {
             switch (modifier & 0x3F)
@@ -226,6 +256,7 @@ void keyboard_operation_event_handler(KeyboardEvent event)
                 break;
             case KEYBOARD_FACTORY_RESET:
                 keyboard_factory_reset();
+                packet_send_version_packet();
                 break;
             case KEYBOARD_SAVE:
                 keyboard_save();
@@ -235,6 +266,7 @@ void keyboard_operation_event_handler(KeyboardEvent event)
                 break;
             case KEYBOARD_RESET_TO_DEFAULT:
                 keyboard_reset_to_default();
+                packet_send_version_packet();
                 break;
 #ifdef RGB_ENABLE
             case KEYBOARD_RGB_BRIGHTNESS_UP:
@@ -263,6 +295,7 @@ void keyboard_operation_event_handler(KeyboardEvent event)
             case KEYBOARD_PROFILE2:
             case KEYBOARD_PROFILE3:
                 keyboard_set_profile_index((event.keycode >> 8) & 0x0F);
+                packet_send_version_packet();
                 break;
             default:
                 break;
@@ -295,20 +328,35 @@ void keyboard_operation_event_handler(KeyboardEvent event)
     }
 }
 
+void keyboard_operation_event_handler(KeyboardEvent event)
+{
+#ifndef KEYBOARD_OPERATION_POLLING
+    keyboard_operation_event_handler_(event);
+#endif
+}
+
+void keyboard_operation_event_poller(KeyboardEvent event, uint32_t tick)
+{
+    UNUSED(tick);
+#ifdef KEYBOARD_OPERATION_POLLING
+    keyboard_operation_event_handler_(event);
+#endif
+}
+
 void keyboard_key_event_down_callback(Key*key)
 {
-    if (IS_ADVANCED_KEY(key))
-    {
-#ifdef RGB_ENABLE
-        rgb_activate(key->id);
-#endif
+    keyboard_key_event_down_callback_user(key);
 #ifdef KPS_ENABLE
-        record_kps_tick();
+    record_kps_tick();
 #endif
 #ifdef COUNTER_ENABLE
-        g_key_counts[key->id]++;
+    g_key_counts[key->id]++;
 #endif
-    }
+}
+
+__WEAK void keyboard_key_event_down_callback_user(Key*key)
+{
+
 }
 
 int keyboard_buffer_send(void)
@@ -431,6 +479,7 @@ void keyboard_init(void)
 #if defined(MACRO_ENABLE) || defined(SCRIPT_ENABLE)
     event_cache_init();
 #endif
+    event_loop_queue_init(&event_buffer, event_buffers, EVENT_BUFFER_LENGTH);
 #ifdef MACRO_ENABLE
     macro_init();
 #endif
@@ -501,6 +550,11 @@ __WEAK void keyboard_user_event_handler(KeyboardEvent event)
     UNUSED(event);
 }
 
+__WEAK void keyboard_user_event_poller(KeyboardEvent event, uint32_t tick)
+{
+    UNUSED(event);
+    UNUSED(tick);
+}
 
 __WEAK void keyboard_scan(void)
 {
@@ -666,7 +720,7 @@ __WEAK void keyboard_task(void)
         keyboard_advanced_key_update_raw(advanced_key, advanced_key_read_raw(advanced_key));
     }
 #endif
-#ifdef SCRIPT_ENABLE
+#if defined(SCRIPT_ENABLE) && !defined(SCRIPT_POLLING)
     script_process();
 #endif
 #ifdef MACRO_ENABLE
@@ -708,10 +762,19 @@ __WEAK void keyboard_task(void)
 
 void keyboard_process(void)
 {
+    event_loop_queue_foreach(&event_buffer, EventLoopQueueElm, event)
+    {
+        keyboard_event_poller(event->event, event->tick);
+        event_loop_queue_pop(&event_buffer);
+    }
+#if defined(SCRIPT_ENABLE) && defined(SCRIPT_POLLING)
+    script_process();
+#endif
     if (target_calibration_tick && g_keyboard_tick >= target_calibration_tick)
     {
         target_calibration_tick = 0;
         analog_calibrate();
+        packet_send_version_packet();
     }
 #ifdef RGB_ENABLE
     rgb_process();

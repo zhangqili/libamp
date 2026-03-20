@@ -44,6 +44,7 @@ void script_load_bytecode(uint8_t *bytecode_buf, size_t len);
 void script_update_bytecode(uint8_t *bytecode_buf, size_t len);
 void script_watch(uint16_t id);
 void script_event_handler(KeyboardEvent event);
+void script_event_poller(KeyboardEvent event, uint32_t tick);
 
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
 extern uint8_t g_script_bytecode_buffer[SCRIPT_BYTECODE_BUFFER_SIZE];

@@ -56,11 +56,6 @@ typedef struct __PacketEvent
   uint8_t use_keymap;
 } __PACKED PacketEvent;
 
-typedef struct __PacketCommand
-{
-  uint8_t code;
-} __PACKED PacketCommand;
-
 typedef struct __PacketData
 {
   uint8_t code;
@@ -73,7 +68,7 @@ typedef struct __PacketAdvancedKey
   uint8_t type;
   uint16_t index;
   AdvancedKeyConfigurationNormalized data;
-} PacketAdvancedKey;
+} __PACKED PacketAdvancedKey;
 
 typedef struct __PacketRGBBaseConfig
 {
@@ -264,6 +259,8 @@ void packet_process_config(PacketData*data);
 void packet_process_debug(PacketData*data);
 void packet_process_macro(PacketData*data);
 void packet_process_feature(PacketData*data);
+
+void packet_send_version_packet(void);
 void packet_send_debug_packet(void);
 void packet_process_user(uint8_t *buf, uint16_t len);
 void large_packet_process(PacketLargeData *buf);
