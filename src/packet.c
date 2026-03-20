@@ -441,7 +441,7 @@ void packet_process_macro(PacketData*data)
 void packet_process_feature(PacketData *data)
 {
     PacketFeature *packet = (PacketFeature *)data;
-
+    UNUSED(packet);
     if (data->code == PACKET_CODE_GET)
     {
         //todo
@@ -450,7 +450,7 @@ void packet_process_feature(PacketData *data)
 
 void packet_send_version_packet(void)
 {
-    uint8_t buf[64];
+    uint8_t buf[64] = {0};
     PacketVersion* packet = (PacketVersion*)buf;
     packet->code = PACKET_CODE_GET;
     packet->type = PACKET_DATA_VERSION;
@@ -460,7 +460,7 @@ void packet_send_version_packet(void)
 
 void packet_send_debug_packet(void)
 {
-#ifdef DEBUG_INTERVAL
+#if DEBUG_INTERVAL > 0
     static uint16_t timer;
     timer++;
     if (timer < DEBUG_INTERVAL)

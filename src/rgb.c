@@ -458,7 +458,7 @@ void rgb_flush(void)
 
 void rgb_activate(uint16_t id, uint32_t tick)
 {
-    if (id >= RGB_NUM || (~g_rgb_inverse_mapping[id]) == 0)
+    if (id >= RGB_NUM || g_rgb_inverse_mapping[id] == 0xFFFF)
     {
         return;
     }

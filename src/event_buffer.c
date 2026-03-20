@@ -15,7 +15,7 @@ void event_loop_queue_init(EventLoopQueue *q, EventLoopQueueElm *data, uint16_t 
 
 EventLoopQueueElm event_loop_queue_pop(EventLoopQueue *q)
 {
-    EventLoopQueueElm a = {0, 0};
+    EventLoopQueueElm a = {{0}, 0};
     if (q->front == q->rear)
         return a;
     q->front = (q->front + 1) % (q->len);
