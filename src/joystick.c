@@ -23,10 +23,6 @@ void joystick_event_handler(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
-        if (!event.is_virtual)
-        {
-            keyboard_key_event_down_callback((Key*)event.key);
-        }
         g_keyboard_report_flags.joystick = true;
         break;
     case KEYBOARD_EVENT_KEY_TRUE:

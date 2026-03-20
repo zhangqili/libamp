@@ -28,19 +28,12 @@ RGBBaseConfig g_rgb_base_config;
 RGBConfig g_rgb_configs[RGB_NUM];
 ColorRGB g_rgb_colors[RGB_NUM];
 
-#ifdef RGB_USE_LIST_EXPERIMENTAL
 static RGBArgumentList rgb_argument_list;
 static RGBArgumentListNode RGB_Argument_List_Buffer[RGB_ARGUMENT_LIST_BUFFER_LENGTH];
-#endif
-static RGBLoopQueue rgb_argument_queue;
-static RGBLoopQueueElm RGB_Argument_Buffer[RGB_ARGUMENT_BUFFER_LENGTH];
 
 void rgb_init(void)
 {
-#ifdef RGB_USE_LIST_EXPERIMENTAL
     rgb_forward_list_init(&rgb_argument_list, RGB_Argument_List_Buffer, RGB_ARGUMENT_LIST_BUFFER_LENGTH);
-#endif
-    rgb_loop_queue_init(&rgb_argument_queue, RGB_Argument_Buffer, RGB_ARGUMENT_BUFFER_LENGTH);
 #ifndef RGB_CUSTOM_INVERSE_MAPPING
     for (int i = 0; i < RGB_NUM; i++)
     {
@@ -125,43 +118,24 @@ void rgb_process(void)
         break;
     }
 
-
-#ifdef RGB_USE_LIST_EXPERIMENTAL
-    rgb_loop_queue_foreach(&rgb_argument_queue, RGBLoopQueueElm, item)
-    {
-        rgb_forward_list_insert_after(&rgb_argument_list,&rgb_argument_list.data[rgb_argument_list.head], *item);
-        rgb_loop_queue_pop(&rgb_argument_queue);
-    }
     for (int16_t* iterator_ptr = &rgb_argument_list.data[rgb_argument_list.head].next; *iterator_ptr >= 0;)
     {
         RGBArgumentListNode* node = &(rgb_argument_list.data[*iterator_ptr]);
         RGBArgument * item = &(node->data);
-#else
-    rgb_loop_queue_foreach(&rgb_argument_queue, RGBLoopQueueElm, item)
-    {
-#endif
         RGBConfig *config = g_rgb_configs + item->rgb_ptr;
         RGBLocation *location = (RGBLocation *)&g_rgb_locations[item->rgb_ptr];
         uint32_t duration = KEYBOARD_TICK_TO_TIME(g_keyboard_tick - item->begin_tick);
         float distance = duration * config->speed;
-#ifndef RGB_USE_LIST_EXPERIMENTAL
-        if (duration > RGB_MAX_DURATION)
-        {
-            rgb_loop_queue_pop(&rgb_argument_queue);
-        }
-#endif
         if (MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT, location->y, RGB_TOP) < distance - FADING_DISTANCE &&
             MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT, location->y, RGB_BOTTOM) < distance - FADING_DISTANCE &&
             MANHATTAN_DISTANCE_DIRECT(location->x, RGB_RIGHT, location->y, RGB_TOP) < distance - FADING_DISTANCE &&
             MANHATTAN_DISTANCE_DIRECT(location->x, RGB_RIGHT, location->y, RGB_BOTTOM) < distance - FADING_DISTANCE)
         // if (distance > 25)
         {
-#ifdef RGB_USE_LIST_EXPERIMENTAL
             int16_t free_node = *iterator_ptr;
             *iterator_ptr = node->next;
             node->next = (&rgb_argument_list)->free_node;
             (&rgb_argument_list)->free_node = free_node;
-#endif
             continue;
         }
         switch (config->mode)
@@ -266,9 +240,7 @@ void rgb_process(void)
         default:
             break;
         }
-#ifdef RGB_USE_LIST_EXPERIMENTAL
         iterator_ptr = &(&rgb_argument_list)->data[*iterator_ptr].next;
-#endif
     }
     for (uint16_t i = 0; i < RGB_NUM; i++)
     {
@@ -484,16 +456,16 @@ void rgb_flush(void)
     led_flush();
 }
 
-void rgb_activate(uint16_t id)
+void rgb_activate(uint16_t id, uint32_t tick)
 {
-    if (id >= RGB_NUM)
+    if (id >= RGB_NUM || (~g_rgb_inverse_mapping[id]) == 0)
     {
         return;
     }
     RGBArgument a;
     a.rgb_ptr = g_rgb_inverse_mapping[id];
-    a.begin_tick = g_keyboard_tick;
-    g_rgb_configs[a.rgb_ptr].begin_tick = g_keyboard_tick;
+    a.begin_tick = tick;
+    g_rgb_configs[a.rgb_ptr].begin_tick = tick;
     switch (g_rgb_configs[a.rgb_ptr].mode)
     {
     case RGB_MODE_STRING:
@@ -501,36 +473,11 @@ void rgb_activate(uint16_t id)
     case RGB_MODE_DIAMOND_RIPPLE:
     case RGB_MODE_FADING_DIAMOND_RIPPLE:
     case RGB_MODE_BUBBLE:
-        rgb_loop_queue_push(&rgb_argument_queue, a);
+        rgb_forward_list_insert_after(&rgb_argument_list,&rgb_argument_list.data[rgb_argument_list.head], a);
         break;
     default:
         break;
     }
-}
-
-void rgb_loop_queue_init(RGBLoopQueue *q, RGBLoopQueueElm *data, uint16_t len)
-{
-    q->data = data;
-    q->front = 0;
-    q->rear = 0;
-    q->len = len;
-}
-
-RGBLoopQueueElm rgb_loop_queue_pop(RGBLoopQueue *q)
-{
-    RGBArgument a = {0, 0};
-    if (q->front == q->rear)
-        return a;
-    q->front = (q->front + 1) % (q->len);
-    return q->data[(q->front + q->len - 1) % (q->len)];
-}
-
-void rgb_loop_queue_push(RGBLoopQueue *q, RGBLoopQueueElm t)
-{
-    if (((q->rear + 1) % (q->len)) == q->front)
-        return;
-    q->data[q->rear] = t;
-    q->rear = (q->rear + 1) % (q->len);
 }
 
 void rgb_forward_list_init(RGBArgumentList* list, RGBArgumentListNode* data, uint16_t len)

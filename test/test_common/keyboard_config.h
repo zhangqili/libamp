@@ -78,7 +78,6 @@
 #define RGB_TOP                 -0.5f
 #define RGB_RIGHT               14.5f
 #define RGB_BOTTOM              4.5f
-#define RGB_USE_LIST_EXPERIMENTAL
 #define RGB_GAMMA_ENABLE
 #define RGB_GAMMA               2.2f
 #define RGB_CUSTOM_INVERSE_MAPPING

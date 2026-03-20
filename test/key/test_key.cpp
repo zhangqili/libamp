@@ -4,6 +4,7 @@
 
 static int num;
 
+#ifdef KEY_USE_CALLBACK
 extern "C" void key_up_cb(void*key)
 {
     num = KEY_EVENT_UP;
@@ -24,6 +25,7 @@ TEST(KeyTest, Event)
     key_update(&key, false);
     EXPECT_EQ(num, KEY_EVENT_UP);
 }
+#endif
 
 TEST(KeyTest, State)
 {

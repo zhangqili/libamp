@@ -30,9 +30,9 @@ static inline void analog_kalman_filter_init(void)
     {    
         float mean = sum[i] / 128.0f;
         float variance = (sum_sq[i] / 128.0f) - (mean * mean);
-        float estimated_R = variance > 0.5f ? variance : 0.5f;
+        float estimated_R = variance > 0.001f ? variance : 0.001f;
     
-        kalman_filter_init(&g_analog_filters[i], 1.0f/(float)POLLING_RATE, 0.01f, 0.1f, estimated_R);
+        kalman_filter_init(&g_analog_filters[i], 1.0f/(float)POLLING_RATE, 10.0f, 500.0f, estimated_R);
     }
 }
 #endif

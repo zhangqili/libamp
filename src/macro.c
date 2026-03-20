@@ -6,12 +6,12 @@
 #include "macro.h"
 #include "event_cache.h"
 
-Macro g_macros[MACRO_NUMS];
-static MacroAction actions[MACRO_NUMS][MACRO_MAX_ACTIONS];
+Macro g_macros[MACRO_NUM];
+static MacroAction actions[MACRO_NUM][MACRO_MAX_ACTIONS];
 
 void macro_init(void)
 {
-    for (int i = 0; i < MACRO_NUMS; i++)
+    for (int i = 0; i < MACRO_NUM; i++)
     {
         g_macros[i].actions = actions[i];
     }
@@ -78,7 +78,7 @@ void macro_record_handler(KeyboardEvent event)
 {
     if (event.keycode && (event.event == KEYBOARD_EVENT_KEY_DOWN || event.event == KEYBOARD_EVENT_KEY_UP))
     {
-        for (int i = 0; i < MACRO_NUMS; i++)
+        for (int i = 0; i < MACRO_NUM; i++)
         {
             Macro *macro = &g_macros[i];
             switch (macro->state)
@@ -145,7 +145,7 @@ void macro_stop_play(Macro*macro)
 
 void macro_process(void)
 {
-    for (int i = 0; i < MACRO_NUMS; i++)
+    for (int i = 0; i < MACRO_NUM; i++)
     {
         Macro *macro = &g_macros[i];
         switch (macro->state)

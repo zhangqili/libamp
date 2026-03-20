@@ -290,7 +290,7 @@ void script_process(void)
     run_timers(js_ctx);
 }
 
-void script_event_handler(KeyboardEvent event)
+static void script_event_handler_(KeyboardEvent event)
 {
     JSGCRef func_ref;
     JSValue *pfunc;
@@ -302,10 +302,6 @@ void script_event_handler(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
-        //if (!event.is_virtual)
-        //{
-        //    keyboard_key_event_down_callback((Key*)event.key);
-        //}
     case KEYBOARD_EVENT_KEY_UP:
         if (event.event == KEYBOARD_EVENT_KEY_UP)
         {
@@ -365,6 +361,21 @@ void script_event_handler(KeyboardEvent event)
     default:
         break;
     }
+}
+
+void script_event_handler(KeyboardEvent event)
+{
+#ifndef SCRIPT_POLLING
+    script_event_handler_(event);
+#endif
+}
+
+void script_event_poller(KeyboardEvent event, uint32_t tick)
+{
+    UNUSED(tick);
+#ifdef SCRIPT_POLLING
+    script_event_handler_(event);
+#endif
 }
 
 void script_deinit(void)

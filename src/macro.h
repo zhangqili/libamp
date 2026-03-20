@@ -12,8 +12,8 @@
 extern "C" {
 #endif
 
-#ifndef MACRO_NUMS
-#define MACRO_NUMS 4
+#ifndef MACRO_NUM
+#define MACRO_NUM 4
 #endif
 
 #ifndef MACRO_MAX_ACTIONS
@@ -65,7 +65,7 @@ typedef struct __Macro
     MacroAction* actions;
 } Macro;
 
-extern Macro g_macros[MACRO_NUMS];
+extern Macro g_macros[MACRO_NUM];
 
 void macro_init(void);
 

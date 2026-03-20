@@ -120,9 +120,10 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
     case PACKET_CODE_EVENT:
         {
             PacketEvent* packet_event = (PacketEvent*)packet;
-            const Key *key = packet_event->is_virtual ? NULL : keyboard_get_key(packet_event->id);
+            Key *key = packet_event->is_virtual ? NULL : keyboard_get_key(packet_event->id);
             if (key != NULL)
             {
+#ifdef KEY_CALLBACK_ENABLE
                 switch (packet_event->event)
                 {
                 case KEYBOARD_EVENT_KEY_DOWN:
@@ -134,6 +135,7 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
                 default:
                     break;
                 }
+#endif
             }
             KeyboardEvent event = {
                 .keycode = packet_event->use_keymap ? layer_cache_get_keycode(packet_event->id) : packet_event->keycode,
@@ -165,13 +167,16 @@ void packet_process_advanced_key(PacketData*data)
 {   
     PacketAdvancedKey* packet = (PacketAdvancedKey*)data;
     uint16_t key_index = packet->index;
+    AdvancedKeyConfigurationNormalized config_buffer;
     if (data->code == PACKET_CODE_SET)
     {
-        command_advanced_key_config_anti_normalize(&g_keyboard_advanced_keys[key_index].config, &packet->data);
+        memcpy(&config_buffer, &packet->data, sizeof(AdvancedKeyConfigurationNormalized));
+        command_advanced_key_config_anti_normalize(&g_keyboard_advanced_keys[key_index].config, &config_buffer);
     }
     else if (data->code == PACKET_CODE_GET)
-    {
-        command_advanced_key_config_normalize(&packet->data, &g_keyboard_advanced_keys[key_index].config);
+    {   
+        command_advanced_key_config_normalize(&config_buffer, &g_keyboard_advanced_keys[key_index].config);
+        memcpy(&packet->data, &config_buffer, sizeof(AdvancedKeyConfigurationNormalized));
     }
 }
 
@@ -377,6 +382,14 @@ void packet_process_macro(PacketData*data)
 {
 #ifdef MACRO_ENABLE
     PacketMacro* packet = (PacketMacro*)data;
+    if (packet->length>4)
+    {
+        return;
+    }
+    if (packet->macro_index >= MACRO_NUM) 
+    {
+        return;
+    }
     if (data->code == PACKET_CODE_SET)
     {
         for (uint8_t i = 0; i < packet->length; i++)
@@ -429,6 +442,16 @@ void packet_process_feature(PacketData *data)
     }
 }
 
+void packet_send_version_packet(void)
+{
+    uint8_t buf[64];
+    PacketVersion* packet = (PacketVersion*)buf;
+    packet->code = PACKET_CODE_GET;
+    packet->type = PACKET_DATA_VERSION;
+    packet_process_buffer((uint8_t*)packet, sizeof(PacketVersion));
+    hid_send_raw((uint8_t*)packet, 63);
+}
+
 void packet_send_debug_packet(void)
 {
 #ifdef DEBUG_INTERVAL
@@ -449,7 +472,7 @@ void packet_send_debug_packet(void)
     {
         packet->data[i].index = debug_buffer[i];
     }
-    packet_process((uint8_t*)packet, sizeof(PacketDebug) + debug_length * sizeof(packet->data[0]));
+    packet_process_buffer((uint8_t*)packet, sizeof(PacketDebug) + debug_length * sizeof(packet->data[0]));
     hid_send_raw((uint8_t*)packet, 63);
 }
 
