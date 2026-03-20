@@ -16,6 +16,10 @@ extern "C" {
 #define EVENT_CACHE_LENGTH 16
 #endif
 
+#ifndef EVENT_CACHE_BUFFER_LENGTH
+#define EVENT_CACHE_BUFFER_LENGTH 4
+#endif
+
 typedef struct __EventCache
 {
     KeyboardEvent event;
@@ -49,6 +53,9 @@ void event_forward_list_remove_first(EventCacheList* list, EventCache t);
 void event_forward_list_remove_specific_owner(EventCacheList* list, void* owner);
 bool event_forward_list_exists_keycode(EventCacheList* list, void* owner, Keycode keycode);
 void event_forward_list_remove_first_keycode(EventCacheList* list, void* owner, Keycode keycode);
+
+void event_cache_buffer_push(KeyboardEvent event, void* owner);
+void event_cache_push(KeyboardEvent event, void* owner);
 
 #ifdef __cplusplus
 }

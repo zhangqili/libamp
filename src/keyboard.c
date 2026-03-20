@@ -72,7 +72,7 @@ volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 
 static uint32_t target_calibration_tick;
 
-EventLoopQueue g_event_buffer;
+static EventLoopQueue event_buffer;
 static EventLoopQueueElm event_buffers[EVENT_BUFFER_LENGTH];
 
 void keyboard_keycode_event_handler(KeyboardEvent event)
@@ -98,7 +98,7 @@ void keyboard_event_handler(KeyboardEvent event)
 {
     if (EVENT_CHANGED(event.event))
     {
-        event_loop_queue_push(&g_event_buffer, (EventLoopQueueElm){event, g_keyboard_tick});
+        event_loop_queue_push(&event_buffer, (EventLoopQueueElm){event, g_keyboard_tick});
     }
 #ifdef SCRIPT_ENABLE
     script_event_handler(event);
@@ -479,7 +479,7 @@ void keyboard_init(void)
 #if defined(MACRO_ENABLE) || defined(SCRIPT_ENABLE)
     event_cache_init();
 #endif
-    event_loop_queue_init(&g_event_buffer, event_buffers, EVENT_BUFFER_LENGTH);
+    event_loop_queue_init(&event_buffer, event_buffers, EVENT_BUFFER_LENGTH);
 #ifdef MACRO_ENABLE
     macro_init();
 #endif
@@ -720,7 +720,7 @@ __WEAK void keyboard_task(void)
         keyboard_advanced_key_update_raw(advanced_key, advanced_key_read_raw(advanced_key));
     }
 #endif
-#ifdef SCRIPT_ENABLE
+#if defined(SCRIPT_ENABLE) && !defined(SCRIPT_POLLING)
     script_process();
 #endif
 #ifdef MACRO_ENABLE
@@ -762,11 +762,14 @@ __WEAK void keyboard_task(void)
 
 void keyboard_process(void)
 {
-    event_loop_queue_foreach(&g_event_buffer, EventLoopQueueElm, event)
+    event_loop_queue_foreach(&event_buffer, EventLoopQueueElm, event)
     {
         keyboard_event_poller(event->event, event->tick);
-        event_loop_queue_pop(&g_event_buffer);
+        event_loop_queue_pop(&event_buffer);
     }
+#if defined(SCRIPT_ENABLE) && defined(SCRIPT_POLLING)
+    script_process();
+#endif
     if (target_calibration_tick && g_keyboard_tick >= target_calibration_tick)
     {
         target_calibration_tick = 0;

@@ -121,8 +121,10 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         {
             PacketEvent* packet_event = (PacketEvent*)packet;
             Key *key = packet_event->is_virtual ? NULL : keyboard_get_key(packet_event->id);
+            uint8_t report_state = false;
             if (key != NULL)
             {
+                report_state = ((Key*)key)->report_state;
 #ifdef KEY_CALLBACK_ENABLE
                 switch (packet_event->event)
                 {
@@ -144,6 +146,10 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
                 .key = key,
             };      
             keyboard_event_handler(event);
+            if (key != NULL)
+            {
+                keyboard_key_set_report_state((Key*)event.key, report_state);//protect key state
+            }
         }
         break;
     case PACKET_CODE_LARGE_SET:

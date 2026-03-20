@@ -179,7 +179,7 @@ void macro_process(void)
                 }
                 if (macro->actions[macro->index].event.event == KEYBOARD_EVENT_KEY_DOWN)
                 {
-                    event_forward_list_insert_after(&g_event_buffer_list, &g_event_buffer_list.data[g_event_buffer_list.head], (EventCache){event,macro});
+                    event_cache_buffer_push(event, macro);
                 }
                 else
                 {

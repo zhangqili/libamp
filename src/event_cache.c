@@ -4,13 +4,18 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "event_cache.h"
+#include "event_buffer.h"
 
 EventCacheList g_event_buffer_list;
 static EventCacheListNode event_buffer_list_buffer[EVENT_CACHE_LENGTH];
 
+static EventLoopQueueElm event_cache_buffers[EVENT_CACHE_BUFFER_LENGTH];
+static EventLoopQueue event_cache_buffer;
+
 void event_cache_init(void)
 {
     event_forward_list_init(&g_event_buffer_list, event_buffer_list_buffer, EVENT_CACHE_LENGTH);
+    event_loop_queue_init(&event_cache_buffer, event_cache_buffers, EVENT_CACHE_BUFFER_LENGTH);
 }
 
 void event_cache_add_buffer(void)
@@ -18,6 +23,11 @@ void event_cache_add_buffer(void)
     EventCacheList * list = &g_event_buffer_list;
     EventCacheListNode * last_node = &list->data[list->head];
     UNUSED(last_node);
+    event_loop_queue_foreach(&event_cache_buffer, EventLoopQueueElm, event)
+    {
+        event_cache_push(event->event, (void*)event->tick);
+        event_loop_queue_pop(&event_cache_buffer);
+    }
     for (int16_t iterator = list->data[list->head].next; iterator >= 0;)
     {
         EventCacheListNode* node = &(list->data[iterator]);
@@ -150,4 +160,14 @@ void event_forward_list_remove_first_keycode(EventCacheList* list, void* owner, 
         }
         iterator_ptr = &list->data[*iterator_ptr].next;
     }
+}
+
+void event_cache_buffer_push(KeyboardEvent event, void* owner)
+{
+    event_loop_queue_push(&event_cache_buffer, (EventLoopQueueElm){event, (uint32_t)owner});
+}
+
+void event_cache_push(KeyboardEvent event, void* owner)
+{
+    event_forward_list_push_front(&g_event_buffer_list, (EventCache){event, owner});
 }
