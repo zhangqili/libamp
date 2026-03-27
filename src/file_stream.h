@@ -10,9 +10,14 @@
 
 #include "stddef.h"
 #include "stdbool.h"
+#include "keyboard_config.h"
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef LFS_ENABLE
+#include "lfs.h"
 #endif
 
 enum FileStreamOpenFlags {
@@ -39,14 +44,15 @@ enum FileStreamWhenceFlags {
 };
 
 typedef struct {
-    int file;
-    bool in_use;
+#ifdef LFS_ENABLE
+    lfs_file_t file;
+#endif
 } FileStream;
 typedef long FileStreamPosition;
 
 int fs_init(void);
 
-FileStream* fs_open(const char * name, size_t type);
+int fs_open(FileStream * file, const char * name, size_t type);
 int fs_close(FileStream * file);
 int fs_remove(const char * name);
 

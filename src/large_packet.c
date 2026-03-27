@@ -26,7 +26,7 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
 {
 #if defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
     static const char *SCRIPT_FILENAME = "main.js";
-    static FileStream * script_file;
+    static FileStream script_file;
     static bool script_file_open = false;
     if (code == PACKET_CODE_LARGE_SET)
     {
@@ -35,10 +35,10 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
         case LARGE_DATA_CMD_START:
             if (script_file_open)
             {
-                fs_close(script_file);
+                fs_close(&script_file);
             }
-            script_file = fs_open(SCRIPT_FILENAME, FS_O_RDWR | FS_O_CREAT | FS_O_TRUNC);
-            if (script_file == NULL)
+            int res = fs_open(&script_file, SCRIPT_FILENAME, FS_O_RDWR | FS_O_CREAT | FS_O_TRUNC);
+            if (res < 0)
             {
                 return false;
             }
@@ -50,11 +50,11 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
             {
                 return false;
             }
-            if (fs_seek(script_file, val, FS_SEEK_SET) < 0)
+            if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
             {
                 return false;
             }
-            if (fs_write(data, 1, len, script_file) < 0)
+            if (fs_write(data, 1, len, &script_file) < 0)
             {
                 return false;
             }
@@ -64,7 +64,7 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
         case LARGE_DATA_CMD_ABORT:
             if (script_file_open)
             {
-                fs_close(script_file);
+                fs_close(&script_file);
                 script_file_open = false;
             }
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
@@ -82,28 +82,28 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
             {
                 if (script_file_open)
                 {
-                    fs_close(script_file);
+                    fs_close(&script_file);
                 }
 
-                script_file = fs_open(SCRIPT_FILENAME, FS_O_RDONLY);
-                if (script_file == NULL)
+                int res = fs_open(&script_file, SCRIPT_FILENAME, FS_O_RDONLY);
+                if (res < 0)
                 {
                     return 0;
                 }
                 script_file_open = true;
-                return  fs_size(script_file);
+                return  fs_size(&script_file);
             }
             else if (val == 1)
             {
                 if (!script_file_open)
                     return 0;
 
-                if (fs_seek(script_file, val, FS_SEEK_SET) < 0)
+                if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
                 {
                     return 0;
                 }
 
-                long read_len = fs_read(data, 1, len, script_file);
+                long read_len = fs_read(data, 1, len, &script_file);
                 if (read_len < 0)
                 {
                     return 0;
@@ -118,12 +118,12 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
                 return 0;
             }
 
-            if (fs_seek(script_file, val, FS_SEEK_SET) < 0)
+            if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
             {
                 return 0;
             }
 
-            long read_len = fs_read(data, 1, len, script_file);
+            long read_len = fs_read(data, 1, len, &script_file);
             if (read_len < 0)
             {
                 return 0;
@@ -133,7 +133,7 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
         case LARGE_DATA_CMD_ABORT:
             if (script_file_open)
             {
-                fs_close(script_file);
+                fs_close(&script_file);
                 script_file_open = false;
             }
             return 0;
@@ -148,7 +148,7 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
 #if defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
     static const char *SCRIPT_FILENAME = "main.bin";
-    static FileStream *script_file;
+    static FileStream script_file;
     static bool script_file_open = false;
     if (code == PACKET_CODE_LARGE_SET)
     {
@@ -157,11 +157,11 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
         case LARGE_DATA_CMD_START:
             if (script_file_open)
             {
-                fs_close(script_file);
+                fs_close(&script_file);
             }
             fs_remove(SCRIPT_FILENAME);
-            script_file = fs_open(SCRIPT_FILENAME, FS_O_WRONLY | FS_O_CREAT | FS_O_TRUNC);
-            if (script_file == NULL)
+            int res = fs_open(&script_file, SCRIPT_FILENAME, FS_O_WRONLY | FS_O_CREAT | FS_O_TRUNC);
+            if (res < 0)
             {
                 return false;
             }
@@ -173,11 +173,11 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
             {
                 return false;
             }
-            if (fs_seek(script_file, val, FS_SEEK_SET) < 0)
+            if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
             {
                 return false;
             }
-            if (fs_write(data, 1, len, script_file) < 0)
+            if (fs_write(data, 1, len, &script_file) < 0)
             {
                 return false;
             }
@@ -187,7 +187,7 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
         case LARGE_DATA_CMD_ABORT:
             if (script_file_open)
             {
-                fs_close(script_file);
+                fs_close(&script_file);
                 script_file_open = false;
             }
             script_init();
@@ -203,28 +203,28 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
             {
                 if (script_file_open)
                 {
-                    fs_close(script_file);
+                    fs_close(&script_file);
                 }
 
-                script_file = fs_open(SCRIPT_FILENAME, FS_O_RDONLY);
-                if (script_file == NULL)
+                int res = fs_open(&script_file, SCRIPT_FILENAME, FS_O_RDONLY);
+                if (res < 0)
                 {
                     return 0;
                 }
                 script_file_open = true;
-                return fs_size(script_file);
+                return fs_size(&script_file);
             }
             else if (val == 1)
             {
                 if (!script_file_open)
                     return 0;
 
-                if (fs_seek(script_file, val, FS_SEEK_SET) < 0)
+                if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
                 {
                     return 0;
                 }
 
-                long read_len = fs_read(data, 1, len, script_file);
+                long read_len = fs_read(data, 1, len, &script_file);
                 if (read_len < 0)
                 {
                     return 0;
@@ -239,12 +239,12 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
                 return 0;
             }
 
-            if (fs_seek(script_file, val, FS_SEEK_SET) < 0)
+            if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
             {
                 return 0;
             }
 
-            long read_len = fs_read(data, 1, len, script_file);
+            long read_len = fs_read(data, 1, len, &script_file);
             if (read_len < 0)
             {
                 return 0;
@@ -254,7 +254,7 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
         case LARGE_DATA_CMD_ABORT:
             if (script_file_open)
             {
-                fs_close(script_file);
+                fs_close(&script_file);
                 script_file_open = false;
             }
             return 0;

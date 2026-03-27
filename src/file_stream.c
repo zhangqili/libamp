@@ -8,8 +8,6 @@
 #include "keyboard_config.h"
 #include "driver.h"
 
-#define MAX_OPEN_FILES 4
-
 #ifdef LFS_ENABLE
 #include "lfs.h"
 
@@ -82,35 +80,10 @@ static const struct lfs_config _lfs_config =
     .prog_buffer = prog_buffer,
     .lookahead_buffer = lookahead_buffer,
 };
-
-lfs_t * storage_get_lfs(void)
-{
-    return &_lfs;
-}
-static lfs_file_t _file_pool[MAX_OPEN_FILES] = {0};
 #endif
-
-static FileStream file_pool[MAX_OPEN_FILES] = {0};
-static FileStream *get_free_file_stream(void)
-{
-    for (int i = 0; i < MAX_OPEN_FILES; i++)
-    {
-        if (file_pool[i].in_use == 0)
-        {
-            file_pool[i].in_use = 1;
-            return &file_pool[i];
-        }
-    }
-    return NULL;
-}
 
 int fs_init(void)
 {
-    for (int i = 0; i < MAX_OPEN_FILES; i++)
-    {
-        file_pool[i].file = i;
-        file_pool[i].in_use = 0;
-    }
 #ifdef LFS_ENABLE
     // mount the filesystem
     int err = lfs_mount(&_lfs, &_lfs_config);
@@ -125,42 +98,30 @@ int fs_init(void)
 #endif
 }
 
-FileStream *fs_open(const char *name, size_t type)
+int fs_open(FileStream *stream, const char *name, size_t type)
 {
 #ifdef LFS_ENABLE
-    if (name == NULL)
-        return NULL;
+    if (stream == NULL || name == NULL)
+        return -1;
 
-    FileStream *stream = get_free_file_stream();
-    if (stream == NULL)
-    {
-        return NULL;
-    }
+    int err = lfs_file_open(&_lfs, &stream->file, name, (int)type);
 
-    int err = lfs_file_open(&_lfs, &_file_pool[stream->file], name, (int)type);
-
-    if (err < 0)
-    {
-        stream->in_use = 0;
-        return NULL;
-    }
-
-    return stream;
+    return err;
 #else
+    UNUSED(stream);
     UNUSED(name);
     UNUSED(type);
-    return NULL;
+    return -1;
 #endif
 }
 
 int fs_close(FileStream *file)
 {
 #ifdef LFS_ENABLE
-    if (file == NULL || file->in_use == 0)
+    if (file == NULL)
         return -1;
 
-    int err = lfs_file_close(&_lfs, &_file_pool[file->file]);
-    file->in_use = 0;
+    int err = lfs_file_close(&_lfs, &file->file);
 
     return err;
 #else
@@ -172,14 +133,14 @@ int fs_close(FileStream *file)
 size_t fs_read(void *ptr, size_t size_of_elements, size_t number_of_elements, FileStream *a_file)
 {
 #ifdef LFS_ENABLE
-    if (ptr == NULL || a_file == NULL || a_file->in_use == 0)
+    if (ptr == NULL || a_file == NULL)
         return 0;
     if (size_of_elements == 0 || number_of_elements == 0)
         return 0;
 
     lfs_size_t bytes_to_read = size_of_elements * number_of_elements;
 
-    lfs_ssize_t res = lfs_file_read(&_lfs, &_file_pool[a_file->file], ptr, bytes_to_read);
+    lfs_ssize_t res = lfs_file_read(&_lfs, &a_file->file, ptr, bytes_to_read);
 
     if (res < 0)
     {
@@ -199,14 +160,14 @@ size_t fs_read(void *ptr, size_t size_of_elements, size_t number_of_elements, Fi
 size_t fs_write(const void *ptr, size_t size_of_elements, size_t number_of_elements, FileStream *a_file)
 {
 #ifdef LFS_ENABLE
-    if (ptr == NULL || a_file == NULL || a_file->in_use == 0)
+    if (ptr == NULL || a_file == NULL)
         return 0;
     if (size_of_elements == 0 || number_of_elements == 0)
         return 0;
 
     lfs_size_t bytes_to_write = size_of_elements * number_of_elements;
 
-    lfs_ssize_t res = lfs_file_write(&_lfs, &_file_pool[a_file->file], ptr, bytes_to_write);
+    lfs_ssize_t res = lfs_file_write(&_lfs, &a_file->file, ptr, bytes_to_write);
 
     if (res < 0)
     {
@@ -240,10 +201,10 @@ int fs_remove(const char * name)
 int fs_seek(FileStream *file, long int offset, int whence)
 {
 #ifdef LFS_ENABLE
-    if (file == NULL || file->in_use == 0)
+    if (file == NULL)
         return -1;
 
-    lfs_soff_t res = lfs_file_seek(&_lfs, &_file_pool[file->file], (lfs_soff_t)offset, whence);
+    lfs_soff_t res = lfs_file_seek(&_lfs, &file->file, (lfs_soff_t)offset, whence);
 
     if (res < 0)
     {
@@ -262,9 +223,9 @@ int fs_seek(FileStream *file, long int offset, int whence)
 void fs_rewind(FileStream *file)
 {
 #ifdef LFS_ENABLE
-    if (file != NULL && file->in_use != 0)
+    if (file != NULL)
     {
-        lfs_file_seek(&_lfs, &_file_pool[file->file], 0, LFS_SEEK_SET);
+        lfs_file_seek(&_lfs, &file->file, 0, LFS_SEEK_SET);
     }
 #else
     UNUSED(file);
@@ -274,10 +235,10 @@ void fs_rewind(FileStream *file)
 int fs_getpos(FileStream *__restrict file, FileStreamPosition *__restrict pos)
 {
 #ifdef LFS_ENABLE
-    if (file == NULL || file->in_use == 0 || pos == NULL)
+    if (file == NULL || pos == NULL)
         return -1;
 
-    lfs_soff_t res = lfs_file_tell(&_lfs, &_file_pool[file->file]);
+    lfs_soff_t res = lfs_file_tell(&_lfs, &file->file);
     if (res < 0)
     {
         return (int)res;
@@ -295,10 +256,10 @@ int fs_getpos(FileStream *__restrict file, FileStreamPosition *__restrict pos)
 int	fs_setpos(FileStream * file, const FileStreamPosition * pos)
 {
 #ifdef LFS_ENABLE
-    if (file == NULL || file->in_use == 0 || pos == NULL)
+    if (file == NULL || pos == NULL)
         return -1;
 
-    lfs_soff_t res = lfs_file_seek(&_lfs, &_file_pool[file->file], (lfs_soff_t)(*pos), LFS_SEEK_SET);
+    lfs_soff_t res = lfs_file_seek(&_lfs, &file->file, (lfs_soff_t)(*pos), LFS_SEEK_SET);
     if (res < 0)
     {
         return (int)res;
@@ -315,10 +276,10 @@ int	fs_setpos(FileStream * file, const FileStreamPosition * pos)
 long fs_tell(FileStream *file)
 {
 #ifdef LFS_ENABLE
-    if (file == NULL || file->in_use == 0)
+    if (file == NULL)
         return -1L;
 
-    lfs_soff_t res = lfs_file_tell(&_lfs, &_file_pool[file->file]);
+    lfs_soff_t res = lfs_file_tell(&_lfs, &file->file);
 
     if (res < 0)
     {
@@ -335,10 +296,10 @@ long fs_tell(FileStream *file)
 long fs_size(FileStream * file)
 {
 #ifdef LFS_ENABLE
-    if (file == NULL || file->in_use == 0)
+    if (file == NULL)
         return -1L;
 
-    lfs_soff_t res = lfs_file_size(&_lfs, &_file_pool[file->file]);
+    lfs_soff_t res = lfs_file_size(&_lfs, &file->file);
 
     if (res < 0)
     {

@@ -148,18 +148,19 @@ void script_init(void)
 {
     storage_read_script();
     //memset(g_script_bytecode_buffer, 0, sizeof(g_script_bytecode_buffer));
-    FileStream * file = fs_open("main.bin", FS_O_RDWR | FS_O_CREAT);
-    if (file == NULL)
+    FileStream file;
+    int res = fs_open(&file, "main.bin", FS_O_RDWR | FS_O_CREAT);
+    if (res < 0)
     {        
         return;
     }
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
-    script_update_bytecode(g_script_bytecode_buffer, fs_size(file));
+    script_update_bytecode(g_script_bytecode_buffer, fs_size(&file));
 #endif
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
     script_update_source((char *)g_script_source_buffer, strlen(g_script_source_buffer));
 #endif
-    fs_close(file);
+    fs_close(&file);
 }
 
 void script_eval(const char *code_buf, size_t len, const char *filename)

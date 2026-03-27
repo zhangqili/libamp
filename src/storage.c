@@ -134,14 +134,15 @@ int storage_mount(void)
 
 int storage_check_version(void)
 {
-    FileStream *file = fs_open("version", FS_O_RDWR | FS_O_CREAT);
-    if (file == NULL)    {
+    FileStream file;
+    int res = fs_open(&file, "version", FS_O_RDWR | FS_O_CREAT);
+    if (res < 0)    {
         return 0;
     }
     uint32_t version[3] = {0};
     bool need_factory_reset = false;
     bool need_update = false;
-    fs_read(&version, sizeof(version), 1, file);
+    fs_read(&version, sizeof(version), 1, &file);
     if (version[0] != KEYBOARD_VERSION_MAJOR || version[1] != KEYBOARD_VERSION_MINOR)
     {
         version[0] = KEYBOARD_VERSION_MAJOR;
@@ -156,10 +157,10 @@ int storage_check_version(void)
     }
     if (need_update)
     {
-        fs_rewind(file);
-        fs_write(&version, sizeof(version), 1, file);
+        fs_rewind(&file);
+        fs_write(&version, sizeof(version), 1, &file);
     }
-    fs_close(file);
+    fs_close(&file);
     return need_factory_reset;
 }
 
@@ -170,15 +171,16 @@ void storage_unmount(void)
 
 uint8_t storage_read_profile_index(void)
 {
-    FileStream *file = fs_open("profile_index", FS_O_RDWR | FS_O_CREAT);
-    if (file == NULL)
+    FileStream file;
+    int res = fs_open(&file, "profile_index", FS_O_RDWR | FS_O_CREAT);
+    if (res < 0)
     {
         g_current_profile_index = 0;
         return 0;
     }
     uint8_t index = 0;
-    fs_read(&index, sizeof(index), 1, file);
-    fs_close(file);
+    fs_read(&index, sizeof(index), 1, &file);
+    fs_close(&file);
     if (index >= STORAGE_PROFILE_FILE_NUM)
     {        
         g_current_profile_index = 0;
@@ -190,38 +192,40 @@ uint8_t storage_read_profile_index(void)
 
 void storage_save_profile_index(void)
 {
-    FileStream *file = fs_open("profile_index", FS_O_RDWR | FS_O_CREAT);
-    if (file == NULL)
+    FileStream file;
+    int res = fs_open(&file, "profile_index", FS_O_RDWR | FS_O_CREAT);
+    if (res < 0)
     {
         return;
     }
-    fs_write(&g_current_profile_index, sizeof(g_current_profile_index), 1, file);
-    fs_close(file);
+    fs_write(&g_current_profile_index, sizeof(g_current_profile_index), 1, &file);
+    fs_close(&file);
 }
 
 void storage_read_profile(void)
 {
     char config_file_name[16] = "profile0";
     config_file_name[6] = g_current_profile_index + '0';
-    FileStream *file = fs_open(config_file_name, FS_O_RDWR | FS_O_CREAT);
-    if (file == NULL)    {
+    FileStream file;
+    int res = fs_open(&file, config_file_name, FS_O_RDWR | FS_O_CREAT);
+    if (res < 0)    {
         return;
     }
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        read_advanced_key_config(file, &g_keyboard_advanced_keys[i]);
+        read_advanced_key_config(&file, &g_keyboard_advanced_keys[i]);
     }
-    fs_read(g_keymap, sizeof(g_keymap), 1, file);
+    fs_read(g_keymap, sizeof(g_keymap), 1, &file);
     layer_cache_refresh();
 #ifdef RGB_ENABLE
-    fs_read(&g_rgb_base_config, sizeof(g_rgb_base_config), 1, file);
-    fs_read(&g_rgb_configs, sizeof(g_rgb_configs), 1, file);
+    fs_read(&g_rgb_base_config, sizeof(g_rgb_base_config), 1, &file);
+    fs_read(&g_rgb_configs, sizeof(g_rgb_configs), 1, &file);
 #endif
 #ifdef DYNAMICKEY_ENABLE
     for (int i = 0; i < DYNAMIC_KEY_NUM; i++)
     {
         DynamicKey buffer;
-        fs_read(&buffer, sizeof(DynamicKey), 1, file);
+        fs_read(&buffer, sizeof(DynamicKey), 1, &file);
         switch (buffer.type)
         {
         case DYNAMIC_KEY_STROKE:
@@ -233,26 +237,27 @@ void storage_read_profile(void)
         }
     }
 #endif
-    fs_close(file);
+    fs_close(&file);
 }
 
 void storage_save_profile(void)
 {
     char config_file_name[16] = "profile0";
     config_file_name[6] = g_current_profile_index + '0';
-    FileStream *file = fs_open(config_file_name, FS_O_RDWR | FS_O_CREAT);
-    if (file == NULL)
+    FileStream file;
+    int res = fs_open(&file, config_file_name, FS_O_RDWR | FS_O_CREAT);
+    if (res < 0)
     {
         return;
     }
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        save_advanced_key_config(file, &g_keyboard_advanced_keys[i]);
+        save_advanced_key_config(&file, &g_keyboard_advanced_keys[i]);
     }
-    fs_write(g_keymap, sizeof(g_keymap), 1, file);
+    fs_write(g_keymap, sizeof(g_keymap), 1, &file);
 #ifdef RGB_ENABLE
-    fs_write(&g_rgb_base_config, sizeof(g_rgb_base_config), 1, file);
-    fs_write(&g_rgb_configs, sizeof(g_rgb_configs), 1, file);
+    fs_write(&g_rgb_base_config, sizeof(g_rgb_base_config), 1, &file);
+    fs_write(&g_rgb_configs, sizeof(g_rgb_configs), 1, &file);
 #endif
 #ifdef DYNAMICKEY_ENABLE
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
@@ -263,16 +268,16 @@ void storage_save_profile(void)
         {
             DynamicKeyStroke4x4Normalized buffer;
             dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_dynamic_keys[i]);
-            fs_write(&buffer, sizeof(DynamicKey), 1, file);
+            fs_write(&buffer, sizeof(DynamicKey), 1, &file);
             break;
         }
         default:
-            fs_write(&g_dynamic_keys[i], sizeof(DynamicKey), 1, file);
+            fs_write(&g_dynamic_keys[i], sizeof(DynamicKey), 1, &file);
             break;
         }
     }
 #endif
-    fs_close(file);
+    fs_close(&file);
 }
 
 void storage_save_script(void)
@@ -280,22 +285,24 @@ void storage_save_script(void)
 #ifdef SCRIPT_ENABLE
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
     {
-        FileStream *file = fs_open("main.bin", FS_O_RDWR | FS_O_CREAT);
-        if (file != NULL)
+        FileStream file;
+        int res = fs_open(&file, "main.bin", FS_O_RDWR | FS_O_CREAT);
+        if (res >= 0)
         {
-            fs_write(g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer), 1, file);
-            fs_close(file);
+            fs_write(g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer), 1, &file);
+            fs_close(&file);
         }
     }
 #endif
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
     {
 
-        FileStream *file = fs_open("main.js", FS_O_RDWR | FS_O_CREAT);
-        if (file != NULL)
+        FileStream file;
+        int res = fs_open(&file, "main.js", FS_O_RDWR | FS_O_CREAT);
+        if (res >= 0)
         {
-            fs_write(g_script_source_buffer, sizeof(g_script_source_buffer), 1, file);
-            fs_close(file);
+            fs_write(g_script_source_buffer, sizeof(g_script_source_buffer), 1, &file);
+            fs_close(&file);
         }
     }
 #endif
@@ -308,22 +315,24 @@ void storage_read_script(void)
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
     {
 
-        FileStream *file = fs_open("main.bin", FS_O_RDWR | FS_O_CREAT);
-        if (file != NULL)
+        FileStream file;
+        int res = fs_open(&file, "main.bin", FS_O_RDWR | FS_O_CREAT);
+        if (res >= 0)
         {
-            fs_read(g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer), 1, file);
-            fs_close(file);
+            fs_read(g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer), 1, &file);
+            fs_close(&file);
         }
     }
 #endif
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
     {
 
-        FileStream *file = fs_open("main.js", FS_O_RDWR | FS_O_CREAT);
-        if (file != NULL)
+        FileStream file;
+        int res = fs_open(&file, "main.js", FS_O_RDWR | FS_O_CREAT);
+        if (res >= 0)
         {
-            fs_read(g_script_source_buffer, sizeof(g_script_source_buffer), 1, file);
-            fs_close(file);
+            fs_read(g_script_source_buffer, sizeof(g_script_source_buffer), 1, &file);
+            fs_close(&file);
         }
     }
 #endif
