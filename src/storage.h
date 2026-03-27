@@ -9,8 +9,6 @@
 #include "keyboard.h"
 #include "dynamic_key.h"
 
-#include "lfs.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -52,10 +50,6 @@ typedef struct __DynamicKeyStroke4x4Normalized
 } DynamicKeyStroke4x4Normalized;
 
 extern uint8_t g_current_profile_index;
-
-#ifdef LFS_ENABLE
-lfs_t * storage_get_lfs(void);
-#endif
 
 void advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, const AdvancedKeyConfiguration* config);
 void advanced_key_config_anti_normalize(AdvancedKeyConfiguration* config, const AdvancedKeyConfigurationNormalized* buffer);

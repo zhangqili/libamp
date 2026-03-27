@@ -11,6 +11,7 @@
 #include "mquickjs.h"
 #include "mqjs_utils.c"
 
+#include "file_stream.h"
 #include "storage.h"
 
 #include "mqjs_stdlib.h"
@@ -113,8 +114,8 @@ static void script_setup_hooks(JSContext *ctx)
 
 void script_factory_reset(void)
 {
-    lfs_remove(storage_get_lfs(), "main.js");
-    lfs_remove(storage_get_lfs(), "main.bin");
+    fs_remove("main.js");
+    fs_remove("main.bin");
 }
 
 void script_reset_runtime(void)
@@ -147,14 +148,18 @@ void script_init(void)
 {
     storage_read_script();
     //memset(g_script_bytecode_buffer, 0, sizeof(g_script_bytecode_buffer));
-    struct lfs_info info;
-    int err = lfs_stat(storage_get_lfs(), "main.bin", &info);
+    FileStream * file = fs_open("main.bin", FS_O_RDWR | FS_O_CREAT);
+    if (file == NULL)
+    {        
+        return;
+    }
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
-    script_update_bytecode(g_script_bytecode_buffer, info.size);
+    script_update_bytecode(g_script_bytecode_buffer, fs_size(file));
 #endif
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
     script_update_source((char *)g_script_source_buffer, strlen(g_script_source_buffer));
 #endif
+    fs_close(file);
 }
 
 void script_eval(const char *code_buf, size_t len, const char *filename)
