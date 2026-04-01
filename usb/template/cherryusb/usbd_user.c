@@ -8,6 +8,10 @@
 #include "usb_descriptor.h"
 #include "lamp_array.h"
 
+#ifdef MSC_ENABLE
+#include "usbd_msc.h"
+#endif
+
 static const uint8_t *device_descriptor_callback(uint8_t speed)
 {
     UNUSED(speed);
@@ -367,6 +371,36 @@ static struct usbd_endpoint digitizer_in_ep = {
     .ep_addr = DIGITIZER_EPIN_ADDR};
 #endif
 
+#ifdef MSC_ENABLE
+static struct usbd_interface msc_intf;
+
+#include "driver.h"
+void usbd_msc_get_cap(uint8_t busid, uint8_t lun, uint32_t *block_num, uint32_t *block_size)
+{
+    (void)busid;
+    (void)lun;
+    *block_num = LFS_BLOCK_COUNT; 
+    *block_size = LFS_BLOCK_SIZE;
+}
+
+int usbd_msc_sector_read(uint8_t busid, uint8_t lun, uint32_t sector, uint8_t *buffer, uint32_t length)
+{
+    (void)busid;
+    (void)lun;
+    flash_read(sector * LFS_BLOCK_SIZE, length, buffer);
+    return 0;
+}
+
+int usbd_msc_sector_write(uint8_t busid, uint8_t lun, uint32_t sector, uint8_t *buffer, uint32_t length)
+{
+    (void)busid;
+    (void)lun;
+    flash_erase(sector * LFS_BLOCK_SIZE, length);
+    flash_write(sector * LFS_BLOCK_SIZE, length, buffer);
+    return 0;
+}
+#endif
+
 static void usbd_event_handler(uint8_t busid, uint8_t event)
 {
     UNUSED(busid);
@@ -475,6 +509,11 @@ void usb_init(uint8_t busid, uintptr_t reg_base)
     usbd_add_endpoint(0, &digitizer_in_ep);
 #endif
 
+#ifdef MSC_ENABLE
+    usbd_add_interface(busid, usbd_msc_init_intf(busid, &msc_intf, 
+                       (ENDPOINT_DIR_OUT | MSC_OUT_EPNUM), 
+                       (ENDPOINT_DIR_IN | MSC_IN_EPNUM)));
+#endif
     usbd_initialize(busid, reg_base, usbd_event_handler);
 }
 
