@@ -169,5 +169,5 @@ void event_cache_buffer_push(KeyboardEvent event, void* owner)
 
 void event_cache_push(KeyboardEvent event, void* owner)
 {
-    event_forward_list_push_front(&g_event_buffer_list, (EventCache){event, owner});
+    event_forward_list_insert_after(&g_event_buffer_list, &g_event_buffer_list.data[g_event_buffer_list.head], (EventCache){event, owner});
 }
