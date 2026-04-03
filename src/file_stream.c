@@ -36,7 +36,7 @@
 static uint8_t read_buffer[LFS_CACHE_SIZE];
 static uint8_t prog_buffer[LFS_CACHE_SIZE];
 static uint8_t lookahead_buffer[LFS_CACHE_SIZE];
-static lfs_t _lfs;
+lfs_t _lfs;
 
 static int lfs_flash_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size)
 {
@@ -58,7 +58,7 @@ static int _sync(const struct lfs_config *c)
     UNUSED(c);
     return LFS_ERR_OK;
 }
-static const struct lfs_config _lfs_config =
+const struct lfs_config _lfs_config =
 {
     // block device operations
     .read  = lfs_flash_read,
@@ -93,6 +93,9 @@ int fs_init(void)
     {
         lfs_format(&_lfs, &_lfs_config);
         lfs_mount(&_lfs, &_lfs_config);
+        lfs_mkdir(&_lfs, "profiles");
+        lfs_mkdir(&_lfs, "scripts");
+        lfs_mkdir(&_lfs, "system");
     }
     return err;
 #endif

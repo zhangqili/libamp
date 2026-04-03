@@ -183,6 +183,14 @@ typedef struct {
     USB_HID_Descriptor_HID_t   Digitizer_HID;
     USB_Descriptor_Endpoint_t  Digitizer_INEndpoint;
 #endif
+
+#if defined(MTP_ENABLE)
+    USB_Descriptor_Interface_t  MTP_Interface;
+	USB_Descriptor_Endpoint_t   MTP_EventEndpoint;
+	USB_Descriptor_Endpoint_t   MTP_DataInEndpoint;
+	USB_Descriptor_Endpoint_t   MTP_DataOutEndpoint;
+#endif
+
 } USB_Descriptor_Configuration_t;
 
 /*
@@ -232,6 +240,11 @@ enum usb_interfaces {
 #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
     DIGITIZER_INTERFACE,
 #endif
+
+#if defined(MTP_ENABLE)
+    MTP_INTERFACE,
+#endif
+
     TOTAL_INTERFACES
 };
 
@@ -308,6 +321,16 @@ enum usb_endpoints {
 #        define DIGITIZER_IN_EPNUM SHARED_IN_EPNUM
 #    endif
 #endif
+
+#ifdef MTP_ENABLE
+    MTP_EVT_EPNUM = NEXT_EPNUM,
+    MTP_IN_EPNUM = NEXT_EPNUM,
+#    ifdef USB_ENDPOINTS_ARE_REORDERABLE
+#        define MTP_OUT_EPNUM MTP_IN_EPNUM
+#    else
+    MTP_OUT_EPNUM         = NEXT_EPNUM,
+#    endif
+#endif
 };
 
 #ifdef PROTOCOL_LUFA
@@ -327,11 +350,22 @@ enum usb_endpoints {
 #define MOUSE_EPSIZE 16
 #define RAW_EPSIZE 0x40
 #define CONSOLE_EPSIZE 32
+
+#if defined(CONFIG_USB_HS)
+#define MIDI_STREAM_EPSIZE 512
+#else
 #define MIDI_STREAM_EPSIZE 64
+#endif
 #define CDC_NOTIFICATION_EPSIZE 8
 #define CDC_EPSIZE 16
 #define JOYSTICK_EPSIZE 8
 #define DIGITIZER_EPSIZE 8
+#define MTP_EVENT_EPSIZE 64
+#if defined(CONFIG_USB_HS)
+#define MTP_DATA_EPSIZE 512
+#else
+#define MTP_DATA_EPSIZE 64
+#endif
 
 #ifdef EXTERN_DESCRIPTOR
 /*
@@ -449,6 +483,12 @@ extern const USB_Descriptor_String_t PROGMEM SerialNumberString;
 
 #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
 #define DIGITIZER_EPIN_ADDR  (ENDPOINT_DIR_IN | DIGITIZER_IN_EPNUM)
+#endif
+
+#if defined(MTP_ENABLE)
+#define MTP_EVT_EPIN_ADDR  (ENDPOINT_DIR_IN | MTP_EVT_EPNUM)
+#define MTP_IN_EPIN_ADDR  (ENDPOINT_DIR_IN | MTP_IN_EPNUM)
+#define MTP_OUT_EPOUT_ADDR  (ENDPOINT_DIR_OUT | MTP_OUT_EPNUM)
 #endif
 
 //usb_descripotor.c before
@@ -1716,6 +1756,51 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
         .EndpointSize           = DIGITIZER_EPSIZE,
         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
+    },
+#endif
+#if defined(MTP_ENABLE)
+    .MTP_Interface = {
+        .Header = {
+            .Size               = sizeof(USB_Descriptor_Interface_t),
+            .Type               = DTYPE_Interface
+        },
+        .InterfaceNumber        = MTP_INTERFACE,
+        .AlternateSetting       = 0x00,
+        .TotalEndpoints         = 3,
+        .Class                  = 6,
+        .SubClass               = 1,
+        .Protocol               = 1,
+        .InterfaceStrIndex      = 4
+    },
+    .MTP_EventEndpoint = {
+        .Header = {
+            .Size               = sizeof(USB_Descriptor_Endpoint_t),
+            .Type               = DTYPE_Endpoint
+        },
+        .EndpointAddress        = MTP_EVT_EPIN_ADDR,
+        .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+        .EndpointSize           = MTP_EVENT_EPSIZE,
+        .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
+    },
+	.MTP_DataInEndpoint = {
+        .Header = {
+            .Size               = sizeof(USB_Descriptor_Endpoint_t),
+            .Type               = DTYPE_Endpoint
+        },
+        .EndpointAddress        = MTP_IN_EPIN_ADDR,
+        .Attributes             = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+        .EndpointSize           = MTP_DATA_EPSIZE,
+        .PollingIntervalMS      = 0
+    },
+	.MTP_DataOutEndpoint = {
+        .Header = {
+            .Size               = sizeof(USB_Descriptor_Endpoint_t),
+            .Type               = DTYPE_Endpoint
+        },
+        .EndpointAddress        = MTP_OUT_EPOUT_ADDR,
+        .Attributes             = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+        .EndpointSize           = MTP_DATA_EPSIZE,
+        .PollingIntervalMS      = 0
     },
 #endif
 };

@@ -25,7 +25,7 @@ enum
 uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t val, uint8_t *data, uint16_t len)
 {
 #if defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
-    static const char *SCRIPT_FILENAME = "main.js";
+    static const char *SCRIPT_FILENAME = "scripts/main.js";
     static FileStream script_file;
     static bool script_file_open = false;
     if (code == PACKET_CODE_LARGE_SET)
@@ -147,7 +147,7 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
 {
 #if defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
-    static const char *SCRIPT_FILENAME = "main.bin";
+    static const char *SCRIPT_FILENAME = "scripts/main.bin";
     static FileStream script_file;
     static bool script_file_open = false;
     if (code == PACKET_CODE_LARGE_SET)

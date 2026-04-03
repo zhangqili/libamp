@@ -135,7 +135,7 @@ int storage_mount(void)
 int storage_check_version(void)
 {
     FileStream file;
-    int res = fs_open(&file, "version", FS_O_RDWR | FS_O_CREAT);
+    int res = fs_open(&file, "system/version", FS_O_RDWR | FS_O_CREAT);
     if (res < 0)    {
         return 0;
     }
@@ -172,7 +172,7 @@ void storage_unmount(void)
 uint8_t storage_read_profile_index(void)
 {
     FileStream file;
-    int res = fs_open(&file, "profile_index", FS_O_RDWR | FS_O_CREAT);
+    int res = fs_open(&file, "system/profile_index", FS_O_RDWR | FS_O_CREAT);
     if (res < 0)
     {
         g_current_profile_index = 0;
@@ -193,7 +193,7 @@ uint8_t storage_read_profile_index(void)
 void storage_save_profile_index(void)
 {
     FileStream file;
-    int res = fs_open(&file, "profile_index", FS_O_RDWR | FS_O_CREAT);
+    int res = fs_open(&file, "system/profile_index", FS_O_RDWR | FS_O_CREAT);
     if (res < 0)
     {
         return;
@@ -204,8 +204,8 @@ void storage_save_profile_index(void)
 
 void storage_read_profile(void)
 {
-    char config_file_name[16] = "profile0";
-    config_file_name[6] = g_current_profile_index + '0';
+    char config_file_name[] = "profiles/profile0";
+    config_file_name[sizeof(config_file_name) - 2] = g_current_profile_index + '0';
     FileStream file;
     int res = fs_open(&file, config_file_name, FS_O_RDWR | FS_O_CREAT);
     if (res < 0)    {
@@ -242,8 +242,8 @@ void storage_read_profile(void)
 
 void storage_save_profile(void)
 {
-    char config_file_name[16] = "profile0";
-    config_file_name[6] = g_current_profile_index + '0';
+    char config_file_name[] = "profiles/profile0";
+    config_file_name[sizeof(config_file_name) - 2] = g_current_profile_index + '0';
     FileStream file;
     int res = fs_open(&file, config_file_name, FS_O_RDWR | FS_O_CREAT);
     if (res < 0)
@@ -286,7 +286,7 @@ void storage_save_script(void)
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
     {
         FileStream file;
-        int res = fs_open(&file, "main.bin", FS_O_RDWR | FS_O_CREAT);
+        int res = fs_open(&file, "scripts/main.bin", FS_O_RDWR | FS_O_CREAT);
         if (res >= 0)
         {
             fs_write(g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer), 1, &file);
@@ -298,7 +298,7 @@ void storage_save_script(void)
     {
 
         FileStream file;
-        int res = fs_open(&file, "main.js", FS_O_RDWR | FS_O_CREAT);
+        int res = fs_open(&file, "scripts/main.js", FS_O_RDWR | FS_O_CREAT);
         if (res >= 0)
         {
             fs_write(g_script_source_buffer, sizeof(g_script_source_buffer), 1, &file);
@@ -316,7 +316,7 @@ void storage_read_script(void)
     {
 
         FileStream file;
-        int res = fs_open(&file, "main.bin", FS_O_RDWR | FS_O_CREAT);
+        int res = fs_open(&file, "scripts/main.bin", FS_O_RDWR | FS_O_CREAT);
         if (res >= 0)
         {
             fs_read(g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer), 1, &file);
@@ -328,7 +328,7 @@ void storage_read_script(void)
     {
 
         FileStream file;
-        int res = fs_open(&file, "main.js", FS_O_RDWR | FS_O_CREAT);
+        int res = fs_open(&file, "scripts/main.js", FS_O_RDWR | FS_O_CREAT);
         if (res >= 0)
         {
             fs_read(g_script_source_buffer, sizeof(g_script_source_buffer), 1, &file);
