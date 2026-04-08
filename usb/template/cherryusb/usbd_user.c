@@ -502,7 +502,7 @@ void usb_init(uint8_t busid, uintptr_t reg_base)
 #endif
 
 #if defined(MTP_ENABLE)
-    usbd_add_interface(0, usbd_mtp_init_intf(0, &mtp_intf, &ConfigurationDescriptor.MTP_Interface, 
+    usbd_add_interface(0, usbd_mtp_init_intf(0, &mtp_intf, (uint8_t*)&ConfigurationDescriptor.MTP_Interface, 
         sizeof(ConfigurationDescriptor.MTP_Interface) + sizeof(ConfigurationDescriptor.MTP_EventEndpoint) + sizeof(ConfigurationDescriptor.MTP_DataOutEndpoint) + sizeof(ConfigurationDescriptor.MTP_DataInEndpoint),
         ConfigurationDescriptor.MTP_DataOutEndpoint.EndpointAddress, 
         ConfigurationDescriptor.MTP_DataInEndpoint.EndpointAddress, 

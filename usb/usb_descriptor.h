@@ -352,9 +352,13 @@ enum usb_endpoints {
 #define CONSOLE_EPSIZE 32
 
 #if defined(CONFIG_USB_HS)
+#if !defined(MIDI_STREAM_EPSIZE)
 #define MIDI_STREAM_EPSIZE 512
+#endif
 #else
+#if !defined(MIDI_STREAM_EPSIZE)
 #define MIDI_STREAM_EPSIZE 64
+#endif
 #endif
 #define CDC_NOTIFICATION_EPSIZE 8
 #define CDC_EPSIZE 16
@@ -362,9 +366,21 @@ enum usb_endpoints {
 #define DIGITIZER_EPSIZE 8
 #define MTP_EVENT_EPSIZE 64
 #if defined(CONFIG_USB_HS)
+#if !defined(MTP_DATA_EPSIZE)
 #define MTP_DATA_EPSIZE 512
+#endif
 #else
+#if !defined(MTP_DATA_EPSIZE)
 #define MTP_DATA_EPSIZE 64
+#endif
+#endif
+
+#if defined(MIDI_STREAM_EPSIZE) && MIDI_STREAM_EPSIZE != 512 && defined(CONFIG_USB_HS)
+#warning MIDI_STREAM_EPSIZE is not 512 for high-speed USB
+#endif
+
+#if defined(MTP_DATA_EPSIZE) && MTP_DATA_EPSIZE != 512 && defined(CONFIG_USB_HS)
+#warning MTP_DATA_EPSIZE is not 512 for high-speed USB
 #endif
 
 #ifdef EXTERN_DESCRIPTOR
