@@ -231,16 +231,23 @@ __WEAK AnalogRawValue advanced_key_read_raw(AdvancedKey *advanced_key)
 
 AnalogValue advanced_key_get_effective_value(AdvancedKey *advanced_key)
 {
-    if (advanced_key->value - ANALOG_VALUE_MIN <= advanced_key->config.upper_deadzone)
+    int32_t raw_val = (int32_t)advanced_key->value - (int32_t)ANALOG_VALUE_MIN;
+    if (raw_val <= (int32_t)advanced_key->config.upper_deadzone)
     {
         return ANALOG_VALUE_MIN;
     }
-    if (advanced_key->value - ANALOG_VALUE_MIN >= ANALOG_VALUE_MAX - advanced_key->config.lower_deadzone)
+    if (raw_val >= (int32_t)ANALOG_VALUE_RANGE - (int32_t)advanced_key->config.lower_deadzone)
     {
         return ANALOG_VALUE_MAX;
     }
-    int32_t active_val = (int32_t)advanced_key->value - (int32_t)advanced_key->config.upper_deadzone;
+    int32_t active_val = raw_val - (int32_t)advanced_key->config.upper_deadzone;
     int32_t active_range = (int32_t)ANALOG_VALUE_RANGE - (int32_t)advanced_key->config.upper_deadzone - (int32_t)advanced_key->config.lower_deadzone;
-    
-    return (AnalogValue)((active_val * (int32_t)ANALOG_VALUE_RANGE) / active_range) + ANALOG_VALUE_MIN;
+
+    if (active_range <= 0) {
+        return ANALOG_VALUE_MAX;
+    }
+
+    uint64_t mapped_val = ((uint64_t)active_val * (uint64_t)ANALOG_VALUE_RANGE) / (uint32_t)active_range;
+
+    return (AnalogValue)mapped_val + ANALOG_VALUE_MIN;
 }
