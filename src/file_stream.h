@@ -50,6 +50,8 @@ typedef struct {
 } FileStream;
 typedef long FileStreamPosition;
 
+
+void fs_init_dir(void);
 int fs_init(void);
 
 int fs_open(FileStream * file, const char * name, size_t type);

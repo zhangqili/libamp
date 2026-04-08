@@ -67,7 +67,7 @@ typedef struct __PacketAdvancedKey
   uint8_t code;
   uint8_t type;
   uint16_t index;
-  AdvancedKeyConfigurationNormalized data;
+  AdvancedKeyConfiguration data;
 } __PACKED PacketAdvancedKey;
 
 typedef struct __PacketRGBBaseConfig
@@ -81,7 +81,7 @@ typedef struct __PacketRGBBaseConfig
   uint8_t secondary_r;
   uint8_t secondary_g;
   uint8_t secondary_b;
-  float speed;
+  uint16_t speed;
   uint16_t direction;
   uint8_t density;
   uint8_t brightness;
@@ -96,7 +96,7 @@ typedef struct __PacketRGBConfig
   uint8_t r;
   uint8_t g;
   uint8_t b;
-  float speed;
+  uint16_t speed;
 } __PACKED PacketRGBConfig;
 
 typedef struct __PacketRGBConfigs
@@ -111,7 +111,7 @@ typedef struct __PacketRGBConfigs
     uint8_t r;
     uint8_t g;
     uint8_t b;
-    float speed;
+    uint16_t speed;
   } __PACKED data[];
 } __PACKED PacketRGBConfigs;
 
@@ -166,8 +166,8 @@ typedef struct __PacketDebug
     uint16_t index;
     uint8_t state;
     uint8_t report_state;
-    float raw;
-    float value;
+    uint16_t raw;
+    uint16_t value;
   } __PACKED data[];
 } __PACKED PacketDebug;
 

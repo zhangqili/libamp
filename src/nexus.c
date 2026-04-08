@@ -24,7 +24,6 @@ static inline void nexus_config_slave(uint8_t slave_id)
 {
     uint8_t buffer[64];
     const uint16_t length = g_nexus_slave_configs[slave_id].length;
-    AdvancedKeyConfigurationNormalized config_buffer;
     for (int i = 0; i < length; i++)
     {
         AdvancedKey *key = &g_keyboard_advanced_keys[g_nexus_slave_configs[slave_id].map[i]];
@@ -33,8 +32,7 @@ static inline void nexus_config_slave(uint8_t slave_id)
         packet->code = PACKET_CODE_SET;
         packet->type = PACKET_DATA_ADVANCED_KEY;
         packet->index = i;
-        advanced_key_config_normalize(&config_buffer, &key->config);
-        memcpy(&packet->data, &config_buffer, sizeof(AdvancedKeyConfigurationNormalized));
+        memcpy(&packet->data, &key->config, sizeof(AdvancedKeyConfiguration));
         nexus_send_timeout(slave_id,buffer,64,NEXUS_TIMEOUT);
         /*
         PacketKeymap *packet_keymap = (PacketKeymap *)buffer;

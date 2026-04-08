@@ -170,7 +170,6 @@ static JSValue js_advanced_key_get(JSContext *ctx, JSValue *this_val, int argc,
         return JS_ThrowTypeError(ctx, "expecting AdvancedKey class");
     }
     key = JS_GetOpaque(ctx, *this_val);
-#ifdef FIXED_POINT_EXPERIMENTAL
     switch (magic)
     {
     case 0:
@@ -224,61 +223,6 @@ static JSValue js_advanced_key_get(JSContext *ctx, JSValue *this_val, int argc,
     default:
         break;
     }
-#else
-    switch (magic)
-    {
-    case 0:
-        return JS_NewFloat64(ctx, key->value);
-        break;
-    case 1:
-        return JS_NewFloat64(ctx, key->raw);
-        break;
-    case 2:
-        return JS_NewFloat64(ctx, key->extremum);
-        break;
-    case 3:
-        return JS_NewFloat64(ctx, key->difference);
-        break;
-    case 4:
-        return JS_NewInt32(ctx, key->config.mode);
-        break;
-    case 5:
-        return JS_NewInt32(ctx, key->config.calibration_mode);
-        break;
-    case 6:
-        return JS_NewFloat64(ctx, key->config.activation_value);
-        break;
-    case 7:
-        return JS_NewFloat64(ctx, key->config.deactivation_value);
-        break;
-    case 8:
-        return JS_NewFloat64(ctx, key->config.trigger_distance);
-        break;
-    case 9:
-        return JS_NewFloat64(ctx, key->config.release_distance);
-        break;
-    case 10:
-        return JS_NewFloat64(ctx, key->config.trigger_speed);
-        break;
-    case 11:
-        return JS_NewFloat64(ctx, key->config.release_speed);
-        break;
-    case 12:
-        return JS_NewFloat64(ctx, key->config.upper_deadzone);
-        break;
-    case 13:
-        return JS_NewFloat64(ctx, key->config.lower_deadzone);
-        break;
-    case 14:
-        return JS_NewFloat64(ctx, key->config.upper_bound);
-        break;
-    case 15:
-        return JS_NewFloat64(ctx, key->config.lower_bound);
-        break;
-    default:
-        break;
-    }
-#endif
     return JS_UNDEFINED;
 }
 

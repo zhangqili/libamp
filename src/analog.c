@@ -85,12 +85,8 @@ AnalogRawValue ringbuf_avg(RingBuf* ringbuf)
 {
 #ifdef OPTIMIZE_MOVING_AVERAGE_FOR_RINGBUF
     if (!ringbuf->dirty)
-    { 
-#ifdef OPTIMIZE_FOR_FLOAT_DIVISION
-        return (AnalogValue)(ringbuf->sum*(1/((float)RING_BUF_LEN)));
-#else
+    {
         return (AnalogValue)(ringbuf->sum/RING_BUF_LEN);
-#endif
     }
 #endif
     uint32_t avg = 0;
@@ -98,9 +94,5 @@ AnalogRawValue ringbuf_avg(RingBuf* ringbuf)
     {
         avg += ringbuf->datas[i];
     }
-#ifdef OPTIMIZE_FOR_FLOAT_DIVISION
-    return (AnalogValue)(avg*(1/((float)RING_BUF_LEN)));
-#else
     return (AnalogValue)(avg/RING_BUF_LEN);
-#endif
 }
