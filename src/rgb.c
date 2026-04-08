@@ -6,14 +6,15 @@
 #include "rgb.h"
 #include "string.h"
 #include "math.h"
+#include "stdlib.h"
 #include "driver.h"
 
 #define rgb_loop_queue_foreach(q, type, item) for (uint16_t __index = (q)->front; __index != (q)->rear; __index = (__index + 1) % (q)->len)\
                                               for (type *item = &((q)->data[__index]); item; item = NULL)
 
-#define MANHATTAN_DISTANCE(m, n) (fabsf((m)->x - (n)->x) + fabsf((m)->y - (n)->y))
-#define MANHATTAN_DISTANCE_DIRECT(x1, y1, x2, y2) (fabsf((x1) - (x2)) + fabsf((y1) - (y2)))
-#define EUCLIDEAN_DISTANCE(m, n) sqrtf(((m)->x - (n)->x)*((m)->x - (n)->x) + ((m)->y - (n)->y)*((m)->y - (n)->y))
+#define MANHATTAN_DISTANCE(m, n) (abs((m)->x - (n)->x) + abs((m)->y - (n)->y))
+#define MANHATTAN_DISTANCE_DIRECT(x1, y1, x2, y2) (abs((x1) - (x2)) + abs((y1) - (y2)))
+#define EUCLIDEAN_DISTANCE(m, n) sqrtf((float)(((m)->x) - (float)((n)->x))*((float)((m)->x) - (float)((n)->x)) + ((float)((m)->y) - (float)((n)->y))*((float)((m)->y) - (float)((n)->y)))
 
 #ifndef RGB_CUSTOM_INVERSE_MAPPING
 uint16_t g_rgb_inverse_mapping[TOTAL_KEY_NUM];
@@ -46,7 +47,7 @@ void rgb_init(void)
 }
 
 #define COLOR_INTERVAL(key, low, up) (uint8_t)((key) < 0 ? (low) : ((key) > ANALOG_VALUE_MAX ? (up) : (key) * (up)))
-
+#define CALC_SPAN(tick, speed) ((KEYBOARD_TICK_TO_TIME(tick)) * (speed))
 void rgb_process(void)
 {
     if (!g_rgb_base_config.mode 
@@ -77,11 +78,16 @@ void rgb_process(void)
             float direction_c = g_rgb_base_config.direction * M_PI / 180;
             float direction_sin = sinf(direction_c);
             float direction_cos = cosf(direction_c);
+
+            int64_t total_offset = (int64_t)KEYBOARD_TICK_TO_TIME(g_keyboard_tick) * g_rgb_base_config.speed;
+            int32_t wrapped_offset = total_offset % 360000;
+            if (wrapped_offset < 0) wrapped_offset += 360000;
+            float safe_time_offset = wrapped_offset / 1000.0f;
             for (uint8_t i = 0; i < RGB_NUM; i++)
             {
                 const RGBLocation* location = &g_rgb_locations[i];
-                float vertical_distance = location->x * direction_cos + location->y * direction_sin;
-                temp_hsv.h = ((uint32_t)(g_rgb_base_config.hsv.h + vertical_distance * g_rgb_base_config.density + KEYBOARD_TICK_TO_TIME(g_keyboard_tick) * g_rgb_base_config.speed)) % 360;
+                float vertical_distance = (location->x * direction_cos + location->y * direction_sin)/(float)KEY_SWITCH_DISTANCE;
+                temp_hsv.h = ((uint32_t)(g_rgb_base_config.hsv.h + vertical_distance * g_rgb_base_config.density + safe_time_offset)) % 360;
                 color_set_hsv(&temp_rgb, &temp_hsv);
                 color_mix(&g_rgb_colors[i], &temp_rgb);
             }
@@ -94,11 +100,17 @@ void rgb_process(void)
             float direction_c = g_rgb_base_config.direction * M_PI / 180;
             float direction_sin = sinf(direction_c);
             float direction_cos = cosf(direction_c);
+
+            int64_t total_offset = (int64_t)KEYBOARD_TICK_TO_TIME(g_keyboard_tick) * g_rgb_base_config.speed;
+            int32_t wrapped_offset = total_offset % 360000;
+            if (wrapped_offset < 0) wrapped_offset += 360000;
+            float safe_time_offset = wrapped_offset / 1000.0f;
+
             for (uint8_t i = 0; i < RGB_NUM; i++)
             {
                 const RGBLocation* location = &g_rgb_locations[i];
-                float vertical_distance = location->x * direction_cos + location->y * direction_sin;
-                float intensity = fmodf(((vertical_distance * g_rgb_base_config.density + KEYBOARD_TICK_TO_TIME(g_keyboard_tick) * g_rgb_base_config.speed)  / 180), 2.0f);
+                float vertical_distance = (location->x * direction_cos + location->y * direction_sin)/(float)KEY_SWITCH_DISTANCE;
+                float intensity = fmodf(((vertical_distance * g_rgb_base_config.density + safe_time_offset) / 180.0f), 2.0f);
                 intensity -= 1.0f;
                 float secondary_intensity;
                 if (intensity<0)
@@ -124,12 +136,11 @@ void rgb_process(void)
         RGBArgument * item = &(node->data);
         RGBConfig *config = g_rgb_configs + item->rgb_ptr;
         RGBLocation *location = (RGBLocation *)&g_rgb_locations[item->rgb_ptr];
-        uint32_t duration = KEYBOARD_TICK_TO_TIME(g_keyboard_tick - item->begin_tick);
-        float distance = duration * config->speed;
-        if (MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT, location->y, RGB_TOP) < distance - FADING_DISTANCE &&
-            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT, location->y, RGB_BOTTOM) < distance - FADING_DISTANCE &&
-            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_RIGHT, location->y, RGB_TOP) < distance - FADING_DISTANCE &&
-            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_RIGHT, location->y, RGB_BOTTOM) < distance - FADING_DISTANCE)
+        float distance = CALC_SPAN(g_keyboard_tick - item->begin_tick, config->speed);
+        if (MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT_UM, location->y, RGB_TOP_UM) < distance - FADING_DISTANCE_UM &&
+            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT_UM, location->y, RGB_BOTTOM_UM) < distance - FADING_DISTANCE_UM &&
+            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_RIGHT_UM, location->y, RGB_TOP_UM) < distance - FADING_DISTANCE_UM &&
+            MANHATTAN_DISTANCE_DIRECT(location->x, RGB_RIGHT_UM, location->y, RGB_BOTTOM_UM) < distance - FADING_DISTANCE_UM)
         // if (distance > 25)
         {
             int16_t free_node = *iterator_ptr;
@@ -161,30 +172,33 @@ void rgb_process(void)
                 {
 #if RGB_MODE_USE_STRING
                 case RGB_MODE_STRING:
-                    intensity = (1.0f - fabsf(distance - fabsf(location->x - g_rgb_locations[j].x)));
+                    intensity = (UNIT_TO_UM(1.0) - fabsf(distance - abs(location->x - g_rgb_locations[j].x)));
                     intensity = intensity > 0 ? intensity : 0;
-                    intensity = fabsf(location->y - g_rgb_locations[j].y) < 0.5 ? intensity : 0;
+                    intensity = abs(location->y - g_rgb_locations[j].y) < UNIT_TO_UM(0.5) ? intensity : 0;
+                    intensity /= UNIT_TO_UM(1.0);
                     break;
 #endif
 #if RGB_MODE_USE_FADING_STRING
                 case RGB_MODE_FADING_STRING:
-                    intensity = (distance - fabsf(location->x - g_rgb_locations[j].x));
+                    intensity = (distance - abs(location->x - g_rgb_locations[j].x));
                     if (intensity > 0)
                     {
-                        intensity = FADING_DISTANCE - intensity > 0 ? FADING_DISTANCE - intensity : 0;
-                        intensity /= FADING_DISTANCE;
+                        intensity = FADING_DISTANCE_UM - intensity > 0 ? FADING_DISTANCE_UM - intensity : 0;
+                        intensity /= FADING_DISTANCE_UM;
                     }
                     else
                     {
-                        intensity = 1.0f + intensity > 0 ? 1.0f + intensity : 0;
+                        intensity = UNIT_TO_UM(1.0) + intensity > 0 ? UNIT_TO_UM(1.0) + intensity : 0;
+                        intensity /= UNIT_TO_UM(1.0);
                     }
-                    intensity = fabsf(location->y - g_rgb_locations[j].y) < 0.5 ? intensity : 0;
+                    intensity = abs(location->y - g_rgb_locations[j].y) < UNIT_TO_UM(0.5) ? intensity : 0;
                     break;
 #endif
 #if RGB_MODE_USE_DIAMOND_RIPPLE
                 case RGB_MODE_DIAMOND_RIPPLE:
-                    intensity = (1.0f - fabsf(distance - MANHATTAN_DISTANCE(location, &g_rgb_locations[j])));
+                    intensity = (UNIT_TO_UM(1.0) - fabsf(distance - MANHATTAN_DISTANCE(location, &g_rgb_locations[j])));
                     intensity = intensity > 0 ? intensity : 0;
+                    intensity /= UNIT_TO_UM(1.0);
                     break;
 #endif
 #if RGB_MODE_USE_FADING_DIAMOND_RIPPLE
@@ -192,13 +206,14 @@ void rgb_process(void)
                     intensity = (distance - MANHATTAN_DISTANCE(location, &g_rgb_locations[j]));
                     if (intensity > 0)
                     {
-                        intensity = FADING_DISTANCE - intensity > 0 ? FADING_DISTANCE - intensity : 0;
-                        intensity /= FADING_DISTANCE;
+                        intensity = FADING_DISTANCE_UM - intensity > 0 ? FADING_DISTANCE_UM - intensity : 0;
+                        intensity /= FADING_DISTANCE_UM;
                         break;
                     }
                     else
                     {
-                        intensity = 1.0f + intensity > 0 ? 1.0f + intensity : 0;
+                        intensity = UNIT_TO_UM(1.0) + intensity > 0 ? UNIT_TO_UM(1.0) + intensity : 0;
+                        intensity /= UNIT_TO_UM(1.0);
                     }
                     break;
 #endif
@@ -206,7 +221,7 @@ void rgb_process(void)
                 case RGB_MODE_BUBBLE:
                     {
                         float e_distance = EUCLIDEAN_DISTANCE(location, &g_rgb_locations[j]);
-                        if (e_distance > BUBBLE_DISTANCE)
+                        if (e_distance > BUBBLE_DISTANCE_UM)
                         {
                             intensity = 0;
                             continue;
@@ -214,13 +229,14 @@ void rgb_process(void)
                         intensity = (distance - e_distance);
                         if (intensity > 0)
                         {
-                            intensity = FADING_DISTANCE - intensity > 0 ? FADING_DISTANCE - intensity : 0;
-                            intensity /= FADING_DISTANCE;
+                            intensity = FADING_DISTANCE_UM - intensity > 0 ? FADING_DISTANCE_UM - intensity : 0;
+                            intensity /= FADING_DISTANCE_UM;
                             break;
                         }
                         else
                         {
-                            intensity = 1.0f + intensity > 0 ? 1.0f + intensity : 0;
+                            intensity = UNIT_TO_UM(1.0) + intensity > 0 ? UNIT_TO_UM(1.0) + intensity : 0;
+                            intensity /= UNIT_TO_UM(1.0);
                         }
                     }
                     break;
@@ -275,7 +291,7 @@ void rgb_process(void)
             {
                 rgb_config->begin_tick = g_keyboard_tick;
             }
-            intensity = powf(1 - rgb_config->speed, KEYBOARD_TICK_TO_TIME(g_keyboard_tick - rgb_config->begin_tick));
+            intensity = powf(0.99, CALC_SPAN(g_keyboard_tick - rgb_config->begin_tick, rgb_config->speed));
             temp_rgb.r = (uint8_t)((float)(rgb_config->rgb.r) * intensity);
             temp_rgb.g = (uint8_t)((float)(rgb_config->rgb.g) * intensity);
             temp_rgb.b = (uint8_t)((float)(rgb_config->rgb.b) * intensity);
@@ -294,7 +310,7 @@ void rgb_process(void)
         case RGB_MODE_CYCLE:
             temp_hsv.s = rgb_config->hsv.s;
             temp_hsv.v = rgb_config->hsv.v;
-            temp_hsv.h = (uint16_t)(rgb_config->hsv.h + (KEYBOARD_TICK_TO_TIME(g_keyboard_tick) % (uint16_t)(360 / rgb_config->speed)) * rgb_config->speed) % 360;
+            temp_hsv.h = (uint16_t)(rgb_config->hsv.h + (uint32_t)(CALC_SPAN(g_keyboard_tick, rgb_config->speed)) % 360);
             color_set_hsv(&temp_rgb, &temp_hsv);
             color_mix(target_color, &temp_rgb);
             break;
@@ -303,12 +319,12 @@ void rgb_process(void)
         case RGB_MODE_JELLY:
             for (int8_t j = 0; j < RGB_NUM; j++)
             {
-                intensity = (JELLY_DISTANCE * intensity) - MANHATTAN_DISTANCE(&g_rgb_locations[j], &g_rgb_locations[i]);
-                intensity = intensity > 0 ? intensity > 1 ? 1 : intensity : 0;
-
-                temp_rgb.r = ((uint8_t)(intensity * ((float)(g_rgb_configs[j].rgb.r)))) >> 1;
-                temp_rgb.g = ((uint8_t)(intensity * ((float)(g_rgb_configs[j].rgb.g)))) >> 1;
-                temp_rgb.b = ((uint8_t)(intensity * ((float)(g_rgb_configs[j].rgb.b)))) >> 1;
+                float intensity_jelly = (JELLY_DISTANCE_UM * intensity) - MANHATTAN_DISTANCE(&g_rgb_locations[j], &g_rgb_locations[i]);
+                intensity_jelly = intensity_jelly > 0 ? intensity_jelly > UNIT_TO_UM(1) ? UNIT_TO_UM(1) : intensity_jelly : 0;
+                intensity_jelly /= UNIT_TO_UM(1);
+                temp_rgb.r = ((uint8_t)(intensity_jelly * ((float)(g_rgb_configs[j].rgb.r)))) >> 1;
+                temp_rgb.g = ((uint8_t)(intensity_jelly * ((float)(g_rgb_configs[j].rgb.g)))) >> 1;
+                temp_rgb.b = ((uint8_t)(intensity_jelly * ((float)(g_rgb_configs[j].rgb.b)))) >> 1;
                 color_mix(&g_rgb_colors[j], &temp_rgb);
             }
             break;
@@ -354,20 +370,20 @@ void rgb_init_flash(void)
         for (int8_t i = 0; i < RGB_NUM; i++)
         {
             //rgb_flash();
-            intensity = (distance - sqrtf((location.x - g_rgb_locations[i].x) * (location.x - g_rgb_locations[i].x) +
-                                          (location.y - g_rgb_locations[i].y) * (location.y - g_rgb_locations[i].y)));
-                                          
+            intensity = (distance - EUCLIDEAN_DISTANCE(&location, &g_rgb_locations[i]));
+
             //intensity = (distance - MANHATTAN_DISTANCE(&location, g_rgb_locations+i));
             if (intensity > 0)
             {
-                intensity = 10 - intensity > 0 ? 10 - intensity : 0;
-                intensity /= 10;
+                intensity = UNIT_TO_UM(10) - intensity > 0 ? UNIT_TO_UM(10) - intensity : 0;
+                intensity /= UNIT_TO_UM(10);
             }
             else
             {
-                intensity = 1.0f + intensity > 0 ? 1.0f + intensity : 0;
+                intensity = UNIT_TO_UM(1.0f) + intensity > 0 ? UNIT_TO_UM(1.0f) + intensity : 0;
+                intensity /= UNIT_TO_UM(1.0f);
             }
-            if (intensity > 0 || distance < 4)
+            if (intensity > 0 || distance < UNIT_TO_UM(10))
             {
                 animation_playing = true;
             }

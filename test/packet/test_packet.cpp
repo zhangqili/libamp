@@ -32,7 +32,7 @@ TEST(Packet, SetPacketAdvancedKey)
         .data =
         {
             .mode = DEFAULT_ADVANCED_KEY_MODE,
-            .calibration_mode = A_ANTI_NORM(DEFAULT_CALIBRATION_MODE),
+            .calibration_mode = DEFAULT_CALIBRATION_MODE,
             .activation_value = A_ANTI_NORM(DEFAULT_ACTIVATION_VALUE),
             .deactivation_value = A_ANTI_NORM(DEFAULT_DEACTIVATION_VALUE),
             .trigger_distance = A_ANTI_NORM(DEFAULT_TRIGGER_DISTANCE),
@@ -75,7 +75,7 @@ TEST(Packet, SetPacketRGBConfigs)
                 .r = 255,
                 .g = 0,
                 .b = 0,
-                .speed = 0.01
+                .speed = 20
             },
             {
                 .index = 5,
@@ -83,7 +83,7 @@ TEST(Packet, SetPacketRGBConfigs)
                 .r = 0,
                 .g = 255,
                 .b = 0,
-                .speed = 0.01
+                .speed = 20
                 
             }
         }
@@ -101,7 +101,7 @@ TEST(Packet, SetPacketRGBConfigs)
     EXPECT_TRUE(!memcmp(&hsv,&g_rgb_configs[key_index].hsv,sizeof(hsv)));
     EXPECT_TRUE(!memcmp(&packet.data->r,&g_rgb_configs[key_index].rgb,sizeof(ColorRGB)));
     EXPECT_EQ(g_rgb_configs[key_index].mode, RGB_MODE_LINEAR);
-    EXPECT_FLOAT_EQ(g_rgb_configs[key_index].speed, 0.01);
+    EXPECT_EQ(g_rgb_configs[key_index].speed, 20);
 
     key_index = g_rgb_inverse_mapping[5];
     rgb.r = 0;
@@ -113,7 +113,7 @@ TEST(Packet, SetPacketRGBConfigs)
     EXPECT_EQ(hsv.v, g_rgb_configs[key_index].hsv.v);
     EXPECT_TRUE(!memcmp(&rgb,&g_rgb_configs[key_index].rgb,sizeof(ColorRGB)));
     EXPECT_EQ(g_rgb_configs[key_index].mode, RGB_MODE_FADING_DIAMOND_RIPPLE);
-    EXPECT_FLOAT_EQ(g_rgb_configs[key_index].speed, 0.01);
+    EXPECT_EQ(g_rgb_configs[key_index].speed, 20);
 }
 
 

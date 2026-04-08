@@ -12,13 +12,16 @@
 extern "C" {
 #endif
 
-typedef int16_t AnalogValue;
-typedef int16_t AnalogRawValue;
+typedef uint16_t AnalogValue;
+typedef uint16_t AnalogRawValue;
 #ifndef ANALOG_VALUE_MAX
-#define ANALOG_VALUE_MAX 32767
+#define ANALOG_VALUE_MAX 65535
 #endif
 #ifndef ANALOG_VALUE_MIN
 #define ANALOG_VALUE_MIN 0
+#endif
+#ifndef LUT_LENGTH
+#define LUT_LENGTH ANALOG_VALUE_MAX
 #endif
 
 #define ANALOG_VALUE_RANGE (ANALOG_VALUE_MAX - ANALOG_VALUE_MIN)

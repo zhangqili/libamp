@@ -69,7 +69,7 @@ static inline bool advanced_key_update_analog_speed_mode(AdvancedKey* advanced_k
     {
         state = true;
     }
-    if (advanced_key->difference < -advanced_key->config.release_speed)
+    if (-advanced_key->difference > advanced_key->config.release_speed)
     {
         state = false;
     }
@@ -176,7 +176,18 @@ bool advanced_key_update_state(AdvancedKey* advanced_key, bool state)
 
 __WEAK AnalogValue advanced_key_normalize(AdvancedKey* advanced_key, AnalogRawValue value)
 {
-    return  ANALOG_VALUE_MIN + A_ANTI_NORM(advanced_key->config.upper_bound - value) / (advanced_key->config.upper_bound - advanced_key->config.lower_bound);
+    int32_t delta = (int32_t)advanced_key->config.upper_bound - (int32_t)value;
+    int32_t mapped_val = (delta * advanced_key->q_scale_to_index) >> 16;
+    mapped_val += ANALOG_VALUE_MIN;
+    if (mapped_val < ANALOG_VALUE_MIN)
+    {
+        return ANALOG_VALUE_MIN;
+    }
+    if (mapped_val > ANALOG_VALUE_MAX)
+    {
+        return ANALOG_VALUE_MAX;
+    }
+    return (AnalogValue)mapped_val;
 }
 
 void advanced_key_set_range(AdvancedKey* advanced_key, AnalogRawValue upper, AnalogRawValue lower)
@@ -228,5 +239,8 @@ AnalogValue advanced_key_get_effective_value(AdvancedKey *advanced_key)
     {
         return ANALOG_VALUE_MAX;
     }
-    return (advanced_key->value - advanced_key->config.upper_deadzone) * (float)ANALOG_VALUE_RANGE / (float)(ANALOG_VALUE_RANGE - advanced_key->config.upper_deadzone - advanced_key->config.lower_deadzone) + ANALOG_VALUE_MIN;
+    int32_t active_val = (int32_t)advanced_key->value - (int32_t)advanced_key->config.upper_deadzone;
+    int32_t active_range = (int32_t)ANALOG_VALUE_RANGE - (int32_t)advanced_key->config.upper_deadzone - (int32_t)advanced_key->config.lower_deadzone;
+    
+    return (AnalogValue)((active_val * (int32_t)ANALOG_VALUE_RANGE) / active_range) + ANALOG_VALUE_MIN;
 }

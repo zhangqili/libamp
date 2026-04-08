@@ -81,7 +81,7 @@ typedef struct __PacketRGBBaseConfig
   uint8_t secondary_r;
   uint8_t secondary_g;
   uint8_t secondary_b;
-  float speed;
+  uint16_t speed;
   uint16_t direction;
   uint8_t density;
   uint8_t brightness;
@@ -96,7 +96,7 @@ typedef struct __PacketRGBConfig
   uint8_t r;
   uint8_t g;
   uint8_t b;
-  float speed;
+  uint16_t speed;
 } __PACKED PacketRGBConfig;
 
 typedef struct __PacketRGBConfigs
@@ -111,7 +111,7 @@ typedef struct __PacketRGBConfigs
     uint8_t r;
     uint8_t g;
     uint8_t b;
-    float speed;
+    uint16_t speed;
   } __PACKED data[];
 } __PACKED PacketRGBConfigs;
 
