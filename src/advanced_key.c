@@ -131,13 +131,8 @@ bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue raw)
 #endif
 #ifdef CALIBRATION_LPF_ENABLE
     static AnalogRawValue low_pass_raws[ADVANCED_KEY_NUM];
-#ifndef FIXED_POINT_EXPERIMENTAL
-    low_pass_raws[advanced_key->key.id] = 
-        raw * (1.0f/16.0f)  + low_pass_raws[advanced_key->key.id] * (15.0f/16.0f);
-#else
     low_pass_raws[advanced_key->key.id] = 
         ((uint32_t)raw + ((uint32_t)low_pass_raws[advanced_key->key.id]<<4) - low_pass_raws[advanced_key->key.id]) >> 4; 
-#endif
     AnalogRawValue lpf_value = low_pass_raws[advanced_key->key.id];
 #else
     AnalogRawValue lpf_value = raw;
@@ -181,20 +176,19 @@ bool advanced_key_update_state(AdvancedKey* advanced_key, bool state)
 
 __WEAK AnalogValue advanced_key_normalize(AdvancedKey* advanced_key, AnalogRawValue value)
 {
-#ifdef OPTIMIZE_FOR_FLOAT_DIVISION
-    return  ANALOG_VALUE_MIN + A_ANTI_NORM(advanced_key->config.upper_bound - value) * advanced_key->range_reciprocal;
-#else
     return  ANALOG_VALUE_MIN + A_ANTI_NORM(advanced_key->config.upper_bound - value) / (advanced_key->config.upper_bound - advanced_key->config.lower_bound);
-#endif
 }
 
 void advanced_key_set_range(AdvancedKey* advanced_key, AnalogRawValue upper, AnalogRawValue lower)
 {
     advanced_key->config.upper_bound = upper;
     advanced_key->config.lower_bound = lower;
-#ifdef OPTIMIZE_FOR_FLOAT_DIVISION
-    advanced_key->range_reciprocal = 1.0f/(advanced_key->config.upper_bound - advanced_key->config.lower_bound);
-#endif
+    int32_t range = upper - lower;
+    if (range != 0) {
+        advanced_key->q_scale_to_index = (int32_t)(((int64_t)LUT_LENGTH << 16) / range);
+    } else {
+        advanced_key->q_scale_to_index = 0;
+    }
 }
 
 void advanced_key_reset_range(AdvancedKey* advanced_key, AnalogRawValue value)
@@ -226,14 +220,13 @@ __WEAK AnalogRawValue advanced_key_read_raw(AdvancedKey *advanced_key)
 
 AnalogValue advanced_key_get_effective_value(AdvancedKey *advanced_key)
 {
-    AnalogValue value = (advanced_key->value - advanced_key->config.upper_deadzone) / (float)(ANALOG_VALUE_RANGE - advanced_key->config.upper_deadzone - advanced_key->config.lower_deadzone);
-    if (value > ANALOG_VALUE_MAX)
+    if (advanced_key->value - ANALOG_VALUE_MIN <= advanced_key->config.upper_deadzone)
     {
-        value = ANALOG_VALUE_MAX;
+        return ANALOG_VALUE_MIN;
     }
-    if (value < ANALOG_VALUE_MIN)
+    if (advanced_key->value - ANALOG_VALUE_MIN >= ANALOG_VALUE_MAX - advanced_key->config.lower_deadzone)
     {
-        value = ANALOG_VALUE_MIN;
+        return ANALOG_VALUE_MAX;
     }
-    return value;
+    return (advanced_key->value - advanced_key->config.upper_deadzone) * (float)ANALOG_VALUE_RANGE / (float)(ANALOG_VALUE_RANGE - advanced_key->config.upper_deadzone - advanced_key->config.lower_deadzone) + ANALOG_VALUE_MIN;
 }

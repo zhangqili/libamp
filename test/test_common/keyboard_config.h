@@ -12,8 +12,7 @@
 #define LAYER_NUM               5
 #define ADVANCED_KEY_NUM        64
 #define KEY_NUM                 0
-//#define FIXED_POINT_EXPERIMENTAL
-#define OPTIMIZE_FOR_FLOAT_DIVISION
+#define FIXED_POINT_EXPERIMENTAL
 //#define CONTINUOUS_DEBUG
 #define DEBUG_INTERVAL 1
 #define DYNAMICKEY_ENABLE
@@ -25,6 +24,7 @@
 #define DEBOUNCE_PRESS_EAGER    1
 #define DEBOUNCE_RELEASE        10
 #define DEBOUNCE_RELEASE_EAGER  0
+#define LUT_LENGTH              8192
 
 /********************/
 /* Keyboard Default */

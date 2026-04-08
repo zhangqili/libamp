@@ -82,6 +82,15 @@ static const struct lfs_config _lfs_config =
 };
 #endif
 
+void fs_init_dir(void)
+{
+#ifdef LFS_ENABLE
+    lfs_mkdir(&_lfs, "profiles");
+    lfs_mkdir(&_lfs, "system");
+    lfs_mkdir(&_lfs, "scripts");
+#endif
+}
+
 int fs_init(void)
 {
 #ifdef LFS_ENABLE
@@ -94,6 +103,7 @@ int fs_init(void)
         lfs_format(&_lfs, &_lfs_config);
         lfs_mount(&_lfs, &_lfs_config);
     }
+    fs_init_dir();
     return err;
 #endif
 }

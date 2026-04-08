@@ -67,7 +67,7 @@ typedef struct __PacketAdvancedKey
   uint8_t code;
   uint8_t type;
   uint16_t index;
-  AdvancedKeyConfigurationNormalized data;
+  AdvancedKeyConfiguration data;
 } __PACKED PacketAdvancedKey;
 
 typedef struct __PacketRGBBaseConfig
@@ -166,8 +166,8 @@ typedef struct __PacketDebug
     uint16_t index;
     uint8_t state;
     uint8_t report_state;
-    float raw;
-    float value;
+    uint16_t raw;
+    uint16_t value;
   } __PACKED data[];
 } __PACKED PacketDebug;
 

@@ -32,32 +32,32 @@ TEST(Packet, SetPacketAdvancedKey)
         .data =
         {
             .mode = DEFAULT_ADVANCED_KEY_MODE,
-            .calibration_mode = DEFAULT_CALIBRATION_MODE,
-            .activation_value = DEFAULT_ACTIVATION_VALUE,
-            .deactivation_value = DEFAULT_DEACTIVATION_VALUE,
-            .trigger_distance = DEFAULT_TRIGGER_DISTANCE,
-            .release_distance = DEFAULT_RELEASE_DISTANCE,
-            .trigger_speed = 0.01,
-            .release_speed = 0.01,
-            .upper_deadzone = DEFAULT_UPPER_DEADZONE,
-            .lower_deadzone = DEFAULT_LOWER_DEADZONE,
+            .calibration_mode = A_ANTI_NORM(DEFAULT_CALIBRATION_MODE),
+            .activation_value = A_ANTI_NORM(DEFAULT_ACTIVATION_VALUE),
+            .deactivation_value = A_ANTI_NORM(DEFAULT_DEACTIVATION_VALUE),
+            .trigger_distance = A_ANTI_NORM(DEFAULT_TRIGGER_DISTANCE),
+            .release_distance = A_ANTI_NORM(DEFAULT_RELEASE_DISTANCE),
+            .trigger_speed = A_ANTI_NORM(0.01),
+            .release_speed = A_ANTI_NORM(0.01),
+            .upper_deadzone = A_ANTI_NORM(DEFAULT_UPPER_DEADZONE),
+            .lower_deadzone = A_ANTI_NORM(DEFAULT_LOWER_DEADZONE),
             .upper_bound = 2048,
             .lower_bound = 0,
         }
     };
     packet_process((uint8_t*)&packet,sizeof(packet));
     EXPECT_EQ(g_keyboard_advanced_keys[3].config.mode, DEFAULT_ADVANCED_KEY_MODE);
-    //EXPECT_EQ(g_keyboard_advanced_keys[3].config.calibration_mode, DEFAULT_CALIBRATION_MODE);
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.activation_value, A_ANTI_NORM(DEFAULT_ACTIVATION_VALUE));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.deactivation_value, A_ANTI_NORM(DEFAULT_DEACTIVATION_VALUE));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.trigger_distance, A_ANTI_NORM(DEFAULT_TRIGGER_DISTANCE));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.release_distance, A_ANTI_NORM(DEFAULT_RELEASE_DISTANCE));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.trigger_speed, A_ANTI_NORM(0.01));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.release_speed, A_ANTI_NORM(0.01));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.upper_deadzone, A_ANTI_NORM(DEFAULT_UPPER_DEADZONE));
-    EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.lower_deadzone, A_ANTI_NORM(DEFAULT_LOWER_DEADZONE));
-    //EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.upper_bound, 2048);
-    //EXPECT_FLOAT_EQ(g_keyboard_advanced_keys[3].config.lower_bound, 0);
+    //EXPECT_EQ(g_keyboard_advanced_keys[3].config.calibration_mode, A_ANTI_NORM(DEFAULT_CALIBRATION_MODE));
+    EXPECT_EQ(g_keyboard_advanced_keys[3].config.activation_value, A_ANTI_NORM(DEFAULT_ACTIVATION_VALUE));
+    EXPECT_EQ(g_keyboard_advanced_keys[3].config.deactivation_value, A_ANTI_NORM(DEFAULT_DEACTIVATION_VALUE));
+    EXPECT_EQ(g_keyboard_advanced_keys[3].config.trigger_distance, A_ANTI_NORM(DEFAULT_TRIGGER_DISTANCE));
+    EXPECT_EQ(g_keyboard_advanced_keys[3].config.release_distance, A_ANTI_NORM(DEFAULT_RELEASE_DISTANCE));
+    EXPECT_EQ(g_keyboard_advanced_keys[3].config.trigger_speed, A_ANTI_NORM(0.01));
+    EXPECT_EQ(g_keyboard_advanced_keys[3].config.release_speed, A_ANTI_NORM(0.01));
+    EXPECT_EQ(g_keyboard_advanced_keys[3].config.upper_deadzone, A_ANTI_NORM(DEFAULT_UPPER_DEADZONE));
+    EXPECT_EQ(g_keyboard_advanced_keys[3].config.lower_deadzone, A_ANTI_NORM(DEFAULT_LOWER_DEADZONE));
+    //EXPECT_EQ(g_keyboard_advanced_keys[3].config.upper_bound, 2048);
+    //EXPECT_EQ(g_keyboard_advanced_keys[3].config.lower_bound, 0);
 }
 
 TEST(Packet, SetPacketRGBConfigs)
@@ -119,7 +119,7 @@ TEST(Packet, SetPacketRGBConfigs)
 
 TEST(Packet, SetPacketDynamicKey)
 {
-    static DynamicKeyStroke4x4Normalized dynamic_key = 
+    static DynamicKeyStroke4x4 dynamic_key = 
     {
         .type = DYNAMIC_KEY_STROKE,
         .key_binding = {KEY_A, KEY_B, KEY_C, KEY_D},
@@ -129,10 +129,10 @@ TEST(Packet, SetPacketDynamicKey)
             DKS_KEY_CONTROL(DKS_RELEASE,DKS_HOLD,   DKS_TAP,    DKS_HOLD),
             DKS_KEY_CONTROL(DKS_HOLD,   DKS_RELEASE,DKS_TAP,    DKS_RELEASE)
         },
-        .press_begin_distance = 0.25,
-        .press_fully_distance = 0.75,
-        .release_begin_distance = 0.75,
-        .release_fully_distance = 0.25,
+        .press_begin_distance = A_ANTI_NORM(0.25),
+        .press_fully_distance = A_ANTI_NORM(0.75),
+        .release_begin_distance = A_ANTI_NORM(0.75),
+        .release_fully_distance = A_ANTI_NORM(0.25),
     };
     static DynamicKey dynamic_key1 = 
     {
@@ -148,10 +148,10 @@ TEST(Packet, SetPacketDynamicKey)
     packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_DYNAMIC_KEY,
     packet->index = 1,
-    memcpy(packet->dynamic_key,&dynamic_key,sizeof(DynamicKeyStroke4x4Normalized));
+    memcpy(packet->dynamic_key,&dynamic_key,sizeof(DynamicKeyStroke4x4));
     packet_process((uint8_t*)packet,sizeof(packet));
     EXPECT_EQ(g_dynamic_keys[1].type, DYNAMIC_KEY_STROKE);
-    EXPECT_FLOAT_EQ(g_dynamic_keys[1].dks.press_fully_distance, A_ANTI_NORM(dynamic_key.press_fully_distance));
+    EXPECT_EQ(g_dynamic_keys[1].dks.press_fully_distance, dynamic_key.press_fully_distance);
 
     memset(buffer, 0, sizeof(buffer));
     packet->code = PACKET_CODE_SET;

@@ -26,7 +26,7 @@ TEST(DynamicKey, ModTap)
     g_keymap[0][0] = DYNAMIC_KEY | ((0) << 8);
     g_keymap_cache[0] = g_keymap[0][0];
 
-    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], 1.0);
+    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
     dynamic_key_process();
     keyboard_clear_buffer();
     if (g_keyboard_advanced_keys[0].key.report_state)
@@ -39,7 +39,7 @@ TEST(DynamicKey, ModTap)
     g_keyboard_tick += 200;
 
 
-    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], 1.0);
+    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
     dynamic_key_process();
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
@@ -47,14 +47,14 @@ TEST(DynamicKey, ModTap)
     //EXPECT_TRUE(dynamic_key.mt.vkey1.report_state);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_B);
 
-    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], 0.0);
+    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(0.0));
     dynamic_key_process();
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
     keyboard_buffer_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
 
-    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], 1.0);
+    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
     dynamic_key_process();
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
@@ -62,7 +62,7 @@ TEST(DynamicKey, ModTap)
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
     g_keyboard_tick += 50;
 
-    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], 0.0);
+    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(0.0));
     dynamic_key_process();
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
@@ -86,7 +86,7 @@ TEST(DynamicKey, ToggleKey)
     g_keymap[0][0] = DYNAMIC_KEY | ((0) << 8);
     g_keymap_cache[0] = g_keymap[0][0];
 
-    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], 1.0);
+    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
     dynamic_key_process();
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
@@ -94,7 +94,7 @@ TEST(DynamicKey, ToggleKey)
     EXPECT_EQ(g_dynamic_keys[0].tk.state, true);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
 
-    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], 0.0);
+    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(0.0));
     dynamic_key_process();
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
@@ -102,7 +102,7 @@ TEST(DynamicKey, ToggleKey)
     EXPECT_EQ(g_dynamic_keys[0].tk.state, true);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
 
-    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], 1.0);
+    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
     dynamic_key_process();
     keyboard_clear_buffer();
     dynamic_key_add_buffer();
@@ -110,7 +110,7 @@ TEST(DynamicKey, ToggleKey)
     EXPECT_EQ(g_dynamic_keys[0].tk.state, false);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
 
-    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], 0.0);
+    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(0.0));
     dynamic_key_process();
     keyboard_clear_buffer();
     dynamic_key_add_buffer();

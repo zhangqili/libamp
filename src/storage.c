@@ -25,7 +25,7 @@
 
 #define STORAGE_FLASH_RESERVED_SIZE 0x0400
 
-#define STORAGE_ADVANCED_KEY_CONFIG_SIZE (sizeof(AdvancedKeyConfigurationNormalized) * ADVANCED_KEY_NUM)
+#define STORAGE_ADVANCED_KEY_CONFIG_SIZE (sizeof(AdvancedKeyConfiguration) * ADVANCED_KEY_NUM)
 #define STORAGE_KEYMAP_SIZE (sizeof(g_keymap))
 #ifdef RGB_ENABLE
 #define STORAGE_RGB_CONFIG_SIZE (sizeof(g_rgb_base_config) +  sizeof(g_rgb_configs))
@@ -60,82 +60,26 @@ static inline int config_file_write(const uint8_t *buffer, uint32_t size, uint32
 }
 #endif
 
-void advanced_key_config_normalize(AdvancedKeyConfigurationNormalized* buffer, const AdvancedKeyConfiguration* config)
-{
-    buffer->mode = config->mode;
-    buffer->calibration_mode = config->calibration_mode;
-    buffer->activation_value = A_NORM(config->activation_value);
-    buffer->deactivation_value = A_NORM(config->deactivation_value);
-    buffer->trigger_distance = A_NORM(config->trigger_distance);
-    buffer->release_distance = A_NORM(config->release_distance);
-    buffer->trigger_speed = A_NORM(config->trigger_speed);
-    buffer->release_speed = A_NORM(config->release_speed);
-    buffer->upper_deadzone = A_NORM(config->upper_deadzone);
-    buffer->lower_deadzone = A_NORM(config->lower_deadzone);
-    buffer->upper_bound = config->upper_bound;
-    buffer->lower_bound = config->lower_bound;
-}
-
-void advanced_key_config_anti_normalize(AdvancedKeyConfiguration* config, const AdvancedKeyConfigurationNormalized* buffer)
-{
-    config->mode = buffer->mode;
-    config->calibration_mode = buffer->calibration_mode;
-    config->activation_value = A_ANTI_NORM(buffer->activation_value);
-    config->deactivation_value = A_ANTI_NORM(buffer->deactivation_value);
-    config->trigger_distance = A_ANTI_NORM(buffer->trigger_distance);
-    config->release_distance = A_ANTI_NORM(buffer->release_distance);
-    config->trigger_speed = A_ANTI_NORM(buffer->trigger_speed);
-    config->release_speed = A_ANTI_NORM(buffer->release_speed);
-    config->upper_deadzone = A_ANTI_NORM(buffer->upper_deadzone);
-    config->lower_deadzone = A_ANTI_NORM(buffer->lower_deadzone);
-    config->upper_bound = buffer->upper_bound;
-    config->lower_bound = buffer->lower_bound;
-}
-
-void dynamic_key_stroke_normalize(DynamicKeyStroke4x4Normalized* buffer, DynamicKeyStroke4x4* dks)
-{
-    memcpy(buffer, dks, offsetof(DynamicKeyStroke4x4,press_begin_distance));
-    buffer->press_begin_distance = A_NORM(dks->press_begin_distance);
-    buffer->press_fully_distance = A_NORM(dks->press_fully_distance);
-    buffer->release_begin_distance = A_NORM(dks->release_begin_distance);
-    buffer->release_fully_distance = A_NORM(dks->release_fully_distance);
-    buffer->key_id = dks->key_id;
-}
-
-void dynamic_key_stroke_anti_normalize(DynamicKeyStroke4x4* dks, DynamicKeyStroke4x4Normalized* buffer)
-{
-    memcpy(dks, buffer, offsetof(DynamicKeyStroke4x4,press_begin_distance));
-    dks->press_begin_distance = A_ANTI_NORM(buffer->press_begin_distance);
-    dks->press_fully_distance = A_ANTI_NORM(buffer->press_fully_distance);
-    dks->release_begin_distance = A_ANTI_NORM(buffer->release_begin_distance);
-    dks->release_fully_distance = A_ANTI_NORM(buffer->release_fully_distance);
-    dks->key_id = buffer->key_id;
-}
-
 static inline void save_advanced_key_config(FileStream *file, AdvancedKey* key)
 {
-    AdvancedKeyConfigurationNormalized buffer;
-    advanced_key_config_normalize(&buffer, &key->config);
-    fs_write(((void *)(&buffer)), sizeof(AdvancedKeyConfigurationNormalized), 1, file);
+    fs_write(((void *)(&key->config)), sizeof(AdvancedKeyConfiguration), 1, file);
 }
 
 static inline void read_advanced_key_config(FileStream *file, AdvancedKey* key)
 {
-    AdvancedKeyConfigurationNormalized buffer;
-    fs_read(&buffer, sizeof(AdvancedKeyConfigurationNormalized), 1, file);
-    advanced_key_config_anti_normalize(&key->config, &buffer);
+    fs_read(&key->config, sizeof(AdvancedKeyConfiguration), 1, file);
     advanced_key_set_range(key, key->config.upper_bound, key->config.lower_bound);
 }
 
 int storage_mount(void)
 {
-    fs_init();
+    return fs_init();
 }
 
 int storage_check_version(void)
 {
     FileStream file;
-    int res = fs_open(&file, "version", FS_O_RDWR | FS_O_CREAT);
+    int res = fs_open(&file, "system/version", FS_O_RDWR | FS_O_CREAT);
     if (res < 0)    {
         return 0;
     }
@@ -172,7 +116,7 @@ void storage_unmount(void)
 uint8_t storage_read_profile_index(void)
 {
     FileStream file;
-    int res = fs_open(&file, "profile_index", FS_O_RDWR | FS_O_CREAT);
+    int res = fs_open(&file, "system/profile_index", FS_O_RDWR | FS_O_CREAT);
     if (res < 0)
     {
         g_current_profile_index = 0;
@@ -193,7 +137,7 @@ uint8_t storage_read_profile_index(void)
 void storage_save_profile_index(void)
 {
     FileStream file;
-    int res = fs_open(&file, "profile_index", FS_O_RDWR | FS_O_CREAT);
+    int res = fs_open(&file, "system/profile_index", FS_O_RDWR | FS_O_CREAT);
     if (res < 0)
     {
         return;
@@ -204,8 +148,8 @@ void storage_save_profile_index(void)
 
 void storage_read_profile(void)
 {
-    char config_file_name[16] = "profile0";
-    config_file_name[6] = g_current_profile_index + '0';
+    char config_file_name[] = "profiles/profile0";
+    config_file_name[sizeof(config_file_name) - 2] = g_current_profile_index + '0';
     FileStream file;
     int res = fs_open(&file, config_file_name, FS_O_RDWR | FS_O_CREAT);
     if (res < 0)    {
@@ -224,17 +168,7 @@ void storage_read_profile(void)
 #ifdef DYNAMICKEY_ENABLE
     for (int i = 0; i < DYNAMIC_KEY_NUM; i++)
     {
-        DynamicKey buffer;
-        fs_read(&buffer, sizeof(DynamicKey), 1, &file);
-        switch (buffer.type)
-        {
-        case DYNAMIC_KEY_STROKE:
-            dynamic_key_stroke_anti_normalize((DynamicKeyStroke4x4*)&g_dynamic_keys[i], (DynamicKeyStroke4x4Normalized*)&buffer);
-            break;
-        default:        
-            memcpy(&g_dynamic_keys[i], &buffer, sizeof(DynamicKey));
-            break;
-        }
+        fs_read(&g_dynamic_keys[i], sizeof(DynamicKey), 1, &file);
     }
 #endif
     fs_close(&file);
@@ -242,8 +176,8 @@ void storage_read_profile(void)
 
 void storage_save_profile(void)
 {
-    char config_file_name[16] = "profile0";
-    config_file_name[6] = g_current_profile_index + '0';
+    char config_file_name[] = "profiles/profile0";
+    config_file_name[sizeof(config_file_name) - 2] = g_current_profile_index + '0';
     FileStream file;
     int res = fs_open(&file, config_file_name, FS_O_RDWR | FS_O_CREAT);
     if (res < 0)
@@ -262,19 +196,8 @@ void storage_save_profile(void)
 #ifdef DYNAMICKEY_ENABLE
     for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
     {
-        switch (g_dynamic_keys[i].type)
-        {
-        case DYNAMIC_KEY_STROKE:
-        {
-            DynamicKeyStroke4x4Normalized buffer;
-            dynamic_key_stroke_normalize(&buffer, (DynamicKeyStroke4x4*)&g_dynamic_keys[i]);
-            fs_write(&buffer, sizeof(DynamicKey), 1, &file);
-            break;
-        }
-        default:
-            fs_write(&g_dynamic_keys[i], sizeof(DynamicKey), 1, &file);
-            break;
-        }
+        fs_write(&g_dynamic_keys[i], sizeof(DynamicKey), 1, &file);
+        break;
     }
 #endif
     fs_close(&file);
@@ -286,7 +209,7 @@ void storage_save_script(void)
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
     {
         FileStream file;
-        int res = fs_open(&file, "main.bin", FS_O_RDWR | FS_O_CREAT);
+        int res = fs_open(&file, "scripts/main.bin", FS_O_RDWR | FS_O_CREAT);
         if (res >= 0)
         {
             fs_write(g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer), 1, &file);
@@ -298,7 +221,7 @@ void storage_save_script(void)
     {
 
         FileStream file;
-        int res = fs_open(&file, "main.js", FS_O_RDWR | FS_O_CREAT);
+        int res = fs_open(&file, "scripts/main.js", FS_O_RDWR | FS_O_CREAT);
         if (res >= 0)
         {
             fs_write(g_script_source_buffer, sizeof(g_script_source_buffer), 1, &file);
@@ -316,7 +239,7 @@ void storage_read_script(void)
     {
 
         FileStream file;
-        int res = fs_open(&file, "main.bin", FS_O_RDWR | FS_O_CREAT);
+        int res = fs_open(&file, "scripts/main.bin", FS_O_RDWR | FS_O_CREAT);
         if (res >= 0)
         {
             fs_read(g_script_bytecode_buffer, sizeof(g_script_bytecode_buffer), 1, &file);
@@ -328,7 +251,7 @@ void storage_read_script(void)
     {
 
         FileStream file;
-        int res = fs_open(&file, "main.js", FS_O_RDWR | FS_O_CREAT);
+        int res = fs_open(&file, "scripts/main.js", FS_O_RDWR | FS_O_CREAT);
         if (res >= 0)
         {
             fs_read(g_script_source_buffer, sizeof(g_script_source_buffer), 1, &file);

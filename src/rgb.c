@@ -250,7 +250,7 @@ void rgb_process(void)
         Key* key = keyboard_get_key(g_rgb_mapping[i]);
         if (key != NULL)
         {
-            intensity = keyboard_get_key_effective_analog_value(key);
+            intensity = keyboard_get_key_effective_analog_value(key)/((float)ANALOG_VALUE_RANGE);
             report_state = key->report_state;
         }
         else

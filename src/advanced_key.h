@@ -12,16 +12,6 @@
 extern "C" {
 #endif
 
-#ifndef FIXED_POINT_EXPERIMENTAL
-typedef float AnalogValue;
-typedef float AnalogRawValue;
-#ifndef ANALOG_VALUE_MAX
-#define ANALOG_VALUE_MAX 1.0f
-#endif
-#ifndef ANALOG_VALUE_MIN
-#define ANALOG_VALUE_MIN 0.0f
-#endif
-#else
 typedef int16_t AnalogValue;
 typedef int16_t AnalogRawValue;
 #ifndef ANALOG_VALUE_MAX
@@ -30,14 +20,10 @@ typedef int16_t AnalogRawValue;
 #ifndef ANALOG_VALUE_MIN
 #define ANALOG_VALUE_MIN 0
 #endif
-#endif
+
 #define ANALOG_VALUE_RANGE (ANALOG_VALUE_MAX - ANALOG_VALUE_MIN)
 
-#ifdef OPTIMIZE_FOR_FLOAT_DIVISION
-#define ANALOG_VALUE_NORMALIZE(x) ((x)*(1/(float)ANALOG_VALUE_RANGE))
-#else
 #define ANALOG_VALUE_NORMALIZE(x) ((x)/(float)ANALOG_VALUE_RANGE)
-#endif
 #define ANALOG_VALUE_ANTI_NORMALIZE(x) ((AnalogValue)(((float)(x))*ANALOG_VALUE_RANGE))
 
 #define A_NORM ANALOG_VALUE_NORMALIZE
@@ -85,10 +71,8 @@ typedef struct __AdvancedKey
     AnalogValue value;
     AnalogValue raw;
     AnalogValue extremum;
-    AnalogValue difference;
-#ifdef OPTIMIZE_FOR_FLOAT_DIVISION
-    float range_reciprocal;
-#endif
+    int16_t difference;
+    int32_t q_scale_to_index;
     AdvancedKeyConfiguration config;
 
 } AdvancedKey;

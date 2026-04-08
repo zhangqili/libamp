@@ -56,25 +56,25 @@ TEST(AdvancedKeyTest, RapidTriggerMode)
     EXPECT_FALSE(advanced_key.key.state);
     advanced_key_update(&advanced_key, A_ANTI_NORM(0.12));
     EXPECT_TRUE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANTI_NORM(0.12));
+    EXPECT_EQ(advanced_key.extremum, A_ANTI_NORM(0.12));
     advanced_key_update(&advanced_key, A_ANTI_NORM(0.60));
     EXPECT_TRUE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANTI_NORM(0.60));
+    EXPECT_EQ(advanced_key.extremum, A_ANTI_NORM(0.60));
     advanced_key_update(&advanced_key, A_ANTI_NORM(0.50));
     EXPECT_FALSE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANTI_NORM(0.50));
+    EXPECT_EQ(advanced_key.extremum, A_ANTI_NORM(0.50));
     advanced_key_update(&advanced_key, A_ANTI_NORM(0.60));
     EXPECT_TRUE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANTI_NORM(0.60));
+    EXPECT_EQ(advanced_key.extremum, A_ANTI_NORM(0.60));
     advanced_key_update(&advanced_key, A_ANTI_NORM(1.00));
     EXPECT_TRUE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANTI_NORM(1.00));
+    EXPECT_EQ(advanced_key.extremum, A_ANTI_NORM(1.00));
     advanced_key_update(&advanced_key, A_ANTI_NORM(0.82));
     EXPECT_TRUE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANTI_NORM(1.00));
+    EXPECT_EQ(advanced_key.extremum, A_ANTI_NORM(1.00));
     advanced_key_update(&advanced_key, A_ANTI_NORM(0.78));
     EXPECT_FALSE(advanced_key.key.state);
-    EXPECT_FLOAT_EQ(advanced_key.extremum, A_ANTI_NORM(0.78));
+    EXPECT_EQ(advanced_key.extremum, A_ANTI_NORM(0.78));
 }
 
 TEST(AdvancedKeyTest, SpeedMode)
@@ -132,7 +132,7 @@ TEST(AdvancedKeyTest, Value)
         {
             float value = A_ANTI_NORM((-cos(j/100.f)*0.5+1));
             advanced_key_update(&advanced_key, value);
-            EXPECT_FLOAT_EQ(advanced_key.value, value);
+            EXPECT_EQ(advanced_key.value, value);
         }
     }
 }
@@ -156,10 +156,10 @@ TEST(AdvancedKeyTest, Calibration)
         advanced_key_update_raw(&advanced_key, default_upper_bound+DEFAULT_ESTIMATED_RANGE-100);
         advanced_key_update_raw(&advanced_key, default_upper_bound+DEFAULT_ESTIMATED_RANGE+100);
         EXPECT_EQ(advanced_key.config.calibration_mode, ADVANCED_KEY_AUTO_CALIBRATION_POSITIVE);
-        EXPECT_FLOAT_EQ(advanced_key.config.lower_bound, default_upper_bound+DEFAULT_ESTIMATED_RANGE+100);
+        EXPECT_EQ(advanced_key.config.lower_bound, default_upper_bound+DEFAULT_ESTIMATED_RANGE+100);
         advanced_key_update_raw(&advanced_key, default_upper_bound+DEFAULT_ESTIMATED_RANGE+500);
         EXPECT_EQ(advanced_key.config.calibration_mode, ADVANCED_KEY_AUTO_CALIBRATION_POSITIVE);
-        EXPECT_FLOAT_EQ(advanced_key.config.lower_bound, default_upper_bound+DEFAULT_ESTIMATED_RANGE+500);
+        EXPECT_EQ(advanced_key.config.lower_bound, default_upper_bound+DEFAULT_ESTIMATED_RANGE+500);
     }
     {
         static AdvancedKey advanced_key = 
@@ -176,9 +176,9 @@ TEST(AdvancedKeyTest, Calibration)
         advanced_key_update_raw(&advanced_key, default_upper_bound-DEFAULT_ESTIMATED_RANGE+100);
         advanced_key_update_raw(&advanced_key, default_upper_bound-DEFAULT_ESTIMATED_RANGE-100);
         EXPECT_EQ(advanced_key.config.calibration_mode, ADVANCED_KEY_AUTO_CALIBRATION_NEGATIVE);
-        EXPECT_FLOAT_EQ(advanced_key.config.lower_bound, default_upper_bound-DEFAULT_ESTIMATED_RANGE-100);
+        EXPECT_EQ(advanced_key.config.lower_bound, default_upper_bound-DEFAULT_ESTIMATED_RANGE-100);
         advanced_key_update_raw(&advanced_key, default_upper_bound-DEFAULT_ESTIMATED_RANGE-500);
         EXPECT_EQ(advanced_key.config.calibration_mode, ADVANCED_KEY_AUTO_CALIBRATION_NEGATIVE);
-        EXPECT_FLOAT_EQ(advanced_key.config.lower_bound, default_upper_bound-DEFAULT_ESTIMATED_RANGE-500);
+        EXPECT_EQ(advanced_key.config.lower_bound, default_upper_bound-DEFAULT_ESTIMATED_RANGE-500);
     }
 }
