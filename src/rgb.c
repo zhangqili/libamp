@@ -291,7 +291,7 @@ void rgb_process(void)
             {
                 rgb_config->begin_tick = g_keyboard_tick;
             }
-            intensity = powf(0.99, CALC_SPAN(g_keyboard_tick - rgb_config->begin_tick, rgb_config->speed));
+            intensity = powf(0.9999, CALC_SPAN(g_keyboard_tick - rgb_config->begin_tick, rgb_config->speed));
             temp_rgb.r = (uint8_t)((float)(rgb_config->rgb.r) * intensity);
             temp_rgb.g = (uint8_t)((float)(rgb_config->rgb.g) * intensity);
             temp_rgb.b = (uint8_t)((float)(rgb_config->rgb.b) * intensity);

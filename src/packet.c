@@ -229,7 +229,7 @@ void packet_process_rgb_config(PacketData*data)
                 packet->data[i].r = g_rgb_configs[rgb_index].rgb.r;
                 packet->data[i].g = g_rgb_configs[rgb_index].rgb.g;
                 packet->data[i].b = g_rgb_configs[rgb_index].rgb.b;
-                memcpy(&packet->data[i].speed, &g_rgb_configs[rgb_index].speed, sizeof(float));
+                packet->data[i].speed = g_rgb_configs[rgb_index].speed;
             }
         }
     }
