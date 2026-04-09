@@ -12,7 +12,7 @@
 #include "usbd_mtp.h"
 #define USBD_MSOS_VENDOR_CODE 0x20
 
-static const uint8_t msosv1_string_descriptor[] = {
+static const char msosv1_string_descriptor[] = {
     0x12,                       /* bLength */
     0x03,                       /* bDescriptorType */
     'M', 0, 'S', 0, 'F', 0, 'T', 0, '1', 0, '0', 0, '0', 0, /* qwSignature "MSFT100" */
@@ -70,11 +70,8 @@ static const uint8_t *other_speed_config_descriptor_callback(uint8_t speed)
 static const char *string_descriptors[] = {
     (const char[]){ 0x09, 0x04 }, /* Langid */
     MANUFACTURER,                    /* Manufacturer */
-    PRODUCT,           /* Product */
+    PRODUCT,                        /* Product */
     SERIAL_NUMBER,                 /* Serial Number */
-#if defined(MTP_ENABLE)
-    "MTP",
-#endif
 };
 
 static const char *string_descriptor_callback(uint8_t speed, uint8_t index)
