@@ -76,8 +76,13 @@ static void mtp_container_add_utf8_string(mtp_container_info_t* container, const
 
 enum { SUPPORTED_STORAGE_ID = 0x00010001u };
 
-#define MAX_MTP_HANDLES 32
-#define MAX_PATH_LEN    32
+#ifndef MTP_MAX_HANDLES
+#define MTP_MAX_HANDLES 32
+#endif
+#ifndef MTP_MAX_PATH_LEN
+#define MTP_MAX_PATH_LEN 255
+#endif
+
 static uint32_t pending_event_handle = 0;
 static uint16_t pending_event_code = 0;
 static void notify_host_object_event(uint32_t handle, uint16_t event_code) {
@@ -105,17 +110,17 @@ typedef struct {
     uint16_t association_type;
     uint32_t size;
     char name[64];
-    char path[MAX_PATH_LEN];
+    char path[MTP_MAX_PATH_LEN];
     bool scanned;
 } mtp_obj_t;
 
-static mtp_obj_t handle_map[MAX_MTP_HANDLES];
+static mtp_obj_t handle_map[MTP_MAX_HANDLES];
 static bool is_session_opened = false;
 static uint32_t send_obj_handle = 0;
 static int active_fd = -1;
 
 static uint32_t allocate_handle(void) {
-    for (int i = 0; i < MAX_MTP_HANDLES; i++) {
+    for (int i = 0; i < MTP_MAX_HANDLES; i++) {
         if (!handle_map[i].used) {
             handle_map[i].used = true;
             return i + 1; 
@@ -125,7 +130,7 @@ static uint32_t allocate_handle(void) {
 }
 
 static mtp_obj_t* get_obj(uint32_t handle) {
-    if (handle == 0 || handle > MAX_MTP_HANDLES) return NULL;
+    if (handle == 0 || handle > MTP_MAX_HANDLES) return NULL;
     if (!handle_map[handle - 1].used) return NULL;
     return &handle_map[handle - 1];
 }
@@ -193,7 +198,7 @@ static void scan_all_directories(void) {
     bool more_to_scan = true;
     while (more_to_scan) {
         more_to_scan = false;
-        for (int i = 0; i < MAX_MTP_HANDLES; i++) {
+        for (int i = 0; i < MTP_MAX_HANDLES; i++) {
             if (handle_map[i].used && handle_map[i].is_dir && !handle_map[i].scanned) {
                 handle_map[i].scanned = true; 
                 scan_single_dir(handle_map[i].path, handle_map[i].handle); 
@@ -306,10 +311,10 @@ static int32_t fs_get_object_handles(tud_mtp_cb_data_t* cb_data) {
         return MTP_RESP_INVALID_STORAGE_ID;
     }
 
-    static uint32_t handles[MAX_MTP_HANDLES];
+    static uint32_t handles[MTP_MAX_HANDLES];
     uint32_t count = 0;
 
-    for (uint32_t i = 0; i < MAX_MTP_HANDLES; i++) {
+    for (uint32_t i = 0; i < MTP_MAX_HANDLES; i++) {
         if (handle_map[i].used) {
             bool parent_match = false;
             if (parent_handle == 0xFFFFFFFFu || parent_handle == 0x00000000u) {
@@ -526,7 +531,7 @@ static int32_t fs_delete_object(tud_mtp_cb_data_t* cb_data) {
     return MTP_RESP_OK;
 }
 static void delete_children_handles(uint32_t parent_handle) {
-    for (int i = 0; i < MAX_MTP_HANDLES; i++) {
+    for (int i = 0; i < MTP_MAX_HANDLES; i++) {
         if (handle_map[i].used && handle_map[i].parent == parent_handle) {
             handle_map[i].used = false;
             if (handle_map[i].is_dir) delete_children_handles(handle_map[i].handle);
@@ -541,7 +546,7 @@ static int32_t fs_move_object(tud_mtp_cb_data_t* cb_data) {
     mtp_obj_t* f = get_obj(obj_handle);
     if (!f) return MTP_RESP_INVALID_OBJECT_HANDLE;
 
-    char new_path[MAX_PATH_LEN];
+    char new_path[MTP_MAX_PATH_LEN];
     if (!is_valid_parent(parent_handle))
         return MTP_RESP_INVALID_PARENT_OBJECT;
     build_path_from_handle(parent_handle, f->name, new_path, sizeof(new_path));
@@ -569,7 +574,7 @@ static int32_t fs_copy_object(tud_mtp_cb_data_t* cb_data) {
     // 为了单片机安全，暂不支持在 MTP 直接拖拽复制整个文件夹
     if (src->is_dir) return MTP_RESP_OPERATION_NOT_SUPPORTED;
 
-    char new_path[MAX_PATH_LEN];
+    char new_path[MTP_MAX_PATH_LEN];
     if (!is_valid_parent(parent_handle))
         return MTP_RESP_INVALID_PARENT_OBJECT;
     build_path_from_handle(parent_handle, src->name, new_path, sizeof(new_path));
@@ -665,7 +670,7 @@ static int32_t fs_set_object_prop_value(tud_mtp_cb_data_t* cb_data) {
             new_name[63] = '\0';
             // =========================================================
             
-            char new_path[MAX_PATH_LEN];
+            char new_path[MTP_MAX_PATH_LEN];
             build_path_from_handle(f->parent, new_name, new_path, sizeof(new_path));
             
             usbd_mtp_rename(f->path, new_path); 

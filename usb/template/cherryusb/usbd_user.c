@@ -72,6 +72,9 @@ static const char *string_descriptors[] = {
     MANUFACTURER,                    /* Manufacturer */
     PRODUCT,                        /* Product */
     SERIAL_NUMBER,                 /* Serial Number */
+#if defined(MTP_ENABLE)
+    "MTP Interface",                 /* MTP Interface String */
+#endif
 };
 
 static const char *string_descriptor_callback(uint8_t speed, uint8_t index)

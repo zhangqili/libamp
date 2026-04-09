@@ -1786,7 +1786,7 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         .Class                  = 6,
         .SubClass               = 1,
         .Protocol               = 1,
-        .InterfaceStrIndex      = 2
+        .InterfaceStrIndex      = 4
     },
     .MTP_EventEndpoint = {
         .Header = {

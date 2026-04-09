@@ -113,13 +113,7 @@ int usbd_mtp_statfs(const char *path, struct mtp_statfs *buf) {
     if (fs_statvfs(path, &vol_info) >= 0) {
         buf->f_bsize  = vol_info.f_bsize;
         buf->f_blocks = vol_info.f_blocks;
-        buf->f_bfree = vol_info.f_blocks / 2; // TODO: 在 file_stream 中完善真实的剩余容量计算
-        return 0;
-    }
-    if (fs_statfs(path, &fs_info) >= 0) {
-        buf->f_bsize  = fs_info.block_size;
-        buf->f_blocks = fs_info.block_count;
-        buf->f_bfree = buf->f_blocks / 2; // TODO: 在 file_stream 中完善真实的剩余容量计算
+        buf->f_bfree = vol_info.f_bfree;
         return 0;
     }
     return -1;
