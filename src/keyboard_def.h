@@ -11,6 +11,15 @@
 #define LIBAMP_VERSION_PATCH 0
 #define LIBAMP_VERSION_INFO  "beta"
 
+#define LIBAMP_STR_HELPER(x) #x
+#define LIBAMP_STR(x) LIBAMP_STR_HELPER(x)
+
+#define LIBAMP_VERSION_STRING \
+    LIBAMP_STR(LIBAMP_VERSION_MAJOR) "." \
+    LIBAMP_STR(LIBAMP_VERSION_MINOR) "." \
+    LIBAMP_STR(LIBAMP_VERSION_PATCH) "-" \
+    LIBAMP_VERSION_INFO
+
 #if defined (__ARMCC_VERSION) /* ARM Compiler */
   #ifndef __WEAK
     #define __WEAK  __attribute__((weak))

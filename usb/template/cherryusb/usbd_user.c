@@ -8,6 +8,20 @@
 #include "usb_descriptor.h"
 #include "lamp_array.h"
 
+#if defined(MTP_ENABLE)
+#include "usbd_mtp.h"
+#define USBD_MSOS_VENDOR_CODE 0x20
+
+static const char msosv1_string_descriptor[] = {
+    0x12,                       /* bLength */
+    0x03,                       /* bDescriptorType */
+    'M', 0, 'S', 0, 'F', 0, 'T', 0, '1', 0, '0', 0, '0', 0, /* qwSignature "MSFT100" */
+    USBD_MSOS_VENDOR_CODE,      /* bMS_VendorCode */
+    0x00                        /* bPad */
+};
+#endif
+
+
 static const uint8_t *device_descriptor_callback(uint8_t speed)
 {
     UNUSED(speed);
@@ -56,14 +70,21 @@ static const uint8_t *other_speed_config_descriptor_callback(uint8_t speed)
 static const char *string_descriptors[] = {
     (const char[]){ 0x09, 0x04 }, /* Langid */
     MANUFACTURER,                    /* Manufacturer */
-    PRODUCT,           /* Product */
+    PRODUCT,                        /* Product */
     SERIAL_NUMBER,                 /* Serial Number */
+#if defined(MTP_ENABLE)
+    "MTP Interface",                 /* MTP Interface String */
+#endif
 };
 
 static const char *string_descriptor_callback(uint8_t speed, uint8_t index)
 {
     (void)speed;
-
+#if defined(MTP_ENABLE)
+    if (index == 0xEE) {
+        return msosv1_string_descriptor;
+    }
+#endif
     if (index >= (sizeof(string_descriptors) / sizeof(char *))) {
         return NULL;
     }
@@ -367,6 +388,11 @@ static struct usbd_endpoint digitizer_in_ep = {
     .ep_addr = DIGITIZER_EPIN_ADDR};
 #endif
 
+
+#if defined(MTP_ENABLE)
+static struct usbd_interface mtp_intf;
+#endif
+
 static void usbd_event_handler(uint8_t busid, uint8_t event)
 {
     UNUSED(busid);
@@ -475,6 +501,13 @@ void usb_init(uint8_t busid, uintptr_t reg_base)
     usbd_add_endpoint(0, &digitizer_in_ep);
 #endif
 
+#if defined(MTP_ENABLE)
+    usbd_add_interface(0, usbd_mtp_init_intf(0, &mtp_intf, (uint8_t*)&ConfigurationDescriptor.MTP_Interface, 
+        sizeof(ConfigurationDescriptor.MTP_Interface) + sizeof(ConfigurationDescriptor.MTP_EventEndpoint) + sizeof(ConfigurationDescriptor.MTP_DataOutEndpoint) + sizeof(ConfigurationDescriptor.MTP_DataInEndpoint),
+        ConfigurationDescriptor.MTP_DataOutEndpoint.EndpointAddress, 
+        ConfigurationDescriptor.MTP_DataInEndpoint.EndpointAddress, 
+        ConfigurationDescriptor.MTP_EventEndpoint.EndpointAddress));
+#endif
     usbd_initialize(busid, reg_base, usbd_event_handler);
 }
 

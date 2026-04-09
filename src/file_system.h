@@ -20,7 +20,7 @@ extern "C" {
 #include "lfs.h"
 #endif
 
-enum FileStreamOpenFlags {
+enum FileOpenFlags {
     // open flags
     FS_O_RDONLY = 1,         // Open a file as read only
     FS_O_WRONLY = 2,         // Open a file as write only
@@ -37,37 +37,60 @@ enum FileStreamOpenFlags {
 };
 
 // File seek flags
-enum FileStreamWhenceFlags {
+enum FileWhenceFlags {
     FS_SEEK_SET = 0,   // Seek relative to an absolute position
     FS_SEEK_CUR = 1,   // Seek relative to the current file position
     FS_SEEK_END = 2,   // Seek relative to the end of the file
 };
 
-typedef struct {
 #ifdef LFS_ENABLE
-    lfs_file_t file;
+typedef lfs_file_t File;
+typedef struct lfs_info FileStat;
+typedef struct lfs_fsinfo FileSystemStat;
+typedef lfs_dir_t Directory;
+typedef lfs_soff_t FilePosition;
+#else
+typedef void File;
+typedef void FileStat;
+typedef void FileSystemStat;
+typedef void Directory;
+typedef long FilePosition;
 #endif
-} FileStream;
-typedef long FileStreamPosition;
 
+typedef struct __VolumeStat {
+    unsigned long f_bfree;
+    unsigned long f_blocks;
+    unsigned long f_bsize;
+    unsigned long f_frsize;
+} VolumeStat;
 
 void fs_init_dir(void);
 int fs_init(void);
 
-int fs_open(FileStream * file, const char * name, size_t type);
-int fs_close(FileStream * file);
-int fs_remove(const char * name);
+int fs_open(File * file, const char * name, size_t flags);
+int fs_close(File * file);
+int fs_unlink(const char * name);
+int fs_rename(const char * old, const char * new);
+size_t fs_read(File *file, void *ptr, size_t size);
+size_t fs_write(File *file, void *ptr, size_t size);
+int fs_seek(File *file,  FilePosition offset, int whence);
+FilePosition fs_tell(File * file);
+int fs_truncate(File * file, FilePosition size);
+int fs_sync(File *file);
 
-size_t fs_read(void *ptr, size_t size_of_elements, size_t number_of_elements, FileStream *a_file);
-size_t fs_write(const void *ptr, size_t size_of_elements, size_t number_of_elements, FileStream *a_file);
+int fs_stat(const char * file, FileStat*buf);
+FilePosition fs_size(File * file);
 
-int fs_seek(FileStream *file,  long int offset, int whence);
-void fs_rewind(FileStream *file);
-
-int	fs_getpos(FileStream *__restrict file, FileStreamPosition *__restrict pos);
-int	fs_setpos(FileStream * file, const FileStreamPosition * pos);
-long fs_tell(FileStream * file);
-long fs_size(FileStream * file);
+int fs_statfs(const char * path, FileSystemStat*buf);
+int fs_statvfs(const char * file, VolumeStat*buf);
+int fs_mkdir(const char * path, size_t mode);
+int fs_rmdir(const char * path);
+int fs_opendir(Directory *dir, const char *name);
+int fs_readdir(Directory *dir, FileStat *buf);
+int fs_telldir(Directory *dir);
+int fs_seekdir(Directory *dir, FilePosition pos);
+int fs_rewinddir(Directory *dir);
+int fs_closedir(Directory *dir);
 
 #ifdef __cplusplus
 }
