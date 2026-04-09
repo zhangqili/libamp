@@ -20,19 +20,19 @@ void rgb_to_hsv(ColorHSV * restrict hsv, const ColorRGB * restrict rgb)
 	{
 		hsv->h=0;
 	}
-	if(max==rgb->r&&rgb->g>=rgb->b)
+	else if(max==rgb->r&&rgb->g>=rgb->b)
 	{
 		hsv->h=60*(rgb->g-rgb->b)/(max-min);
 	}
-	else
+	else if(max==rgb->r && rgb->g<rgb->b)
 	{
 		hsv->h=60*(rgb->g-rgb->b)/(max-min)+360;
 	}
-	if(max==rgb->g)
+	else if(max==rgb->g)
 	{
 		hsv->h=60*(rgb->b-rgb->r)/(max-min)+120;
 	}
-	if(max==rgb->b)
+	else if(max==rgb->b)
 	{
 		hsv->h=60*(rgb->r-rgb->g)/(max-min)+240;
 	}
@@ -142,56 +142,22 @@ void color_set_hsv(Color* restrict color, const ColorHSV* restrict hsv)
 
 void color_mix(Color *dest, const Color *source)
 {
-	if (dest->r + source->r < 256)
-	{
-		dest->r += source->r;
-	}
-	else
-	{
-		dest->r = 255;
-	}
-	if (dest->g + source->g < 256)
-	{
-		dest->g += source->g;
-	}
-	else
-	{
-		dest->g = 255;
-	}
-	if (dest->b + source->b < 256)
-	{
-		dest->b += source->b;
-	}
-	else
-	{
-		dest->b = 255;
-	}
+	uint16_t temp_r = dest->r + source->r;
+    uint16_t temp_g = dest->g + source->g;
+    uint16_t temp_b = dest->b + source->b;
+    
+    dest->r = temp_r > 255 ? 255 : (uint8_t)temp_r;
+    dest->g = temp_g > 255 ? 255 : (uint8_t)temp_g;
+    dest->b = temp_b > 255 ? 255 : (uint8_t)temp_b;
 }
 
 void colorf_mix(ColorFloat *dest, const ColorFloat *source)
 {
-	if (dest->r + source->r < 256)
-	{
-		dest->r += source->r;
-	}
-	else
-	{
-		dest->r = 255;
-	}
-	if (dest->g + source->g < 256)
-	{
-		dest->g += source->g;
-	}
-	else
-	{
-		dest->g = 255;
-	}
-	if (dest->b + source->b < 256)
-	{
-		dest->b += source->b;
-	}
-	else
-	{
-		dest->b = 255;
-	}
+	float temp_r = dest->r + source->r;
+    float temp_g = dest->g + source->g;
+    float temp_b = dest->b + source->b;
+    
+    dest->r = temp_r > 255.f ? 255.f : (uint8_t)temp_r;
+    dest->g = temp_g > 255.f ? 255.f : (uint8_t)temp_g;
+    dest->b = temp_b > 255.f ? 255.f : (uint8_t)temp_b;
 }
