@@ -134,7 +134,7 @@ void rgb_process(void)
     {
         RGBArgumentListNode* node = &(rgb_argument_list.data[*iterator_ptr]);
         RGBArgument * item = &(node->data);
-        RGBConfig *config = g_rgb_configs + item->rgb_ptr;
+        RGBConfig *config = &g_rgb_configs[item->rgb_ptr];
         RGBLocation *location = (RGBLocation *)&g_rgb_locations[item->rgb_ptr];
         float distance = CALC_SPAN(g_keyboard_tick - item->begin_tick, config->speed);
         if (MANHATTAN_DISTANCE_DIRECT(location->x, RGB_LEFT_UM, location->y, RGB_TOP_UM) < distance - FADING_DISTANCE_UM &&

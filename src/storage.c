@@ -164,6 +164,11 @@ void storage_read_profile(void)
 #ifdef RGB_ENABLE
     fs_read(&file, &g_rgb_base_config, sizeof(g_rgb_base_config));
     fs_read(&file, &g_rgb_configs, sizeof(g_rgb_configs));
+    g_rgb_base_config.begin_tick = 0;
+    for (int i = 0; i < RGB_NUM; i++)
+    {
+        g_rgb_configs[i].begin_tick = 0;
+    }
 #endif
 #ifdef DYNAMICKEY_ENABLE
     for (int i = 0; i < DYNAMIC_KEY_NUM; i++)
