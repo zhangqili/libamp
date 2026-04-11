@@ -89,7 +89,28 @@
 #include "LUFA/Drivers/USB/Class/Common/MIDIClassCommon.h"
 #include "LUFA/Drivers/USB/Core/USBController.h"
 
+#ifndef MAX_ENDPOINTS
 #define MAX_ENDPOINTS 8
+#endif
+
+#ifdef GAMEPAD_ENABLE
+typedef struct {
+    USB_Descriptor_Header_t Header;
+    uint16_t                bcdHID;
+    uint8_t                 bUnknown1;
+    uint8_t                 bUnknown2;
+    uint8_t                 bINEndpoint;
+    uint8_t                 bINDataSize;
+    uint8_t                 bUnknown3;
+    uint8_t                 bUnknown4;
+    uint8_t                 bUnknown5;
+    uint8_t                 bUnknown6;
+    uint8_t                 bOUTEndpoint;
+    uint8_t                 bOUTDataSize;
+    uint8_t                 bUnknown7;
+    uint8_t                 bUnknown8;
+} ATTR_PACKED USB_XInput_Descriptor_HID_t;
+#endif
 
 /*
  * USB descriptor structure
@@ -191,6 +212,12 @@ typedef struct {
 	USB_Descriptor_Endpoint_t   MTP_DataOutEndpoint;
 #endif
 
+#ifdef GAMEPAD_ENABLE
+    USB_Descriptor_Interface_t  XInput_Interface;
+    USB_XInput_Descriptor_HID_t XInput_HID;
+    USB_Descriptor_Endpoint_t   XInput_INEndpoint;
+    USB_Descriptor_Endpoint_t   XInput_OUTEndpoint;
+#endif
 } USB_Descriptor_Configuration_t;
 
 /*
@@ -245,6 +272,9 @@ enum usb_interfaces {
     MTP_INTERFACE,
 #endif
 
+#ifdef GAMEPAD_ENABLE
+    XINPUT_INTERFACE,
+#endif
     TOTAL_INTERFACES
 };
 
@@ -331,6 +361,15 @@ enum usb_endpoints {
     MTP_OUT_EPNUM         = NEXT_EPNUM,
 #    endif
 #endif
+
+#ifdef GAMEPAD_ENABLE
+    XINPUT_IN_EPNUM = NEXT_EPNUM,
+#    ifdef USB_ENDPOINTS_ARE_REORDERABLE
+#        define XINPUT_OUT_EPNUM XINPUT_IN_EPNUM
+#    else
+    XINPUT_OUT_EPNUM      = NEXT_EPNUM,
+#    endif
+#endif
 };
 
 #ifdef PROTOCOL_LUFA
@@ -374,6 +413,8 @@ enum usb_endpoints {
 #define MTP_DATA_EPSIZE 64
 #endif
 #endif
+
+#define XINPUT_EPSIZE 32
 
 #if defined(MIDI_STREAM_EPSIZE) && MIDI_STREAM_EPSIZE != 512 && defined(CONFIG_USB_HS)
 #warning MIDI_STREAM_EPSIZE is not 512 for high-speed USB
@@ -501,10 +542,15 @@ extern const USB_Descriptor_String_t PROGMEM SerialNumberString;
 #define DIGITIZER_EPIN_ADDR  (ENDPOINT_DIR_IN | DIGITIZER_IN_EPNUM)
 #endif
 
-#if defined(MTP_ENABLE)
+#ifdef MTP_ENABLE
 #define MTP_EVT_EPIN_ADDR  (ENDPOINT_DIR_IN | MTP_EVT_EPNUM)
 #define MTP_IN_EPIN_ADDR  (ENDPOINT_DIR_IN | MTP_IN_EPNUM)
 #define MTP_OUT_EPOUT_ADDR  (ENDPOINT_DIR_OUT | MTP_OUT_EPNUM)
+#endif
+
+#ifdef GAMEPAD_ENABLE
+#define XINPUT_EPIN_ADDR  (ENDPOINT_DIR_IN | XINPUT_IN_EPNUM)
+#define XINPUT_EPOUT_ADDR (ENDPOINT_DIR_OUT | XINPUT_OUT_EPNUM)
 #endif
 
 //usb_descripotor.c before
@@ -1775,6 +1821,9 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
     },
 #endif
 #if defined(MTP_ENABLE)
+    /*
+     * MTP
+     */
     .MTP_Interface = {
         .Header = {
             .Size               = sizeof(USB_Descriptor_Interface_t),
@@ -1817,6 +1866,63 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         .Attributes             = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
         .EndpointSize           = MTP_DATA_EPSIZE,
         .PollingIntervalMS      = 0
+    },
+#endif
+#ifdef GAMEPAD_ENABLE
+    /*
+     * XInput Gamepad
+     */
+    .XInput_Interface = {
+        .Header = {
+            .Size               = sizeof(USB_Descriptor_Interface_t),
+            .Type               = DTYPE_Interface
+        },
+        .InterfaceNumber        = XINPUT_INTERFACE,
+        .AlternateSetting       = 0x00,
+        .TotalEndpoints         = 2,
+        .Class                  = 0xFF,
+        .SubClass               = 0x5D,
+        .Protocol               = 0x01,
+        .InterfaceStrIndex      = NO_DESCRIPTOR
+    },
+    .XInput_HID = {
+        .Header = {
+            .Size               = sizeof(USB_XInput_Descriptor_HID_t), // = 16 字节
+            .Type               = 0x21
+        },
+        .bcdHID                 = VERSION_BCD(1, 0, 0),
+        .bUnknown1              = 0x01,
+        .bUnknown2              = 0x24,
+        .bINEndpoint            = XINPUT_EPIN_ADDR,
+        .bINDataSize            = 0x14,
+        .bUnknown3              = 0x03,
+        .bUnknown4              = 0x00,
+        .bUnknown5              = 0x03,
+        .bUnknown6              = 0x13,
+        .bOUTEndpoint           = XINPUT_EPOUT_ADDR,
+        .bOUTDataSize           = 0x00,
+        .bUnknown7              = 0x03,
+        .bUnknown8              = 0x00
+    },
+    .XInput_INEndpoint = {
+        .Header = {
+            .Size               = sizeof(USB_Descriptor_Endpoint_t),
+            .Type               = DTYPE_Endpoint
+        },
+        .EndpointAddress        = XINPUT_EPIN_ADDR,
+        .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+        .EndpointSize           = XINPUT_EPSIZE,
+        .PollingIntervalMS      = 0x01
+    },
+    .XInput_OUTEndpoint = {
+        .Header = {
+            .Size               = sizeof(USB_Descriptor_Endpoint_t),
+            .Type               = DTYPE_Endpoint
+        },
+        .EndpointAddress        = XINPUT_EPOUT_ADDR,
+        .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+        .EndpointSize           = XINPUT_EPSIZE,
+        .PollingIntervalMS      = 0x08
     },
 #endif
 };
