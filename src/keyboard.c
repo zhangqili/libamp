@@ -48,6 +48,9 @@
 #ifdef SCRIPT_ENABLE
 #include "script.h"
 #endif
+#ifdef GAMEPAD_ENABLE
+#include "gamepad.h"
+#endif
 #include "event_cache.h"
 #include "event_buffer.h"
 
@@ -110,9 +113,16 @@ void keyboard_event_handler(KeyboardEvent event)
     {
         layer_lock_handler(event);
     }
-    if (!event.is_virtual && event.event == KEYBOARD_EVENT_KEY_DOWN)
-    {    
-        keyboard_key_event_down_callback((Key*)event.key);
+    if (!event.is_virtual)
+    {
+        if (event.event == KEYBOARD_EVENT_KEY_DOWN)
+        {
+            keyboard_key_event_down_callback((Key*)event.key);
+        }
+        else if (event.event == KEYBOARD_EVENT_KEY_UP)
+        {
+            keyboard_key_event_up_callback((Key*)event.key);
+        }
     }
     switch (KEYCODE_GET_MAIN(event.keycode))
     {
@@ -146,6 +156,11 @@ void keyboard_event_handler(KeyboardEvent event)
 #ifdef SCRIPT_ENABLE
     case SCRIPT_COLLECTION:
         script_event_handler(event);
+        break;
+#endif
+#ifdef GAMEPAD_ENABLE
+    case GAMEPAD_COLLECTION:
+        gamepad_event_handler(event);
         break;
 #endif
     case LAYER_CONTROL:
@@ -222,6 +237,11 @@ void keyboard_add_buffer(KeyboardEvent event)
 #ifdef JOYSTICK_ENABLE
     case JOYSTICK_COLLECTION:
         joystick_add_buffer(event);
+        break;
+#endif
+#ifdef GAMEPAD_ENABLE
+    case GAMEPAD_COLLECTION:
+        gamepad_add_buffer(event);
         break;
 #endif
     case LAYER_CONTROL:
@@ -354,7 +374,17 @@ void keyboard_key_event_down_callback(Key*key)
 #endif
 }
 
+void keyboard_key_event_up_callback(Key*key)
+{
+    keyboard_key_event_up_callback_user(key);
+}
+
 __WEAK void keyboard_key_event_down_callback_user(Key*key)
+{
+
+}
+
+__WEAK void keyboard_key_event_up_callback_user(Key*key)
 {
 
 }
@@ -396,6 +426,9 @@ void keyboard_clear_buffer(void)
 #endif
 #ifdef JOYSTICK_ENABLE
     joystick_buffer_clear();
+#endif
+#ifdef GAMEPAD_ENABLE
+    gamepad_buffer_clear();
 #endif
 }
 
@@ -688,6 +721,15 @@ void keyboard_send_report(void)
         if (!joystick_buffer_send())
         {
             g_keyboard_report_flags.joystick = false;
+        }
+    }
+#endif
+#ifdef GAMEPAD_ENABLE
+    if (g_keyboard_report_flags.gamepad)
+    {
+        if (!gamepad_buffer_send())
+        {
+            g_keyboard_report_flags.gamepad = false;
         }
     }
 #endif

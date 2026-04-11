@@ -21,6 +21,7 @@ int hid_send_joystick(uint8_t *report, uint16_t len);
 int hid_send_digitizer(uint8_t *report, uint16_t len);
 int hid_send_programmable_button(uint8_t *report, uint16_t len);
 int hid_send_raw(uint8_t *report, uint16_t len);
+int hid_send_gamepad(uint8_t *report, uint16_t len);
 int send_midi(uint8_t *report, uint16_t len);
 int send_remote_wakeup(void);
 

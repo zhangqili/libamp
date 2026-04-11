@@ -10,6 +10,9 @@
 
 #if defined(MTP_ENABLE)
 #include "usbd_mtp.h"
+#endif
+
+#if defined(MTP_ENABLE) || defined(GAMEPAD_ENABLE)
 #define USBD_MSOS_VENDOR_CODE 0x20
 
 static const char msosv1_string_descriptor[] = {
@@ -18,6 +21,29 @@ static const char msosv1_string_descriptor[] = {
     'M', 0, 'S', 0, 'F', 0, 'T', 0, '1', 0, '0', 0, '0', 0, /* qwSignature "MSFT100" */
     USBD_MSOS_VENDOR_CODE,      /* bMS_VendorCode */
     0x00                        /* bPad */
+};
+#endif
+
+#if defined(GAMEPAD_ENABLE)
+//#include "usbd_gamepad.h"
+#include "gamepad.h"
+#define USB_MSOSV1_COMP_ID_FUNCTION_XINPUT_DESCRIPTOR_INIT(bFirstInterfaceNumber) \
+    bFirstInterfaceNumber,                          /* bFirstInterfaceNumber */\
+    0x01,                                           /* reserved1 */            \
+    'X', 'U', 'S', 'B', '2', '0', 0x00, 0x00,       /* compatibleID[8] */      \
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* subCompatibleID[8] */   \
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00              /* reserved2[6] */
+
+static const uint8_t msosv1_compat_id_descriptor[] = {
+    USB_MSOSV1_COMP_ID_HEADER_DESCRIPTOR_INIT(1),
+    USB_MSOSV1_COMP_ID_FUNCTION_XINPUT_DESCRIPTOR_INIT(XINPUT_INTERFACE)
+};
+
+static struct usb_msosv1_descriptor msosv1_desc = {
+    .string = (const uint8_t *)msosv1_string_descriptor,
+    .vendor_code = USBD_MSOS_VENDOR_CODE,
+    .compat_id = msosv1_compat_id_descriptor,
+    .comp_id_property = NULL
 };
 #endif
 
@@ -80,7 +106,7 @@ static const char *string_descriptors[] = {
 static const char *string_descriptor_callback(uint8_t speed, uint8_t index)
 {
     (void)speed;
-#if defined(MTP_ENABLE)
+#if defined(MTP_ENABLE) || defined(GAMEPAD_ENABLE)
     if (index == 0xEE) {
         return msosv1_string_descriptor;
     }
@@ -97,6 +123,9 @@ const struct usb_descriptor usb_descriptor = {
     .device_quality_descriptor_callback = device_quality_descriptor_callback,
     .other_speed_descriptor_callback = other_speed_config_descriptor_callback,
     .string_descriptor_callback = string_descriptor_callback,
+#if defined(GAMEPAD_ENABLE)
+    .msosv1_descriptor = &msosv1_desc,
+#endif
 };
 
 void usbd_hid_get_report(uint8_t busid, uint8_t intf, uint8_t report_id, uint8_t report_type, uint8_t **data, uint32_t *len)
@@ -393,6 +422,55 @@ static struct usbd_endpoint digitizer_in_ep = {
 static struct usbd_interface mtp_intf;
 #endif
 
+#ifdef GAMEPAD_ENABLE
+static volatile bool xinput_state;
+USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t xinput_in_buffer[XINPUT_EPSIZE];
+USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t xinput_out_buffer[XINPUT_EPSIZE];
+
+static int xinput_vendor_class_request_handler(uint8_t busid, struct usb_setup_packet *setup, uint8_t **data, uint32_t *len)
+{
+    Gamepad xinput_report;
+
+    memset(&xinput_report, 0, sizeof(Gamepad));
+    xinput_report.report_size = 20;
+
+    memcpy(*data, &xinput_report, sizeof(Gamepad));
+    *len = sizeof(Gamepad);
+    return 0;
+}
+
+static void usbd_xinput_in_callback(uint8_t busid, uint8_t ep, uint32_t nbytes)
+{
+    UNUSED(busid);
+    UNUSED(ep);
+    UNUSED(nbytes);
+    xinput_state = USB_STATE_IDLE;
+}
+
+static void usbd_xinput_out_callback(uint8_t busid, uint8_t ep, uint32_t nbytes)
+{
+    UNUSED(busid);
+    UNUSED(ep);
+    UNUSED(nbytes);
+
+    usbd_ep_start_read(0, XINPUT_EPOUT_ADDR, xinput_out_buffer, XINPUT_EPSIZE);
+    gamepad_out_callback((GamepadOutReport*)xinput_out_buffer);
+    // struct xinput_out_report *out_report = (struct xinput_out_report *)xinput_out_buffer;
+}
+
+static struct usbd_interface xinput_intf = {
+    .vendor_handler = xinput_vendor_class_request_handler,
+};
+static struct usbd_endpoint xinput_in_ep = {
+    .ep_cb = usbd_xinput_in_callback,
+    .ep_addr = XINPUT_EPIN_ADDR
+};
+static struct usbd_endpoint xinput_out_ep = {
+    .ep_cb = usbd_xinput_out_callback,
+    .ep_addr = XINPUT_EPOUT_ADDR
+};
+#endif
+
 static void usbd_event_handler(uint8_t busid, uint8_t event)
 {
     UNUSED(busid);
@@ -421,6 +499,9 @@ static void usbd_event_handler(uint8_t busid, uint8_t event)
 #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
         digitizer_state = USB_STATE_IDLE;
 #endif
+#ifdef GAMEPAD_ENABLE
+        xinput_state = USB_STATE_IDLE;
+#endif
         break;
     case USBD_EVENT_CONNECTED:
         break;
@@ -434,6 +515,10 @@ static void usbd_event_handler(uint8_t busid, uint8_t event)
     case USBD_EVENT_CONFIGURED:
         memset(raw_out_buffer, 0, sizeof(raw_out_buffer));
         usbd_ep_start_read(0, RAW_EPOUT_ADDR, raw_out_buffer, RAW_EPSIZE);
+#ifdef GAMEPAD_ENABLE
+        memset(xinput_out_buffer, 0, sizeof(xinput_out_buffer));
+        usbd_ep_start_read(0, XINPUT_EPOUT_ADDR, xinput_out_buffer, XINPUT_EPSIZE);
+#endif
         break;
     case USBD_EVENT_SET_REMOTE_WAKEUP:
         break;
@@ -508,7 +593,18 @@ void usb_init(uint8_t busid, uintptr_t reg_base)
         ConfigurationDescriptor.MTP_DataInEndpoint.EndpointAddress, 
         ConfigurationDescriptor.MTP_EventEndpoint.EndpointAddress));
 #endif
+#ifdef GAMEPAD_ENABLE
+    usbd_add_interface(0, &xinput_intf);
+    usbd_add_endpoint(0, &xinput_in_ep);
+    usbd_add_endpoint(0, &xinput_out_ep);
+#endif
     usbd_initialize(busid, reg_base, usbd_event_handler);
+    /*
+    while (!usb_device_is_configured(busid))
+    {
+        
+    }
+    */
 }
 
 int usb_send_shared_ep(uint8_t *buffer, uint8_t size)
@@ -681,6 +777,37 @@ int usb_send_digitizer(uint8_t *buffer, uint8_t size)
 #endif
     return 0;
 }
+
+int usb_send_xinput(uint8_t *buffer, uint8_t size)
+{
+#ifdef GAMEPAD_ENABLE
+    UNUSED(size);
+    if (xinput_state == USB_STATE_BUSY)
+    {
+        return 1;
+    }
+    xinput_state = USB_STATE_BUSY;
+    if (size > 0 && size <= XINPUT_EPSIZE)
+    {
+        memset(xinput_in_buffer, 0, XINPUT_EPSIZE);
+        memcpy(xinput_in_buffer, buffer, size);
+    }
+    else
+    {
+        return 1;
+    }
+    int ret = usbd_ep_start_write(0, XINPUT_EPIN_ADDR, xinput_in_buffer, size);
+    if (ret < 0)
+    {
+        xinput_state = USB_STATE_IDLE;
+        return 1;
+    }
+    return 0;
+#else
+    UNUSED(buffer); UNUSED(size); return 1;
+#endif
+}
+
 
 __WEAK void usbd_event_handler_user(uint8_t busid, uint8_t event)
 {

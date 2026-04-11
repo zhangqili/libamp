@@ -66,13 +66,20 @@ void joystick_set_axis(Keycode keycode, AnalogValue value)
     switch (JOYSTICK_KEYCODE_GET_AXIS_MAP(keycode))
     {
     case 0x01:
-        joystick.axes[axis] += analog_value;
+        joystick.axes[axis] = clamp_i32(joystick.axes[axis] + analog_value, -JOYSTICK_MAX_VALUE, JOYSTICK_MAX_VALUE);
         break;
     case 0x02:
-        joystick.axes[axis] -= analog_value;
+        joystick.axes[axis] = clamp_i32(joystick.axes[axis] - analog_value, -JOYSTICK_MAX_VALUE, JOYSTICK_MAX_VALUE);
         break;
     case 0x03:
-        joystick.axes[axis] += (JOYSTICK_KEYCODE_IS_AXIS_INVERT(keycode) ? - (analog_value*2 - JOYSTICK_MAX_VALUE) : (analog_value*2 - JOYSTICK_MAX_VALUE));
+        if (JOYSTICK_KEYCODE_IS_AXIS_INVERT(keycode))
+        {
+            joystick.axes[axis] = clamp_i32(joystick.axes[axis] - (analog_value*2 - JOYSTICK_MAX_VALUE), -JOYSTICK_MAX_VALUE, JOYSTICK_MAX_VALUE);
+        }
+        else
+        {
+            joystick.axes[axis] = clamp_i32(joystick.axes[axis] + (analog_value*2 - JOYSTICK_MAX_VALUE), -JOYSTICK_MAX_VALUE, JOYSTICK_MAX_VALUE);
+        }
         break;
     default:
         break;

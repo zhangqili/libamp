@@ -213,6 +213,7 @@ enum KeycodeEnum {
   MIDI_NOTE                    = 0xac,
   MACRO_COLLECTION             = 0xad,
   SCRIPT_COLLECTION            = 0xae,
+  GAMEPAD_COLLECTION           = 0xaf,
   KEY_USER                     = 0xFD,
   KEYBOARD_OPERATION           = 0xFE,
   KEY_TRANSPARENT              = 0xFF,
@@ -719,6 +720,35 @@ static inline uint16_t consumer_keycode_to_rawcide(uint8_t key) {
     return key;
   }
 }
+
+enum GamepadKeycode {
+  GAMEPAD_UP,
+  GAMEPAD_DOWN,
+  GAMEPAD_LEFT,
+  GAMEPAD_RIGHT,
+  GAMEPAD_START,
+  GAMEPAD_BACK,
+  GAMEPAD_LT,
+  GAMEPAD_RT,
+  GAMEPAD_LB,
+  GAMEPAD_RB,
+  GAMEPAD_GUIDE,
+  GAMEPAD_UNDEFINED,
+  GAMEPAD_A,
+  GAMEPAD_B,
+  GAMEPAD_X,
+  GAMEPAD_Y,
+  GAMEPAD_LXP = 32,
+  GAMEPAD_LXN = 33,
+  GAMEPAD_LYP = 34,
+  GAMEPAD_LYN = 35,
+  GAMEPAD_RXP = 36,
+  GAMEPAD_RXN = 37,
+  GAMEPAD_RYP = 38,
+  GAMEPAD_RYN = 39,
+  GAMEPAD_LTA = 40,
+  GAMEPAD_RTA = 41,
+};
 
 // Copyright 2025 QMK
 // SPDX-License-Identifier: GPL-2.0-or-later

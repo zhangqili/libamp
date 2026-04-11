@@ -79,6 +79,14 @@ __WEAK int hid_send_raw(uint8_t *report, uint16_t len)
     return 0;
 }
 
+__WEAK int hid_send_gamepad(uint8_t *report, uint16_t len)
+{
+    UNUSED(report);
+    UNUSED(len);
+    printf("hid_send_gamepad needs to be implemented.\n");
+    return 0;
+}
+
 __WEAK int send_midi(uint8_t *report, uint16_t len)
 {
     UNUSED(report);

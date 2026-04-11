@@ -10,6 +10,7 @@
 #include "advanced_key.h"
 #include "keyboard_config.h"
 #include "keyboard_def.h"
+#include "keyboard_util.h"
 #include "event.h"
 #include "keycode.h"
 
@@ -135,7 +136,8 @@ typedef union
         bool    consumer : 1;
         bool    system : 1;
         bool    joystick : 1;
-        uint8_t reserved : 3;
+        bool    gamepad : 1;
+        uint8_t reserved : 2;
     };
 } KeyboardReportFlag;
 
@@ -189,7 +191,9 @@ void keyboard_operation_event_poller(KeyboardEvent event, uint32_t tick);
 void keyboard_user_event_handler(KeyboardEvent event);
 void keyboard_user_event_poller(KeyboardEvent event, uint32_t tick);
 void keyboard_key_event_down_callback(Key*key);
+void keyboard_key_event_up_callback(Key*key);
 void keyboard_key_event_down_callback_user(Key*key);
+void keyboard_key_event_up_callback_user(Key*key);
 
 void keyboard_add_buffer(KeyboardEvent event);
 int keyboard_buffer_send(void);

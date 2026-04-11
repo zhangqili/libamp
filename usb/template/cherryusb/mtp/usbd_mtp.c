@@ -104,10 +104,8 @@ static void mtp_notify_handler(uint8_t busid, uint8_t event, void *arg) {
             mtpd_reset(busid);
             break;
         case USBD_EVENT_CONFIGURED:
-            USB_LOG_WRN(">>> [MTP] Enum Success! Calling mtpd_open...\r\n");
             if (mtp_saved_desc) {
                 uint16_t res = mtpd_open(busid, (tusb_desc_interface_t const *)mtp_saved_desc, mtp_saved_desc_len);
-                USB_LOG_WRN(">>> [MTP] mtpd_open parsed %d bytes.\r\n", res);
             }
             break;
         default: break;
