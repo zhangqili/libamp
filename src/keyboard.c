@@ -153,11 +153,6 @@ void keyboard_event_handler(KeyboardEvent event)
         macro_event_handler(event);
         break;
 #endif
-#ifdef SCRIPT_ENABLE
-    case SCRIPT_COLLECTION:
-        script_event_handler(event);
-        break;
-#endif
 #ifdef GAMEPAD_ENABLE
     case GAMEPAD_COLLECTION:
         gamepad_event_handler(event);
@@ -287,6 +282,9 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
             case KEYBOARD_RESET_TO_DEFAULT:
                 keyboard_reset_to_default();
                 packet_send_version_packet();
+                break;
+            case KEYBOARD_RECOVERY:
+                keyboard_recovery();
                 break;
 #ifdef RGB_ENABLE
             case KEYBOARD_RGB_BRIGHTNESS_UP:
@@ -501,7 +499,6 @@ void keyboard_init(void)
     {
         keyboard_factory_reset();
     }
-    storage_read_profile_index();
 #endif
 #ifdef RGB_ENABLE
     rgb_init();
@@ -525,7 +522,7 @@ void keyboard_init(void)
 #endif
 #endif
 #ifdef SCRIPT_ENABLE
-    script_init();
+    //script_init();
 #endif
 }
 
@@ -596,6 +593,7 @@ __WEAK void keyboard_scan(void)
 
 void keyboard_recovery(void)
 {
+    storage_read_profile_index();
 #ifdef STORAGE_ENABLE
     storage_read_profile();
 #else

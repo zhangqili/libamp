@@ -20,10 +20,6 @@ extern "C" {
 #define MACRO_MAX_ACTIONS 128
 #endif
 
-#ifndef MACRO_BUFFER_LENGTH
-#define MACRO_BUFFER_LENGTH 8
-#endif
-
 #define MACRO_KEYCODE_GET_INDEX(keycode) (KEYCODE_GET_SUB((keycode)) & 0x0F)
 #define MACRO_KEYCODE_GET_KEYCODE(keycode) ((KEYCODE_GET_SUB((keycode)) & 0xF0) >>4)
 

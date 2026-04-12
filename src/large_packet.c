@@ -37,6 +37,7 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
             {
                 fs_close(&script_file);
             }
+            fs_unlink(SCRIPT_FILENAME);
             int res = fs_open(&script_file, SCRIPT_FILENAME, FS_O_RDWR | FS_O_CREAT | FS_O_TRUNC);
             if (res < 0)
             {
@@ -68,7 +69,7 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
                 script_file_open = false;
             }
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
-            script_init();
+            //script_init();
 #endif
             return 0;
         }
@@ -190,7 +191,7 @@ uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32
                 fs_close(&script_file);
                 script_file_open = false;
             }
-            script_init();
+            //script_init();
             return 0;
         }
     }

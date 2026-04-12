@@ -244,6 +244,7 @@ enum KeyboardKeycode {
   KEYBOARD_RGB_BRIGHTNESS_UP      = 0x05,
   KEYBOARD_RGB_BRIGHTNESS_DOWN    = 0x06,
   KEYBOARD_CALIBRATE              = 0x07,
+  KEYBOARD_RECOVERY               = 0x08,
   KEYBOARD_PROFILE0                = 0x10,
   KEYBOARD_PROFILE1                = 0x11,
   KEYBOARD_PROFILE2                = 0x12,
@@ -720,6 +721,15 @@ static inline uint16_t consumer_keycode_to_rawcide(uint8_t key) {
     return key;
   }
 }
+
+enum ScriptKeycode {
+  SCRIPT_WATCH = 0,
+  SCRIPT_START = 1,
+  SCRIPT_STOP = 2,
+  SCRIPT_SUSPEND = 3,
+  SCRIPT_RESTART = 4,
+  SCRIPT_TOGGLE = 5,
+};
 
 enum GamepadKeycode {
   GAMEPAD_UP,

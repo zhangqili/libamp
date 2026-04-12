@@ -37,12 +37,13 @@ extern "C" {
 void script_init(void);
 void script_factory_reset(void);
 void script_reset_runtime(void);
-void script_process(void);
 void script_eval(const char *code_buf, size_t len, const char *filename);
 void script_update_source(const char *code, size_t len);
 void script_load_bytecode(uint8_t *bytecode_buf, size_t len);
 void script_update_bytecode(uint8_t *bytecode_buf, size_t len);
 void script_watch(uint16_t id);
+
+void script_process(void);
 void script_event_handler(KeyboardEvent event);
 void script_event_poller(KeyboardEvent event, uint32_t tick);
 
@@ -52,6 +53,7 @@ extern uint8_t g_script_bytecode_buffer[SCRIPT_BYTECODE_BUFFER_SIZE];
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
 extern uint8_t g_script_source_buffer[SCRIPT_SOURCE_BUFFER_SIZE];
 #endif
+extern volatile bool g_keyboard_enable_script;
 
 #ifdef __cplusplus
 }
