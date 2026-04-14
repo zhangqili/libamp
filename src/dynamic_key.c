@@ -12,9 +12,7 @@
 #define DYNAMIC_KEY_NOT_MATCH(dynamic_key, key) (KEYCODE_GET_MAIN(layer_cache_get_keycode((key)->id)) != DYNAMIC_KEY || \
         &g_dynamic_keys[KEYCODE_GET_SUB(layer_cache_get_keycode((key)->id))] != ((DynamicKey*)(dynamic_key)))
 
-#ifdef DYNAMICKEY_ENABLE
 DynamicKey g_dynamic_keys[DYNAMIC_KEY_NUM];
-#endif
 
 void dynamic_key_process(void)
 {

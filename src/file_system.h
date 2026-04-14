@@ -50,10 +50,10 @@ typedef struct lfs_fsinfo FileSystemStat;
 typedef lfs_dir_t Directory;
 typedef lfs_soff_t FilePosition;
 #else
-typedef void File;
-typedef void FileStat;
-typedef void FileSystemStat;
-typedef void Directory;
+typedef int File;
+typedef int FileStat;
+typedef int FileSystemStat;
+typedef int Directory;
 typedef long FilePosition;
 #endif
 

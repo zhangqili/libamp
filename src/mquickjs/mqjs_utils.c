@@ -409,7 +409,6 @@ static JSValue js_keyboard_command(JSContext *ctx, JSValue *this_val, int argc, 
 
 #ifdef RGB_ENABLE
 #include "rgb.h"
-#endif
 
 static JSValue js_rgb_set_led(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv, int magic)
 {
@@ -473,6 +472,7 @@ static JSValue js_rgb_set_led_mode(JSContext *ctx, JSValue *this_val, int argc, 
     g_rgb_configs[g_rgb_inverse_mapping[index]].mode = mode;
     return JS_UNDEFINED;
 }
+#endif
 
 //static JSValue js_keyboard_suspend(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 //{

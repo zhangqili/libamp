@@ -395,7 +395,9 @@ static const JSPropDef js_global_object[] = {
     JS_PROP_CLASS_DEF("keyboard", &js_keyboard_obj),
     JS_PROP_CLASS_DEF("Key", &js_key_class),
     JS_PROP_CLASS_DEF("AdvancedKey", &js_advanced_key_class),
+#ifdef RGB_ENABLE
     JS_PROP_CLASS_DEF("led", &js_rgb_obj),
+#endif
 #endif
     JS_PROP_END,
 };

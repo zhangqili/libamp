@@ -73,7 +73,7 @@ static const JSPropDef js_keyboard[] = {
 static const JSClassDef js_keyboard_obj =
     JS_OBJECT_DEF("Keyboard", js_keyboard);
 
-    
+#ifdef RGB_ENABLE
 static const JSPropDef js_rgb[] = {
     JS_CFUNC_MAGIC_DEF("setRGB", 4, js_rgb_set_led, 0),
     JS_CFUNC_MAGIC_DEF("setHSV", 4, js_rgb_set_led, 1),
@@ -82,6 +82,7 @@ static const JSPropDef js_rgb[] = {
 };
 static const JSClassDef js_rgb_obj =
     JS_OBJECT_DEF("LED", js_rgb);
+#endif
 /* include the full standard library too */
 
 #define LIBAMP_CONFIG_CLASS

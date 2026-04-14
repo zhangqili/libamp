@@ -3,8 +3,6 @@
 #include "mtp_fs_port.h"
 #include "file_system.h"
 
-extern lfs_t _lfs; 
-
 #ifndef MTP_DESCRIPTION
 #define MTP_DESCRIPTION "Keyboard Flash"
 #endif
@@ -14,10 +12,10 @@ extern lfs_t _lfs;
 #define MAX_OPEN_FILES 4
 #define MAX_OPEN_DIRS  8
 
-static lfs_file_t mtp_files[MAX_OPEN_FILES];
+static File mtp_files[MAX_OPEN_FILES];
 static bool file_used[MAX_OPEN_FILES] = {false};
 
-static lfs_dir_t mtp_dirs[MAX_OPEN_DIRS];
+static Directory mtp_dirs[MAX_OPEN_DIRS];
 static bool dir_used[MAX_OPEN_DIRS] = {false};
 static struct mtp_dirent current_dirent; // 用于 readdir 返回
 
@@ -81,6 +79,7 @@ int usbd_mtp_closedir(MTP_DIR *d) {
 }
 
 struct mtp_dirent *usbd_mtp_readdir(MTP_DIR *d) {
+#ifdef LFS_ENABLE
     if (!d) return NULL;
     Directory *dir = (Directory *)d;
     FileStat info;
@@ -92,10 +91,12 @@ struct mtp_dirent *usbd_mtp_readdir(MTP_DIR *d) {
         current_dirent.d_type = (info.type == LFS_TYPE_DIR) ? 4 : 8; 
         return &current_dirent;
     }
+#endif
     return NULL; 
 }
 
 int usbd_mtp_stat(const char *file, mtp_stat_t *buf) {
+#ifdef LFS_ENABLE
     FileStat info;
     int res = fs_stat(file, &info);
     
@@ -104,10 +105,12 @@ int usbd_mtp_stat(const char *file, mtp_stat_t *buf) {
         buf->is_dir = (info.type == LFS_TYPE_DIR);
         return 0;
     }
+#endif
     return -1;
 }
 
 int usbd_mtp_statfs(const char *path, struct mtp_statfs *buf) {
+#ifdef LFS_ENABLE
     FileSystemStat fs_info;
     VolumeStat vol_info;
     if (fs_statvfs(path, &vol_info) >= 0) {
@@ -116,6 +119,7 @@ int usbd_mtp_statfs(const char *path, struct mtp_statfs *buf) {
         buf->f_bfree = vol_info.f_bfree;
         return 0;
     }
+#endif
     return -1;
 }
 
