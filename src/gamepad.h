@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-#define GAMEPAD_KEYCODE_IS_AXIS(keycode) (KEYCODE_GET_SUB((keycode)) > 15)
+#define GAMEPAD_KEYCODE_IS_AXIS(keycode) (KEYCODE_GET_SUB((keycode)) > 17)
 /*
  * Copyright (c) 2026, sakumisu
  *

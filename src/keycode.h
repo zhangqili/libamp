@@ -748,6 +748,8 @@ enum GamepadKeycode {
   GAMEPAD_B,
   GAMEPAD_X,
   GAMEPAD_Y,
+  GAMEPAD_LT,
+  GAMEPAD_RT,
   GAMEPAD_LXP = 32,
   GAMEPAD_LXN = 33,
   GAMEPAD_LYP = 34,
