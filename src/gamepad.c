@@ -96,14 +96,6 @@ void gamepad_set_axis(Keycode keycode, AnalogValue value)
 
 int gamepad_buffer_send(void)
 {
-    if (gamepad.lt == 0 && gamepad.buttons & BIT(GAMEPAD_LT))
-    {
-        gamepad.lt = 0xFF;
-    }
-    if (gamepad.rt == 0 && gamepad.buttons & BIT(GAMEPAD_RT))
-    {
-        gamepad.rt = 0xFF;
-    }
     gamepad.report_id = 0;
     gamepad.report_size = 0x14;
     return hid_send_gamepad((uint8_t*)&gamepad, sizeof(Gamepad));
