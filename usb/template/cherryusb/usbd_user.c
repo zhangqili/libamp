@@ -16,53 +16,58 @@
 #include "gamepad.h"
 #endif
 
-#if defined(MTP_ENABLE)
-#define USBD_MSOS_VENDOR_CODE 0x20
-
-static const char msosv1_string_descriptor[] = {
-    0x12,                       /* bLength */
-    0x03,                       /* bDescriptorType */
-    'M', 0, 'S', 0, 'F', 0, 'T', 0, '1', 0, '0', 0, '0', 0, /* qwSignature "MSFT100" */
-    USBD_MSOS_VENDOR_CODE,      /* bMS_VendorCode */
-    0x00                        /* bPad */
-};
-#endif
-
-#if defined(WEBUSB_ENABLE) || defined(GAMEPAD_ENABLE)
+#if defined(WEBUSB_ENABLE) || defined(GAMEPAD_ENABLE) || defined(MTP_ENABLE)
 #define MSOS20_ENABLE
 #define MSOS20_VENDOR_CODE 0x21
 #endif
 
 #ifdef WEBUSB_ENABLE
 #define WEBUSB_VENDOR_CODE 0x22
-#define URL_DESCRIPTOR_LENGTH    (3 + 36)
-#define WEBUSB_URL_STRINGS                                 \
-    'g', 'i', 't', 'h', 'u', 'b', '.', 'c', 'o', 'm', '/', \
-    'c', 'h', 'e', 'r', 'r', 'y', '-', 'e', 'm', 'b', 'e', 'd', 'd', 'e', 'd', '/', 'C', 'h', 'e', 'r', 'r', 'y', 'U', 'S', 'B',
 
-static const uint8_t USBD_WebUSBURLDescriptor[URL_DESCRIPTOR_LENGTH] = {
-    URL_DESCRIPTOR_LENGTH,
-    WEBUSB_URL_TYPE,
-    WEBUSB_URL_SCHEME_HTTPS,
-    WEBUSB_URL_STRINGS
+#ifndef WEBUSB_URL
+#define WEBUSB_URL "emi-keyboard-configurator.vercel.app"
+#endif
+#define URL_DESCRIPTOR_LENGTH (3 + sizeof(WEBUSB_URL) - 1)
+static struct webusb_url_descriptor_t {
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint8_t bScheme;
+    char url[sizeof(WEBUSB_URL)];
+} __attribute__((packed)) USBD_WebUSBURLDescriptor = {
+    .bLength = URL_DESCRIPTOR_LENGTH,
+    .bDescriptorType = WEBUSB_URL_TYPE,
+    .bScheme = WEBUSB_URL_SCHEME_HTTPS,
+    .url = WEBUSB_URL
 };
 
 static struct usb_webusb_descriptor webusb_url_desc = {
     .vendor_code = WEBUSB_VENDOR_CODE,
-    .string = USBD_WebUSBURLDescriptor,
+    .string = (const uint8_t *)&USBD_WebUSBURLDescriptor,
     .string_len = URL_DESCRIPTOR_LENGTH
 };
 #endif
 
 #ifdef MSOS20_ENABLE
 
-#if defined(GAMEPAD_ENABLE) && defined(WEBUSB_ENABLE)
-    #define MSOS20_TOTAL_LENGTH (10 + 28 + USB_MSOSV2_COMP_ID_FUNCTION_WINUSB_MULTI_DESCRIPTOR_LEN)
-#elif defined(GAMEPAD_ENABLE)
-    #define MSOS20_TOTAL_LENGTH (10 + 28)
-#elif defined(WEBUSB_ENABLE)
-    #define MSOS20_TOTAL_LENGTH (10 + USB_MSOSV2_COMP_ID_FUNCTION_WINUSB_MULTI_DESCRIPTOR_LEN)
+#ifdef GAMEPAD_ENABLE
+    #define LEN_GAMEPAD 28
+#else
+    #define LEN_GAMEPAD 0
 #endif
+
+#ifdef WEBUSB_ENABLE
+    #define LEN_WEBUSB USB_MSOSV2_COMP_ID_FUNCTION_WINUSB_MULTI_DESCRIPTOR_LEN // 160
+#else
+    #define LEN_WEBUSB 0
+#endif
+
+#ifdef MTP_ENABLE
+    #define LEN_MTP 118 // 8 + 110
+#else
+    #define LEN_MTP 0
+#endif
+
+#define MSOS20_TOTAL_LENGTH (10 + LEN_GAMEPAD + LEN_WEBUSB + LEN_MTP)
 
 static const uint8_t WINUSB_WCIDDescriptor[] = {
     // --- Descriptor Set Header (10 bytes) ---
@@ -86,7 +91,31 @@ static const uint8_t WINUSB_WCIDDescriptor[] = {
 
 #ifdef WEBUSB_ENABLE
     // --- Function Subset: WebUSB (160 bytes) ---
-    USB_MSOSV2_COMP_ID_FUNCTION_WINUSB_MULTI_DESCRIPTOR_INIT(WEBUSB_INTERFACE)
+    USB_MSOSV2_COMP_ID_FUNCTION_WINUSB_MULTI_DESCRIPTOR_INIT(WEBUSB_INTERFACE),
+#endif
+
+#ifdef MTP_ENABLE
+    // --- Function Subset: MTP (118 bytes) ---
+    0x08, 0x00,             // wLength (8)
+    0x02, 0x00,             // wDescriptorType (MS_OS_20_SUBSET_HEADER_FUNCTION)
+    MTP_INTERFACE,          // bFirstInterface
+    0x00,                   // bReserved
+    118, 0x00,              // wSubsetLength (8 + 110)
+
+    // Feature: Registry Property for DeviceIcon (110 bytes)
+    110, 0x00,              // wLength (110)
+    0x04, 0x00,             // wDescriptorType (MS_OS_20_FEATURE_REG_PROPERTY)
+    0x02, 0x00,             // wPropertyDataType (REG_EXPAND_SZ)
+    0x16, 0x00,             // wPropertyNameLength (22)
+    // "DeviceIcon"
+    'D', 0x00, 'e', 0x00, 'v', 0x00, 'i', 0x00, 'c', 0x00, 'e', 0x00, 
+    'I', 0x00, 'c', 0x00, 'o', 0x00, 'n', 0x00, 0x00, 0x00,
+    0x4E, 0x00,             // wPropertyDataLength (78)
+    // "%SystemRoot%\system32\imageres.dll,-53"
+    '%', 0x00, 'S', 0x00, 'y', 0x00, 's', 0x00, 't', 0x00, 'e', 0x00, 'm', 0x00, 'R', 0x00, 'o', 0x00, 'o', 0x00, 't', 0x00, '%', 0x00, 
+    '\\', 0x00, 's', 0x00, 'y', 0x00, 's', 0x00, 't', 0x00, 'e', 0x00, 'm', 0x00, '3', 0x00, '2', 0x00, '\\', 0x00, 
+    'i', 0x00, 'm', 0x00, 'a', 0x00, 'g', 0x00, 'e', 0x00, 'r', 0x00, 'e', 0x00, 's', 0x00, '.', 0x00, 'd', 0x00, 'l', 0x00, 'l', 0x00, 
+    ',', 0x00, '-', 0x00, '5', 0x00, '3', 0x00, 0x00, 0x00
 #endif
 };
 
@@ -176,11 +205,6 @@ static const char *string_descriptors[] = {
 static const char *string_descriptor_callback(uint8_t speed, uint8_t index)
 {
     (void)speed;
-#if defined(MTP_ENABLE)
-    if (index == 0xEE) {
-        return msosv1_string_descriptor;
-    }
-#endif
     if (index >= (sizeof(string_descriptors) / sizeof(char *))) {
         return NULL;
     }
