@@ -51,6 +51,9 @@
 #ifdef GAMEPAD_ENABLE
 #include "gamepad.h"
 #endif
+#ifdef CONSOLE_ENABLE
+#include "console.h"
+#endif
 #include "event_cache.h"
 #include "event_buffer.h"
 
@@ -818,6 +821,9 @@ void keyboard_process(void)
     }
 #ifdef RGB_ENABLE
     rgb_process();
+#endif
+#ifdef CONSOLE_ENABLE
+    console_flush();
 #endif
 }
 

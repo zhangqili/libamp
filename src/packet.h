@@ -242,7 +242,7 @@ typedef struct __PacketLargeData
 typedef struct __PacketLog
 {
   uint8_t code;
-  uint8_t level;
+  uint8_t reserved;
   uint16_t length;
   uint8_t data[];
 } __PACKED PacketLog;
