@@ -34,17 +34,25 @@ uint8_t g_script_source_buffer[SCRIPT_SOURCE_BUFFER_SIZE];
 uint32_t g_script_watcher_mask[KEY_BITMAP_SIZE];
 
 static uint8_t js_memory_pool[SCRIPT_MEMORY_SIZE];
+
 static JSGCRef loop_func_ref; 
 static JSValue *loop_func_ptr = NULL;
 static bool loop_func_set = false;
+
 static JSGCRef on_key_down_func_ref; 
 static JSValue *on_key_down_func_ptr = NULL;
 static bool on_key_down_func_set = false;
+
 static JSGCRef on_key_up_func_ref; 
 static JSValue *on_key_up_func_ptr = NULL;
 static bool on_key_up_func_set = false;
 
+static JSGCRef on_exit_func_ref; 
+static JSValue *on_exit_func_ptr = NULL;
+static bool on_exit_func_set = false;
+
 volatile bool g_keyboard_enable_script;
+static bool script_is_loaded = false;
 
 static void dump_error(JSContext *ctx)
 {
@@ -112,6 +120,7 @@ static void script_setup_hooks(JSContext *ctx)
     loop_func_set = find_function_by_name(ctx, &loop_func_ptr, &loop_func_ref, "loop");
     on_key_down_func_set = find_function_by_name(ctx, &on_key_down_func_ptr, &on_key_down_func_ref, "onKeyDown");
     on_key_up_func_set = find_function_by_name(ctx, &on_key_up_func_ptr, &on_key_up_func_ref, "onKeyUp");
+    on_exit_func_set = find_function_by_name(ctx, &on_exit_func_ptr, &on_exit_func_ref, "onExit");
 }
 
 void script_factory_reset(void)
@@ -139,6 +148,9 @@ void script_reset_runtime(void)
     
     on_key_up_func_ptr = NULL;
     on_key_up_func_set = false;
+
+    on_exit_func_ptr = NULL;
+    on_exit_func_set = false;
     js_ctx = JS_NewContext(js_memory_pool, sizeof(js_memory_pool), &js_stdlib);
     if (!js_ctx) {
         return;
@@ -148,6 +160,7 @@ void script_reset_runtime(void)
 
 void script_init(void)
 {
+    script_reset_runtime();
     storage_read_script();
     //memset(g_script_bytecode_buffer, 0, sizeof(g_script_bytecode_buffer));
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
@@ -179,7 +192,6 @@ void script_eval(const char *code_buf, size_t len, const char *filename)
 
 void script_update_source(const char *code, size_t len)
 {
-    script_reset_runtime();
     script_eval(code, len, "<runtime>");
     script_setup_hooks(js_ctx);
 }
@@ -214,7 +226,6 @@ void script_load_bytecode(uint8_t *bytecode_buf, size_t len)
 
 void script_update_bytecode(uint8_t *bytecode_buf, size_t len)
 {
-    script_reset_runtime();
     script_load_bytecode(bytecode_buf, len);
     script_setup_hooks(js_ctx);
 }
@@ -303,28 +314,44 @@ void script_process(void)
     run_timers(js_ctx);
 }
 
-static void dispatch_js_key_event(JSContext *ctx, JSValue *func_ptr, KeyboardEvent event)
+static void execute_js_hook(JSContext *ctx, JSValue *func_ptr, int argc, JSValue *argv)
 {
     JSGCRef func_ref;
     JSValue *pfunc = JS_PushGCRef(ctx, &func_ref);
     *pfunc = *func_ptr;
-    
-    if (JS_StackCheck(ctx, 3))
+
+    if (JS_StackCheck(ctx, argc + 2))
     {
         JS_PopGCRef(ctx, &func_ref);
         return;
     }
     
-    JS_PushArg(ctx, new_key_instance(ctx, event.key));
+    for (int i = 0; i < argc; i++) {
+        JS_PushArg(ctx, argv[i]);
+    }
+    
     JS_PushArg(ctx, *pfunc);     /* func name */
     JS_PushArg(ctx, JS_NULL);    /* this */
     
-    JSValue ret = JS_Call(ctx, 1);
+    JSValue ret = JS_Call(ctx, argc);
     JS_PopGCRef(ctx, &func_ref);
     
     if (JS_IsException(ret)) {
         dump_error(ctx);
     }
+}
+static void dispatch_js_event(JSContext *ctx, bool is_set, JSValue *func_ptr)
+{
+    if (!is_set) return; 
+    
+    execute_js_hook(ctx, func_ptr, 0, NULL);
+}
+
+static void dispatch_js_key_event(JSContext *ctx, JSValue *func_ptr, KeyboardEvent event)
+{
+    JSValue arg = new_key_instance(ctx, event.key);
+    
+    execute_js_hook(ctx, func_ptr, 1, &arg);
 }
 
 static void script_event_handler_(KeyboardEvent event)
@@ -333,35 +360,55 @@ static void script_event_handler_(KeyboardEvent event)
     {
         switch (KEYCODE_GET_SUB(event.keycode))
         {
-        case SCRIPT_START:
-            if (g_keyboard_enable_script)
+        case SCRIPT_RESTART:
+            if (g_keyboard_enable_script || script_is_loaded)
             {
-                break;
+                if (g_keyboard_enable_script)
+                {
+                    dispatch_js_event(js_ctx, on_exit_func_set, on_exit_func_ptr);
+                }
+                script_reset_runtime(); 
+                g_keyboard_enable_script = false;
+                script_is_loaded = false;
             }
-            g_keyboard_enable_script = true;
-            script_init();
+            /* Fall through */
+        case SCRIPT_START:
+            if (!g_keyboard_enable_script)
+            {
+                if (!script_is_loaded)
+                {
+                    script_init();
+                    script_is_loaded = true;
+                }
+                g_keyboard_enable_script = true;
+            }
             break;
+        case SCRIPT_TOGGLE:
+            if (!g_keyboard_enable_script)
+            {
+                if (!script_is_loaded)
+                {
+                    script_init();
+                    script_is_loaded = true;
+                }
+                g_keyboard_enable_script = true;
+                break; 
+            }
+            /* Fall through */
         case SCRIPT_STOP:
-            g_keyboard_enable_script = false;
-            script_reset_runtime();
+            if (g_keyboard_enable_script || script_is_loaded)
+            {
+                if (g_keyboard_enable_script)
+                {
+                    dispatch_js_event(js_ctx, on_exit_func_set, on_exit_func_ptr);
+                }
+                script_reset_runtime();
+                g_keyboard_enable_script = false;
+                script_is_loaded = false;
+            }
             break;
         case SCRIPT_SUSPEND:
             g_keyboard_enable_script = false;
-            break;
-        case SCRIPT_RESTART:
-            g_keyboard_enable_script = true;
-            script_init();
-            break;
-        case SCRIPT_TOGGLE:
-            g_keyboard_enable_script = !g_keyboard_enable_script;
-            if (g_keyboard_enable_script)
-            {
-                script_init();
-            }
-            else
-            {
-                script_reset_runtime();
-            }
             break;
         default:
             break;

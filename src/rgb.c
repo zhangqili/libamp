@@ -61,6 +61,7 @@ void rgb_process(void)
     }
     if (g_rgb_hid_mode)
     {
+        led_flush();
         return;
     }
     ColorHSV temp_hsv;
