@@ -64,6 +64,8 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         case PACKET_DATA_VERSION:
             if (packet->code == PACKET_CODE_GET)
             {
+                g_keyboard_config.console = false;
+                g_keyboard_config.debug = false;
                 PacketVersion* packet_version = (PacketVersion*)packet;
                 packet_version->info_length = sizeof(KEYBOARD_VERSION_INFO);
                 packet_version->major = KEYBOARD_VERSION_MAJOR;

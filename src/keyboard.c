@@ -274,6 +274,8 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
                 break;
             case KEYBOARD_FACTORY_RESET:
                 keyboard_factory_reset();
+                g_keyboard_config.console = false;
+                g_keyboard_config.debug = false;
                 packet_send_version_packet();
                 break;
             case KEYBOARD_SAVE:
@@ -284,6 +286,8 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
                 break;
             case KEYBOARD_RESET_TO_DEFAULT:
                 keyboard_reset_to_default();
+                g_keyboard_config.console = false;
+                g_keyboard_config.debug = false;
                 packet_send_version_packet();
                 break;
             case KEYBOARD_RECOVERY:
@@ -316,6 +320,8 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
             case KEYBOARD_PROFILE2:
             case KEYBOARD_PROFILE3:
                 keyboard_set_profile_index((event.keycode >> 8) & 0x0F);
+                g_keyboard_config.console = false;
+                g_keyboard_config.debug = false;
                 packet_send_version_packet();
                 break;
             default:
@@ -817,6 +823,8 @@ void keyboard_process(void)
     {
         target_calibration_tick = 0;
         analog_calibrate();
+        g_keyboard_config.console = false;
+        g_keyboard_config.debug = false;
         packet_send_version_packet();
     }
 #ifdef RGB_ENABLE

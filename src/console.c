@@ -73,9 +73,9 @@ char console_read_char(void)
 
 void console_send_char(char c)
 {
-    if (console_buffer_is_full(&console_tx_buffer))
+    if (console_buffer_is_empty(&console_tx_buffer) || !g_keyboard_config.console)
     {
-        console_flush();
+        return;
     }
 
     console_buffer_push(&console_tx_buffer, c);
@@ -88,7 +88,7 @@ void console_send_char(char c)
 
 void console_printf(const char *format, ...)
 {
-    if (console_buffer_is_full(&console_tx_buffer))
+    if (console_buffer_is_full(&console_tx_buffer) || !g_keyboard_config.console)
     {
         return;
     }
@@ -114,7 +114,7 @@ void console_printf(const char *format, ...)
 
 void console_flush(void)
 {
-    if (console_buffer_is_empty(&console_tx_buffer))
+    if (console_buffer_is_empty(&console_tx_buffer) || !g_keyboard_config.console)
     {
         return;
     }
