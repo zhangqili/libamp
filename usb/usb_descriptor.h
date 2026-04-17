@@ -218,6 +218,10 @@ typedef struct {
     USB_Descriptor_Endpoint_t   XInput_INEndpoint;
     USB_Descriptor_Endpoint_t   XInput_OUTEndpoint;
 #endif
+
+#ifdef WEBUSB_ENABLE
+    USB_Descriptor_Interface_t  WebUSB_Interface;
+#endif
 } USB_Descriptor_Configuration_t;
 
 /*
@@ -274,6 +278,10 @@ enum usb_interfaces {
 
 #ifdef GAMEPAD_ENABLE
     XINPUT_INTERFACE,
+#endif
+
+#ifdef WEBUSB_ENABLE
+    WEBUSB_INTERFACE,
 #endif
     TOTAL_INTERFACES
 };
@@ -1220,7 +1228,7 @@ static const USB_Descriptor_Device_t PROGMEM DeviceDescriptor = {
         .Size                   = sizeof(USB_Descriptor_Device_t),
         .Type                   = DTYPE_Device
     },
-    .USBSpecification           = VERSION_BCD(2, 0, 0),
+    .USBSpecification           = VERSION_BCD(2, 1, 0),
 
 #if VIRTSER_ENABLE
     .Class                      = USB_CSCP_IADDeviceClass,
@@ -1923,6 +1931,22 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
         .EndpointSize           = XINPUT_EPSIZE,
         .PollingIntervalMS      = 0x08
+    },
+#endif
+
+#ifdef WEBUSB_ENABLE
+    .WebUSB_Interface = {
+        .Header = {
+            .Size               = sizeof(USB_Descriptor_Interface_t),
+            .Type               = DTYPE_Interface
+        },
+        .InterfaceNumber        = WEBUSB_INTERFACE,
+        .AlternateSetting       = 0x00,
+        .TotalEndpoints         = 0,
+        .Class                  = 0xFF,
+        .SubClass               = 0x00,
+        .Protocol               = 0x00,
+        .InterfaceStrIndex      = NO_DESCRIPTOR
     },
 #endif
 };
