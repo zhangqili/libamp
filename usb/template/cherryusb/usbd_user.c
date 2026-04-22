@@ -399,22 +399,6 @@ static struct usbd_endpoint raw_out_ep = {
     .ep_addr = RAW_EPOUT_ADDR};
 #endif
 
-#ifdef CONSOLE_ENABLE
-static volatile bool  console_state;
-USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t console_buffer[CONSOLE_EPSIZE];
-
-static void usbd_hid_console_in_callback(uint8_t busid, uint8_t ep, uint32_t nbytes)
-{
-    UNUSED(busid); UNUSED(ep); UNUSED(nbytes);
-    console_state = USB_STATE_IDLE;
-}
-
-static struct usbd_interface console_intf;
-static struct usbd_endpoint console_in_ep = {
-    .ep_cb = usbd_hid_console_in_callback,
-    .ep_addr = CONSOLE_EPIN_ADDR};
-#endif
-
 #ifdef MIDI_ENABLE
 static volatile bool  midi_state;
 USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t midi_in_buffer[4];
@@ -588,9 +572,6 @@ static void usbd_event_handler(uint8_t busid, uint8_t event)
 #if defined(MOUSE_ENABLE) && !defined(MOUSE_SHARED_EP)
         mouse_state = USB_STATE_IDLE;
 #endif
-#ifdef CONSOLE_ENABLE
-        console_state = USB_STATE_IDLE;
-#endif
 #if defined(JOYSTICK_ENABLE) && !defined(JOYSTICK_SHARED_EP)
         joystick_state = USB_STATE_IDLE;
 #endif
@@ -653,11 +634,6 @@ void usb_init(uint8_t busid, uintptr_t reg_base)
 #ifdef SHARED_EP_ENABLE
     usbd_add_interface(0, usbd_hid_init_intf(0, &shared_intf, SharedReport, sizeof(SharedReport)));
     usbd_add_endpoint(0, &shared_in_ep);
-#endif
-
-#ifdef CONSOLE_ENABLE
-    usbd_add_interface(0, usbd_hid_init_intf(0, &console_intf, ConsoleReport, sizeof(ConsoleReport)));
-    usbd_add_endpoint(0, &console_in_ep);
 #endif
 
 #ifdef MIDI_ENABLE
@@ -816,22 +792,6 @@ int usb_send_mouse(uint8_t *buffer, uint8_t size)
 #else
     return usb_send_shared_ep(buffer, size);
 #endif
-#endif
-    return 0;
-}
-
-int usb_send_console(uint8_t *buffer, uint8_t size)
-{
-#ifdef CONSOLE_ENABLE
-    if (console_state == USB_STATE_BUSY) return 1;
-    console_state = USB_STATE_BUSY;
-    memcpy(console_buffer, buffer, size);
-    int ret = usbd_ep_start_write(0, CONSOLE_EPIN_ADDR, console_buffer, CONSOLE_EPSIZE);
-    if (ret < 0)
-    {
-        console_state = USB_STATE_IDLE;
-        return 1;
-    }
 #endif
     return 0;
 }
