@@ -154,7 +154,40 @@ void storage_read_profile(void)
     }
 #endif
 #ifdef DYNAMICKEY_ENABLE
-    fs_read(&file, g_dynamic_keys, sizeof(g_dynamic_keys));
+    for (int i = 0; i < DYNAMIC_KEY_NUM; i++)
+    {
+        fs_read(&file, &g_dynamic_keys[i], sizeof(DynamicKey));
+        switch (g_dynamic_keys[i].type)
+        {
+        case DYNAMIC_KEY_STROKE:
+            g_dynamic_keys[i].dks.value = 0;
+            g_dynamic_keys[i].dks.key_state = 0;
+            for (int j = 0; j < 4; j++)
+            {
+                g_dynamic_keys[i].dks.key_end_tick[j] = 0;
+            }
+            break;
+        case DYNAMIC_KEY_MOD_TAP:
+            g_dynamic_keys[i].mt.key_state = 0;
+            g_dynamic_keys[i].mt.key_report_state = 0;
+            g_dynamic_keys[i].mt.begin_tick = 0;
+            g_dynamic_keys[i].mt.end_tick = 0;
+            break;
+        case DYNAMIC_KEY_TOGGLE_KEY:
+            g_dynamic_keys[i].tk.state = 0;
+            g_dynamic_keys[i].tk.key_state = 0;
+            g_dynamic_keys[i].tk.key_report_state = 0;
+            break;
+        case DYNAMIC_KEY_MUTEX:
+            g_dynamic_keys[i].m.key_state[0] = 0;
+            g_dynamic_keys[i].m.key_state[1] = 0;
+            g_dynamic_keys[i].m.key_report_state[0] = 0;
+            g_dynamic_keys[i].m.key_report_state[1] = 0;
+            break;    
+        default:
+            break;
+        }
+    }
 #endif
     fs_close(&file);
 }
