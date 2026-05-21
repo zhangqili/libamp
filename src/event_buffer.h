@@ -22,7 +22,7 @@ extern "C" {
 typedef struct __EventArgument
 {
     KeyboardEvent event;
-    uint32_t tick;
+    uintptr_t tick;
 }EventArgument;
 
 typedef EventArgument EventLoopQueueElm;

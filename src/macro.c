@@ -5,12 +5,16 @@
  */
 #include "macro.h"
 #include "event_cache.h"
+#include "string.h"
 
 Macro g_macros[MACRO_NUM];
 static MacroAction actions[MACRO_NUM][MACRO_MAX_ACTIONS];
 
 void macro_init(void)
 {
+    memset(g_macros, 0, sizeof(g_macros));
+    memset(actions, 0, sizeof(actions));
+    
     for (int i = 0; i < MACRO_NUM; i++)
     {
         g_macros[i].actions = actions[i];
@@ -162,7 +166,7 @@ void macro_process(void)
                 {
                     if (macro->state == MACRO_STATE_PLAYING_ONCE)
                     {
-                        macro->state = MACRO_STATE_IDLE;
+                        macro_stop_play(macro);
                     }
                     else
                     {

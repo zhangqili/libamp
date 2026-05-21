@@ -8,6 +8,7 @@
 #include "layer.h"
 #include "driver.h"
 
+#include "stddef.h"
 #include "string.h"
 #ifdef MACRO_ENABLE
 #include "macro.h"
@@ -222,10 +223,14 @@ void packet_process_rgb_config(PacketData*data)
     {
         for (uint8_t i = 0; i < packet->length; i++)
         {
-            uint8_t key_index =  g_rgb_inverse_mapping[packet->data[i].index];
-            if (key_index < RGB_NUM)
+            if (packet->data[i].index >= TOTAL_KEY_NUM)
             {
-                uint8_t rgb_index = g_rgb_inverse_mapping[key_index];
+                continue;
+            }
+            uint16_t key_index = packet->data[i].index;
+            uint16_t rgb_index = g_rgb_inverse_mapping[key_index];
+            if (rgb_index < RGB_NUM)
+            {
                 packet->data[i].index = key_index;
                 packet->data[i].mode = g_rgb_configs[rgb_index].mode;
                 packet->data[i].r = g_rgb_configs[rgb_index].rgb.r;
@@ -301,6 +306,10 @@ void packet_process_config(PacketData*data)
     {       
         for (int i = 0; i < packet->length; i++)
         {
+            if (packet->data[i].index >= KEYBOARD_CONFIG_NUM)
+            {
+                continue;
+            }
             if (packet->data[i].value)
             {
                 BIT_SET(g_keyboard_config.raw, packet->data[i].index);
@@ -315,7 +324,10 @@ void packet_process_config(PacketData*data)
     {
         for (int i = 0; i < packet->length; i++)
         {
-            packet->data[i].value = (bool)BIT_GET(g_keyboard_config.raw, packet->data[i].index);
+            if (packet->data[i].index < KEYBOARD_CONFIG_NUM)
+            {
+                packet->data[i].value = (bool)BIT_GET(g_keyboard_config.raw, packet->data[i].index);
+            }
         }
     }
 }
@@ -412,7 +424,7 @@ void packet_send_version_packet(void)
     PacketVersion* packet = (PacketVersion*)buf;
     packet->code = PACKET_CODE_GET;
     packet->type = PACKET_DATA_VERSION;
-    packet_process_buffer((uint8_t*)packet, sizeof(PacketVersion));
+    packet_process_buffer((uint8_t*)packet, sizeof(buf));
     hid_send_raw((uint8_t*)packet, 63);
 }
 

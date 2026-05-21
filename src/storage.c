@@ -43,23 +43,6 @@
 
 uint8_t g_current_profile_index = 0;
 
-#ifndef LFS_ENABLE
-static inline int config_file_read(uint8_t *buffer, uint32_t size, uint32_t offset)
-{
-    return flash_read(STORAGE_CONFIG_FILE_ADDRESS(g_current_profile_index) + offset, size, buffer);
-}
-
-static inline int config_file_write(const uint8_t *buffer, uint32_t size, uint32_t offset)
-{
-    int res = flash_erase(STORAGE_CONFIG_FILE_ADDRESS(g_current_profile_index) + offset, size);
-    if (res)
-    {
-        return res;
-    }
-    return flash_write(STORAGE_CONFIG_FILE_ADDRESS(g_current_profile_index) + offset, size, buffer);
-}
-#endif
-
 static inline void save_advanced_key_config(File *file, AdvancedKey* key)
 {
     fs_write(file, ((void *)(&key->config)), sizeof(AdvancedKeyConfiguration));
@@ -79,7 +62,7 @@ int storage_mount(void)
 int storage_check_version(void)
 {
     File file;
-    int res = fs_open(&file, "version", FS_O_RDWR | FS_O_CREAT);
+    int res = fs_open(&file, "system/version", FS_O_RDWR | FS_O_CREAT);
     if (res < 0)    {
         return 0;
     }
@@ -116,7 +99,7 @@ void storage_unmount(void)
 uint8_t storage_read_profile_index(void)
 {
     File file;
-    int res = fs_open(&file, "profile_index", FS_O_RDWR | FS_O_CREAT);
+    int res = fs_open(&file, "system/profile_index", FS_O_RDWR | FS_O_CREAT);
     if (res < 0)
     {
         g_current_profile_index = 0;
@@ -137,7 +120,7 @@ uint8_t storage_read_profile_index(void)
 void storage_save_profile_index(void)
 {
     File file;
-    int res = fs_open(&file, "profile_index", FS_O_RDWR | FS_O_CREAT);
+    int res = fs_open(&file, "system/profile_index", FS_O_RDWR | FS_O_CREAT);
     if (res < 0)
     {
         return;
@@ -163,7 +146,7 @@ void storage_read_profile(void)
     layer_cache_refresh();
 #ifdef RGB_ENABLE
     fs_read(&file, &g_rgb_base_config, sizeof(g_rgb_base_config));
-    fs_read(&file, &g_rgb_configs, sizeof(g_rgb_configs));
+    fs_read(&file, g_rgb_configs, sizeof(g_rgb_configs));
     g_rgb_base_config.begin_tick = 0;
     for (int i = 0; i < RGB_NUM; i++)
     {
@@ -171,11 +154,7 @@ void storage_read_profile(void)
     }
 #endif
 #ifdef DYNAMICKEY_ENABLE
-    for (int i = 0; i < DYNAMIC_KEY_NUM; i++)
-    {
-        DynamicKey buffer;
-        fs_read(&file, &buffer, sizeof(DynamicKey));
-    }
+    fs_read(&file, g_dynamic_keys, sizeof(g_dynamic_keys));
 #endif
     fs_close(&file);
 }
@@ -197,14 +176,10 @@ void storage_save_profile(void)
     fs_write(&file, g_keymap, sizeof(g_keymap));
 #ifdef RGB_ENABLE
     fs_write(&file, &g_rgb_base_config, sizeof(g_rgb_base_config));
-    fs_write(&file, &g_rgb_configs, sizeof(g_rgb_configs));
+    fs_write(&file, g_rgb_configs, sizeof(g_rgb_configs));
 #endif
 #ifdef DYNAMICKEY_ENABLE
-    for (uint8_t i = 0; i < DYNAMIC_KEY_NUM; i++)
-    {
-        fs_write(&file, &g_dynamic_keys[i], sizeof(DynamicKey));
-        break;
-    }
+    fs_write(&file, g_dynamic_keys, sizeof(g_dynamic_keys));
 #endif
     fs_close(&file);
 }

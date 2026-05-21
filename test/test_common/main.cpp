@@ -1,24 +1,19 @@
 #include <gtest/gtest.h>
 
 #include "keyboard.h"
+#include "test_fixture.h"
 
-class GlobalEnvironment : public ::testing::Environment {
+class PerTestResetListener : public ::testing::EmptyTestEventListener {
 public:
-    void SetUp() override {
-        extern uint8_t flash_buffer[LFS_BLOCK_SIZE*LFS_BLOCK_COUNT];
-        memset(flash_buffer, 0xFF, sizeof(flash_buffer));
-        keyboard_init();
-        g_keyboard_config.nkro = false;
-    }
-
-    void TearDown() override {
+    void OnTestStart(const ::testing::TestInfo&) override {
+        libamp_test_reset_environment();
     }
 };
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
 
-    ::testing::AddGlobalTestEnvironment(new GlobalEnvironment());
+    ::testing::UnitTest::GetInstance()->listeners().Append(new PerTestResetListener());
 
     return RUN_ALL_TESTS();
 }

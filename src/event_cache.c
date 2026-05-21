@@ -164,7 +164,7 @@ void event_forward_list_remove_first_keycode(EventCacheList* list, void* owner, 
 
 void event_cache_buffer_push(KeyboardEvent event, void* owner)
 {
-    event_loop_queue_push(&event_cache_buffer, (EventLoopQueueElm){event, (uint32_t)owner});
+    event_loop_queue_push(&event_cache_buffer, (EventLoopQueueElm){event, (uintptr_t)owner});
 }
 
 void event_cache_push(KeyboardEvent event, void* owner)

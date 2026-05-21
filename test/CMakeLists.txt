@@ -10,15 +10,21 @@ target_include_directories(libamp PUBLIC
 
 add_executable(libamp_tests
     test_common/keyboard_user.c
+    test_common/test_fixture.cpp
     test_common/main.cpp
+    analog/test_analog.cpp
     key/test_key.cpp
     advanced_key/test_advanced_key.cpp
     keyboard/test_keyboard.cpp
     dynamic_key/test_dynamic_key.cpp
+    event/test_event.cpp
+    large_packet/test_large_packet.cpp
+    macro/test_macro.cpp
     mouse/test_mouse.cpp
     extra_key/test_extra_key.cpp
     joystick/test_joystick.cpp
     packet/test_packet.cpp
+    rgb/test_rgb.cpp
     storage/test_storage.cpp
     layer/test_layer.cpp
 )

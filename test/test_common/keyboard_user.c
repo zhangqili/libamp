@@ -13,6 +13,8 @@ uint8_t shared_ep_send_buffer[64];
 uint8_t keyboard_send_buffer[64];
 uint8_t raw_send_buffer[64];
 uint8_t midi_send_buffer[64];
+ColorRGB led_color_buffer[RGB_NUM];
+uint32_t led_flush_count;
 
 const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM] = {
     {
@@ -979,9 +981,32 @@ int hid_send_joystick(uint8_t*report,uint16_t len)
     return 0;
 }
 
+int hid_send_raw(uint8_t *report, uint16_t len)
+{
+    memcpy(raw_send_buffer, report, len);
+    return 0;
+}
+
 void send_midi(uint8_t *report, uint16_t len)
 {
     memcpy(midi_send_buffer,report,len);
+}
+
+int led_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b)
+{
+    if (index < RGB_NUM)
+    {
+        led_color_buffer[index].r = r;
+        led_color_buffer[index].g = g;
+        led_color_buffer[index].b = b;
+    }
+    return 0;
+}
+
+int led_flush(void)
+{
+    led_flush_count++;
+    return 0;
 }
 
 uint8_t flash_buffer[LFS_BLOCK_SIZE*LFS_BLOCK_COUNT];

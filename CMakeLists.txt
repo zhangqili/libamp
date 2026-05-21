@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
 # Set the project name
 project (libamp)
+
+option(LIBAMP_BUILD_TESTS "Build libamp tests" OFF)
+option(LIBAMP_RUN_TESTS_BEFORE_BUILD "Run libamp host tests before building libamp" OFF)
+set(LIBAMP_PREBUILD_TEST_BUILD_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/libamp-host-tests"
+    CACHE PATH "Build directory used for libamp host prebuild tests"
+)
+
 include(ExternalProject)
 include(CheckTypeSize)
 check_type_size("void*" SIZEOF_VOID_P)
@@ -87,6 +95,25 @@ file(GLOB MQJS_SRCS
 # Add a library with the above sources
 add_library(${PROJECT_NAME} ${COMPONENT_SRCS} ${MQJS_SRCS})
 add_dependencies(${PROJECT_NAME} generate_mqjs_headers_task)
+
+if(LIBAMP_RUN_TESTS_BEFORE_BUILD AND NOT LIBAMP_BUILD_TESTS)
+    add_custom_target(libamp_prebuild_tests
+        COMMAND ${CMAKE_COMMAND}
+            -S "${PROJECT_SOURCE_DIR}"
+            -B "${LIBAMP_PREBUILD_TEST_BUILD_DIR}"
+            -DLIBAMP_BUILD_TESTS=ON
+            -DLIBAMP_RUN_TESTS_BEFORE_BUILD=OFF
+        COMMAND ${CMAKE_COMMAND}
+            --build "${LIBAMP_PREBUILD_TEST_BUILD_DIR}" --parallel
+        COMMAND ${CMAKE_CTEST_COMMAND}
+            --test-dir "${LIBAMP_PREBUILD_TEST_BUILD_DIR}"
+            --output-on-failure
+        COMMENT "Running libamp host tests before building libamp..."
+        VERBATIM
+    )
+    add_dependencies(${PROJECT_NAME} libamp_prebuild_tests)
+endif()
+
 target_compile_definitions( ${PROJECT_NAME} PRIVATE 
     #LFS_NO_MALLOC
     LFS_NO_ASSERT
@@ -114,7 +141,6 @@ target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src/mquickjs
 )
 
-option(LIBAMP_BUILD_TESTS "Build libamp tests" OFF)
 if(LIBAMP_BUILD_TESTS)
     enable_testing()
     add_subdirectory(${CMAKE_SOURCE_DIR}/lib/googletest)
