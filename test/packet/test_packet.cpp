@@ -48,12 +48,15 @@ void expect_raw_frame_matches_packet(const std::array<uint8_t, 64>& expected, ui
     ASSERT_TRUE(amp_frame_decode(raw_send_buffer, 64, &frame));
     EXPECT_EQ(AMP_CHANNEL_CONTROL, amp_frame_channel(&frame.header));
     EXPECT_EQ(AMP_FRAME_FLAG_RESP, amp_frame_flags(&frame.header));
+    EXPECT_EQ(expected[0], frame.header.code);
 
-    std::array<uint8_t, 64> decoded = {};
-    uint16_t decoded_len = 0;
-    ASSERT_TRUE(amp_frame_to_legacy_packet(&frame, decoded.data(), &decoded_len));
-    EXPECT_EQ(expected_len, decoded_len);
-    EXPECT_EQ(0, std::memcmp(decoded.data(), expected.data(), expected_len));
+    const size_t payload_offset = expected[0] == PACKET_CODE_EVENT ? 1 : 2;
+    ASSERT_GE(expected_len, payload_offset);
+    if (payload_offset == 2) {
+        EXPECT_EQ(expected[1], frame.header.type);
+    }
+    ASSERT_EQ(expected_len - payload_offset, frame.header.len);
+    EXPECT_EQ(0, std::memcmp(frame.payload, expected.data() + payload_offset, frame.header.len));
 }
 
 AdvancedKeyConfiguration packet_advanced_key_config()

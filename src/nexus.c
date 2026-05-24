@@ -29,12 +29,12 @@ static inline void nexus_config_slave(uint8_t slave_id)
     {
         AdvancedKey *key = &g_keyboard_advanced_keys[g_nexus_slave_configs[slave_id].map[i]];
         PacketAdvancedKey *packet = (PacketAdvancedKey *)buffer;
-        memset(buffer, 0, sizeof(packet));
+        memset(buffer, 0, sizeof(buffer));
         packet->code = PACKET_CODE_SET;
         packet->type = PACKET_DATA_ADVANCED_KEY;
         packet->index = i;
         memcpy(&packet->data, &key->config, sizeof(AdvancedKeyConfiguration));
-        nexus_send_timeout(slave_id,buffer,64,NEXUS_TIMEOUT);
+        nexus_send_timeout(slave_id, buffer, sizeof(PacketAdvancedKey), NEXUS_TIMEOUT);
         /*
         PacketKeymap *packet_keymap = (PacketKeymap *)buffer;
         memset(buffer, 0, sizeof(packet));
@@ -86,22 +86,13 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
 {
 #if NEXUS_IS_SLAVE
     AmpFrame frame;
-    uint8_t legacy[AMP_FRAME_REPORT_SIZE];
-    uint16_t legacy_len = 0;
     uint8_t response[AMP_FRAME_REPORT_SIZE];
 
     if (!amp_frame_decode(buf, len, &frame))
     {
         return;
     }
-    if (!amp_frame_to_legacy_packet(&frame, legacy, &legacy_len))
-    {
-        return;
-    }
-
-    packet_process_buffer(legacy, legacy_len);
-    uint16_t response_len = amp_legacy_packet_length(legacy, sizeof(legacy));
-    if (amp_legacy_to_frame(response, legacy, response_len, AMP_CHANNEL_NEXUS_CTRL, AMP_FRAME_FLAG_RESP, frame.header.seq) == 0)
+    if (packet_process_frame_to_report(&frame, AMP_CHANNEL_NEXUS_CTRL, AMP_FRAME_FLAG_RESP, response))
     {
         nexus_report(response, sizeof(response));
     }
@@ -196,8 +187,9 @@ int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, ui
     {
         seq = ++sequence;
     }
-    uint16_t report_len = amp_legacy_packet_length(report, len);
-    if (amp_legacy_to_frame(frame_report, report, report_len, AMP_CHANNEL_NEXUS_CTRL, AMP_FRAME_FLAG_REQ_ACK, seq) != 0)
+    if (report == NULL || len < 2 || len - 2 > AMP_FRAME_MAX_PAYLOAD ||
+        amp_frame_encode(frame_report, AMP_CHANNEL_NEXUS_CTRL, AMP_FRAME_FLAG_REQ_ACK, seq,
+                         report[0], report[1], report + 2, (uint8_t)(len - 2)) != 0)
     {
         return 1;
     }

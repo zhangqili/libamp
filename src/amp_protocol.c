@@ -10,11 +10,6 @@
 #include "stddef.h"
 #include "string.h"
 
-enum {
-    AMP_ERROR_BAD_FRAME = 1,
-    AMP_ERROR_TOO_LONG  = 2,
-};
-
 typedef struct
 {
     uint8_t report[AMP_FRAME_REPORT_SIZE];
@@ -125,215 +120,6 @@ int amp_frame_encode(uint8_t *report, uint8_t channel, uint8_t flags, uint8_t se
     return 0;
 }
 
-uint8_t amp_channel_for_packet(uint8_t code, uint8_t type)
-{
-    switch (code)
-    {
-    case PACKET_CODE_LOG:
-        return AMP_CHANNEL_CONSOLE;
-    case PACKET_CODE_LARGE_SET:
-    case PACKET_CODE_LARGE_GET:
-        return AMP_CHANNEL_LARGE;
-    case PACKET_CODE_GET:
-    case PACKET_CODE_SET:
-        if (type == PACKET_DATA_DEBUG)
-        {
-            return AMP_CHANNEL_DEBUG;
-        }
-        return AMP_CHANNEL_CONTROL;
-    case PACKET_CODE_USER:
-        return AMP_CHANNEL_USER;
-    default:
-        return AMP_CHANNEL_CONTROL;
-    }
-}
-
-uint16_t amp_legacy_packet_length(const uint8_t *packet, uint16_t max_len)
-{
-    if (packet == NULL || max_len == 0)
-    {
-        return 0;
-    }
-
-    switch (packet[0])
-    {
-    case PACKET_CODE_EVENT:
-        return sizeof(PacketEvent) <= max_len ? sizeof(PacketEvent) : max_len;
-    case PACKET_CODE_LOG:
-    {
-        if (max_len < offsetof(PacketLog, data))
-        {
-            return max_len;
-        }
-        const PacketLog *log = (const PacketLog *)packet;
-        uint16_t len = (uint16_t)(offsetof(PacketLog, data) + log->length);
-        return len <= max_len ? len : max_len;
-    }
-    case PACKET_CODE_LARGE_SET:
-    case PACKET_CODE_LARGE_GET:
-    {
-        if (max_len < offsetof(PacketLargeData, payload.data))
-        {
-            return max_len;
-        }
-        const PacketLargeData *large = (const PacketLargeData *)packet;
-        if (large->sub_cmd == 1)
-        {
-            uint16_t len = (uint16_t)(offsetof(PacketLargeData, payload.data) + large->payload.length);
-            return len <= max_len ? len : max_len;
-        }
-        return (uint16_t)(sizeof(PacketLargeData) <= max_len ? sizeof(PacketLargeData) : max_len);
-    }
-    case PACKET_CODE_GET:
-    case PACKET_CODE_SET:
-        if (max_len < sizeof(PacketData))
-        {
-            return max_len;
-        }
-        switch (((const PacketData *)packet)->type)
-        {
-        case PACKET_DATA_VERSION:
-        {
-            const PacketVersion *version = (const PacketVersion *)packet;
-            uint16_t len = (uint16_t)(offsetof(PacketVersion, info) + version->info_length);
-            return len <= max_len ? len : max_len;
-        }
-        case PACKET_DATA_ADVANCED_KEY:
-            return sizeof(PacketAdvancedKey) <= max_len ? sizeof(PacketAdvancedKey) : max_len;
-        case PACKET_DATA_RGB_BASE_CONFIG:
-            return sizeof(PacketRGBBaseConfig) <= max_len ? sizeof(PacketRGBBaseConfig) : max_len;
-        case PACKET_DATA_RGB_CONFIG:
-        {
-            const PacketRGBConfigs *rgb = (const PacketRGBConfigs *)packet;
-            uint16_t len = (uint16_t)(offsetof(PacketRGBConfigs, data) + rgb->length * sizeof(rgb->data[0]));
-            return len <= max_len ? len : max_len;
-        }
-        case PACKET_DATA_KEYMAP:
-        {
-            const PacketKeymap *keymap = (const PacketKeymap *)packet;
-            uint16_t len = (uint16_t)(offsetof(PacketKeymap, keymap) + keymap->length * sizeof(keymap->keymap[0]));
-            return len <= max_len ? len : max_len;
-        }
-        case PACKET_DATA_DYNAMIC_KEY:
-        {
-            uint16_t len = 34;
-            return len <= max_len ? len : max_len;
-        }
-        case PACKET_DATA_PROFILE_INDEX:
-            return sizeof(PacketProfileIndex) <= max_len ? sizeof(PacketProfileIndex) : max_len;
-        case PACKET_DATA_CONFIG:
-        {
-            const PacketConfig *config = (const PacketConfig *)packet;
-            uint16_t len = (uint16_t)(offsetof(PacketConfig, data) + config->length * sizeof(config->data[0]));
-            return len <= max_len ? len : max_len;
-        }
-        case PACKET_DATA_DEBUG:
-        {
-            const PacketDebug *debug = (const PacketDebug *)packet;
-            uint16_t len = (uint16_t)(offsetof(PacketDebug, data) + debug->length * sizeof(debug->data[0]));
-            return len <= max_len ? len : max_len;
-        }
-        case PACKET_DATA_MACRO:
-        {
-            const PacketMacro *macro = (const PacketMacro *)packet;
-            uint16_t len = (uint16_t)(offsetof(PacketMacro, data) + macro->length * sizeof(macro->data[0]));
-            return len <= max_len ? len : max_len;
-        }
-        case PACKET_DATA_FEATURE:
-            return sizeof(PacketFeature) <= max_len ? sizeof(PacketFeature) : max_len;
-        default:
-            return max_len;
-        }
-    default:
-        return max_len;
-    }
-}
-
-int amp_legacy_to_frame(uint8_t *report, const uint8_t *packet, uint16_t packet_len, uint8_t channel, uint8_t flags, uint8_t seq)
-{
-    if (report == NULL || packet == NULL || packet_len == 0)
-    {
-        return 1;
-    }
-
-    uint8_t code = packet[0];
-    uint8_t type = 0;
-    const uint8_t *payload = NULL;
-    uint16_t payload_len = 0;
-
-    if (code == PACKET_CODE_EVENT)
-    {
-        payload = packet + 1;
-        payload_len = packet_len > 1 ? (uint16_t)(packet_len - 1) : 0;
-    }
-    else if (code == PACKET_CODE_LOG)
-    {
-        payload = packet + offsetof(PacketLog, data);
-        payload_len = ((const PacketLog *)packet)->length;
-        channel = AMP_CHANNEL_CONSOLE;
-    }
-    else
-    {
-        if (packet_len < 2)
-        {
-            return 1;
-        }
-        type = packet[1];
-        payload = packet + 2;
-        payload_len = (uint16_t)(packet_len - 2);
-    }
-
-    if (payload_len > AMP_FRAME_MAX_PAYLOAD)
-    {
-        return 1;
-    }
-    return amp_frame_encode(report, channel, flags, seq, code, type, payload, (uint8_t)payload_len);
-}
-
-bool amp_frame_to_legacy_packet(const AmpFrame *frame, uint8_t *packet, uint16_t *packet_len)
-{
-    if (frame == NULL || packet == NULL || packet_len == NULL)
-    {
-        return false;
-    }
-
-    memset(packet, 0, AMP_FRAME_REPORT_SIZE);
-    if (frame->header.code == PACKET_CODE_EVENT)
-    {
-        if (frame->header.len > AMP_FRAME_REPORT_SIZE - 1)
-        {
-            return false;
-        }
-        packet[0] = frame->header.code;
-        memcpy(packet + 1, frame->payload, frame->header.len);
-        *packet_len = (uint16_t)(frame->header.len + 1);
-        return true;
-    }
-    if (frame->header.code == PACKET_CODE_LOG)
-    {
-        if (frame->header.len > AMP_FRAME_REPORT_SIZE - offsetof(PacketLog, data))
-        {
-            return false;
-        }
-        PacketLog *log = (PacketLog *)packet;
-        log->code = PACKET_CODE_LOG;
-        log->length = frame->header.len;
-        memcpy(log->data, frame->payload, frame->header.len);
-        *packet_len = (uint16_t)(offsetof(PacketLog, data) + frame->header.len);
-        return true;
-    }
-
-    if (frame->header.len > AMP_FRAME_REPORT_SIZE - 2)
-    {
-        return false;
-    }
-    packet[0] = frame->header.code;
-    packet[1] = frame->header.type;
-    memcpy(packet + 2, frame->payload, frame->header.len);
-    *packet_len = (uint16_t)(frame->header.len + 2);
-    return true;
-}
-
 static int amp_enqueue_report(const uint8_t *report, bool stream)
 {
     if (stream)
@@ -366,12 +152,9 @@ int amp_send_frame(uint8_t channel, uint8_t flags, uint8_t seq, uint8_t code, ui
     return amp_enqueue_report(report, stream);
 }
 
-int amp_send_legacy_packet(const uint8_t *packet, uint16_t packet_len, uint8_t flags, uint8_t seq, bool stream)
+int amp_send_encoded_report(const uint8_t *report, bool stream)
 {
-    uint16_t actual_len = amp_legacy_packet_length(packet, packet_len);
-    uint8_t report[AMP_FRAME_REPORT_SIZE];
-    uint8_t channel = amp_channel_for_packet(packet[0], packet[1]);
-    if (amp_legacy_to_frame(report, packet, actual_len, channel, flags, seq) != 0)
+    if (report == NULL)
     {
         return 1;
     }
@@ -443,30 +226,7 @@ void amp_transport_raw_sent(void)
 
 static void amp_process_frame(const AmpFrame *frame)
 {
-    uint8_t legacy[AMP_FRAME_REPORT_SIZE];
-    uint16_t legacy_len = 0;
-    uint8_t channel = amp_frame_channel(&frame->header);
-    uint8_t flags = amp_frame_flags(&frame->header);
-
-    if (!amp_frame_to_legacy_packet(frame, legacy, &legacy_len))
-    {
-        if (frame->header.seq != 0)
-        {
-            amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, AMP_ERROR_BAD_FRAME);
-        }
-        return;
-    }
-
-    packet_process_buffer(legacy, legacy_len);
-
-    if (frame->header.seq != 0 || (flags & AMP_FRAME_FLAG_REQ_ACK))
-    {
-        uint16_t response_len = amp_legacy_packet_length(legacy, AMP_FRAME_REPORT_SIZE);
-        if (amp_send_legacy_packet(legacy, response_len, AMP_FRAME_FLAG_RESP, frame->header.seq, false) != 0)
-        {
-            amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, AMP_ERROR_TOO_LONG);
-        }
-    }
+    packet_process_frame(frame);
 }
 
 void amp_transport_poll(void)

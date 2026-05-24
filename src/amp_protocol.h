@@ -85,13 +85,8 @@ bool amp_is_frame(const uint8_t *report, uint16_t len);
 bool amp_frame_decode(const uint8_t *report, uint16_t len, AmpFrame *frame);
 int amp_frame_encode(uint8_t *report, uint8_t channel, uint8_t flags, uint8_t seq, uint8_t code, uint8_t type, const uint8_t *payload, uint8_t payload_len);
 
-uint16_t amp_legacy_packet_length(const uint8_t *packet, uint16_t max_len);
-uint8_t amp_channel_for_packet(uint8_t code, uint8_t type);
-int amp_legacy_to_frame(uint8_t *report, const uint8_t *packet, uint16_t packet_len, uint8_t channel, uint8_t flags, uint8_t seq);
-bool amp_frame_to_legacy_packet(const AmpFrame *frame, uint8_t *packet, uint16_t *packet_len);
-
 int amp_send_frame(uint8_t channel, uint8_t flags, uint8_t seq, uint8_t code, uint8_t type, const uint8_t *payload, uint8_t payload_len, bool stream);
-int amp_send_legacy_packet(const uint8_t *packet, uint16_t packet_len, uint8_t flags, uint8_t seq, bool stream);
+int amp_send_encoded_report(const uint8_t *report, bool stream);
 int amp_send_console_log(const uint8_t *data, uint8_t len);
 int amp_send_error(uint8_t channel, uint8_t seq, uint8_t code, uint8_t type, uint8_t error_code);
 
