@@ -8,6 +8,7 @@
 #include "record.h"
 #include "driver.h"
 #include "packet.h"
+#include "amp_protocol.h"
 #include "analog.h"
 
 #include "stdio.h"
@@ -811,6 +812,7 @@ __WEAK void keyboard_task(void)
 
 void keyboard_process(void)
 {
+    amp_transport_poll();
     event_loop_queue_foreach(&event_buffer, EventLoopQueueElm, event)
     {
         keyboard_event_poller(event->event, event->tick);

@@ -6,7 +6,7 @@
 #include "packet.h"
 #include "rgb.h"
 #include "layer.h"
-#include "driver.h"
+#include "amp_protocol.h"
 
 #include "stddef.h"
 #include "string.h"
@@ -129,7 +129,7 @@ void packet_process(uint8_t *buf, uint16_t len)
 {
     UNUSED(len);
     packet_process_buffer(buf, len);
-    hid_send_raw(buf, 63);
+    amp_send_legacy_packet(buf, amp_legacy_packet_length(buf, 64), AMP_FRAME_FLAG_RESP, 0, false);
 }
 
 void packet_process_advanced_key(PacketData*data)
@@ -336,9 +336,13 @@ void packet_process_debug(PacketData*data)
 {
     PacketDebug* packet = (PacketDebug*)data;
     if (data->code == PACKET_CODE_GET)
-    {       
+    {
+        if (packet->length > 6)
+        {
+            packet->length = 6;
+        }
         packet->tick = g_keyboard_tick;
-            debug_length = packet->length;
+        debug_length = packet->length;
         for (uint8_t i = 0; i < packet->length; i++)
         {
             uint8_t key_index =  packet->data[i].index;
@@ -425,7 +429,7 @@ void packet_send_version_packet(void)
     packet->code = PACKET_CODE_GET;
     packet->type = PACKET_DATA_VERSION;
     packet_process_buffer((uint8_t*)packet, sizeof(buf));
-    hid_send_raw((uint8_t*)packet, 63);
+    amp_send_legacy_packet((uint8_t*)packet, amp_legacy_packet_length((uint8_t*)packet, sizeof(buf)), 0, 0, false);
 }
 
 void packet_send_debug_packet(void)
@@ -449,7 +453,7 @@ void packet_send_debug_packet(void)
         packet->data[i].index = debug_buffer[i];
     }
     packet_process_buffer((uint8_t*)packet, sizeof(PacketDebug) + debug_length * sizeof(packet->data[0]));
-    hid_send_raw((uint8_t*)packet, 63);
+    amp_send_legacy_packet((uint8_t*)packet, amp_legacy_packet_length((uint8_t*)packet, sizeof(buf)), 0, 0, true);
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)

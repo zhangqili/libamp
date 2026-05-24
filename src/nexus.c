@@ -5,6 +5,7 @@
  */
 #include "nexus.h"
 #include "packet.h"
+#include "amp_protocol.h"
 #include "driver.h"
 #include "string.h"
 #include "storage.h"
@@ -84,12 +85,42 @@ void nexus_process(void)
 void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
 {
 #if NEXUS_IS_SLAVE
-    packet_process_buffer(buf, len);
-    nexus_report(buf,len);
+    AmpFrame frame;
+    uint8_t legacy[AMP_FRAME_REPORT_SIZE];
+    uint16_t legacy_len = 0;
+    uint8_t response[AMP_FRAME_REPORT_SIZE];
+
+    if (!amp_frame_decode(buf, len, &frame))
+    {
+        return;
+    }
+    if (!amp_frame_to_legacy_packet(&frame, legacy, &legacy_len))
+    {
+        return;
+    }
+
+    packet_process_buffer(legacy, legacy_len);
+    uint16_t response_len = amp_legacy_packet_length(legacy, sizeof(legacy));
+    if (amp_legacy_to_frame(response, legacy, response_len, AMP_CHANNEL_NEXUS_CTRL, AMP_FRAME_FLAG_RESP, frame.header.seq) == 0)
+    {
+        nexus_report(response, sizeof(response));
+    }
 #else
-    //memcpy(g_nexus_slave_buffer[slave_id], buf, len);
+    if (slave_id >= NEXUS_SLAVE_NUM || buf == NULL || len == 0)
+    {
+        return;
+    }
     slave_flags[slave_id] = true;
-    if (!(((PacketBase*)buf)->code & 0x80))
+
+    if (amp_is_frame(buf, len))
+    {
+        uint16_t copy_len = len > NEXUS_BUFFER_SIZE ? NEXUS_BUFFER_SIZE : len;
+        memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_BUFFER_SIZE);
+        memcpy(g_nexus_slave_buffer[slave_id], buf, copy_len);
+        return;
+    }
+
+    if (!(buf[0] & 0x80))
     {
         return;
     }
@@ -158,23 +189,38 @@ int nexus_send_report(void)
 
 int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout)
 {
+    static uint8_t sequence;
+    uint8_t frame_report[AMP_FRAME_REPORT_SIZE];
+    uint8_t seq = ++sequence;
+    if (seq == 0)
+    {
+        seq = ++sequence;
+    }
+    uint16_t report_len = amp_legacy_packet_length(report, len);
+    if (amp_legacy_to_frame(frame_report, report, report_len, AMP_CHANNEL_NEXUS_CTRL, AMP_FRAME_FLAG_REQ_ACK, seq) != 0)
+    {
+        return 1;
+    }
+
     const uint32_t start = g_keyboard_tick;
     uint32_t retry_count = 0;
     uint16_t count = 0;
     retry:
     while (start + timeout > g_keyboard_tick)
     {
-        if (nexus_send(slave_id, (uint8_t*)report, len) == 0)
+        if (nexus_send(slave_id, frame_report, AMP_FRAME_REPORT_SIZE) == 0)
         {
             break;
         }
     }
     while (start + timeout > g_keyboard_tick)
     {
-        if (g_nexus_slave_buffer[slave_id][0] == report[0] && g_nexus_slave_buffer[slave_id][1] == report[1])
+        AmpFrameHeader *header = (AmpFrameHeader *)g_nexus_slave_buffer[slave_id];
+        if (header->proto == AMP_FRAME_PROTO &&
+            header->seq == seq &&
+            (amp_frame_flags(header) & AMP_FRAME_FLAG_RESP))
         {
-            g_nexus_slave_buffer[slave_id][0] = 0;
-            g_nexus_slave_buffer[slave_id][1] = 0;
+            memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_BUFFER_SIZE);
             slave_flags[slave_id] = false;
             return 0;
         }
@@ -192,4 +238,3 @@ int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, ui
     }
     return 1;
 }
-

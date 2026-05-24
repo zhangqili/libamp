@@ -5,7 +5,7 @@
  */
 #include "console.h"
 #include "packet.h"
-#include "driver.h"
+#include "amp_protocol.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
@@ -73,7 +73,7 @@ char console_read_char(void)
 
 void console_send_char(char c)
 {
-    if (console_buffer_is_empty(&console_tx_buffer) || !g_keyboard_config.console)
+    if (console_buffer_is_full(&console_tx_buffer) || !g_keyboard_config.console)
     {
         return;
     }
@@ -121,25 +121,20 @@ void console_flush(void)
 
     while (!console_buffer_is_empty(&console_tx_buffer))
     {
-        char temp_buf[64] = {0};
-        PacketLog *packet_log = (PacketLog *)temp_buf;
+        uint8_t temp_buf[AMP_FRAME_MAX_PAYLOAD] = {0};
         uint8_t idx = 0;
 
         int16_t peek_front = console_tx_buffer.front;
         int16_t peek_len = console_tx_buffer.len;
 
-        while (idx < 59 && peek_len > 0)
+        while (idx < AMP_FRAME_MAX_PAYLOAD && peek_len > 0)
         {
-            packet_log->data[idx++] = console_tx_buffer.data[peek_front];
+            temp_buf[idx++] = (uint8_t)console_tx_buffer.data[peek_front];
             peek_front = (peek_front + 1) % CONSOLE_BUFFER_LENGTH;
             peek_len--;
         }
 
-        packet_log->data[idx] = '\0';
-        packet_log->code = PACKET_CODE_LOG;
-        packet_log->length = idx;
-
-        uint8_t res = hid_send_raw((uint8_t*)temp_buf, 64);
+        uint8_t res = amp_send_console_log(temp_buf, idx);
 
         if (res == 0)
         {
