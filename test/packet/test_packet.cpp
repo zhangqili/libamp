@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstring>
 
+#include "amp_protocol.h"
 #include "packet.h"
 #include "rgb.h"
 #include "test_fixture.h"
@@ -39,6 +40,23 @@ size_t config_packet_size(uint8_t length)
 size_t debug_packet_size(uint8_t length)
 {
     return offsetof(PacketDebug, data) + length * sizeof(reinterpret_cast<PacketDebug *>(0)->data[0]);
+}
+
+void expect_raw_frame_matches_packet(const std::array<uint8_t, 64>& expected, uint16_t expected_len)
+{
+    AmpFrame frame = {};
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, 64, &frame));
+    EXPECT_EQ(AMP_CHANNEL_CONTROL, amp_frame_channel(&frame.header));
+    EXPECT_EQ(AMP_FRAME_FLAG_RESP, amp_frame_flags(&frame.header));
+    EXPECT_EQ(expected[0], frame.header.code);
+
+    const size_t payload_offset = expected[0] == PACKET_CODE_EVENT ? 1 : 2;
+    ASSERT_GE(expected_len, payload_offset);
+    if (payload_offset == 2) {
+        EXPECT_EQ(expected[1], frame.header.type);
+    }
+    ASSERT_EQ(expected_len - payload_offset, frame.header.len);
+    EXPECT_EQ(0, std::memcmp(frame.payload, expected.data() + payload_offset, frame.header.len));
 }
 
 AdvancedKeyConfiguration packet_advanced_key_config()
@@ -77,6 +95,33 @@ DynamicKey make_dynamic_key()
 
 } // namespace
 
+TEST(AmpProtocol, EncodesAndDecodesFrame)
+{
+    std::array<uint8_t, 64> report = {};
+    const uint8_t payload[] = {0x11, 0x22, 0x33};
+
+    ASSERT_EQ(0, amp_frame_encode(report.data(), AMP_CHANNEL_DEBUG, AMP_FRAME_FLAG_REQ_ACK, 9, PACKET_CODE_GET, PACKET_DATA_DEBUG, payload, sizeof(payload)));
+
+    AmpFrame frame = {};
+    ASSERT_TRUE(amp_frame_decode(report.data(), report.size(), &frame));
+    EXPECT_EQ(AMP_FRAME_PROTO, frame.header.proto);
+    EXPECT_EQ(AMP_CHANNEL_DEBUG, amp_frame_channel(&frame.header));
+    EXPECT_EQ(AMP_FRAME_FLAG_REQ_ACK, amp_frame_flags(&frame.header));
+    EXPECT_EQ(9, frame.header.seq);
+    EXPECT_EQ(PACKET_CODE_GET, frame.header.code);
+    EXPECT_EQ(PACKET_DATA_DEBUG, frame.header.type);
+    ASSERT_EQ(sizeof(payload), frame.header.len);
+    EXPECT_EQ(0, std::memcmp(payload, frame.payload, sizeof(payload)));
+}
+
+TEST(AmpProtocol, RejectsOversizedPayload)
+{
+    std::array<uint8_t, 64> report = {};
+    std::array<uint8_t, AMP_FRAME_MAX_PAYLOAD + 1> payload = {};
+
+    EXPECT_NE(0, amp_frame_encode(report.data(), AMP_CHANNEL_CONTROL, 0, 1, PACKET_CODE_GET, PACKET_DATA_VERSION, payload.data(), payload.size()));
+}
+
 TEST(Packet, SetAndGetKeymap)
 {
     std::array<uint8_t, 64> buffer = {};
@@ -99,7 +144,7 @@ TEST(Packet, SetAndGetKeymap)
     EXPECT_EQ(KEY_C, g_keymap[1][5]);
     EXPECT_EQ(KEY_D, g_keymap[1][6]);
     EXPECT_EQ(KEY_E, g_keymap[1][7]);
-    EXPECT_EQ(0, std::memcmp(raw_send_buffer, buffer.data(), 63));
+    expect_raw_frame_matches_packet(buffer, keymap_packet_size(packet->length));
 
     buffer.fill(0);
     packet = packet_as<PacketKeymap>(buffer);
@@ -116,6 +161,24 @@ TEST(Packet, SetAndGetKeymap)
     EXPECT_EQ(KEY_C, packet->keymap[2]);
     EXPECT_EQ(KEY_D, packet->keymap[3]);
     EXPECT_EQ(KEY_E, packet->keymap[4]);
+}
+
+TEST(Packet, VersionNotificationIsDeferredUntilPoll)
+{
+    packet_send_version_packet();
+
+    AmpFrame frame = {};
+    EXPECT_FALSE(amp_frame_decode(raw_send_buffer, 64, &frame));
+
+    packet_process_version_notifications();
+
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, 64, &frame));
+    EXPECT_EQ(AMP_CHANNEL_CONTROL, amp_frame_channel(&frame.header));
+    EXPECT_EQ(0, amp_frame_flags(&frame.header));
+    EXPECT_EQ(0, frame.header.seq);
+    EXPECT_EQ(PACKET_CODE_GET, frame.header.code);
+    EXPECT_EQ(PACKET_DATA_VERSION, frame.header.type);
+    EXPECT_GT(frame.header.len, 0);
 }
 
 TEST(Packet, SetAndGetAdvancedKey)

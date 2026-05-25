@@ -152,13 +152,6 @@ typedef struct {
     USB_Descriptor_Endpoint_t  Shared_INEndpoint;
 #endif
 
-#ifdef CONSOLE_ENABLE
-    // Console HID Interface
-    USB_Descriptor_Interface_t Console_Interface;
-    USB_HID_Descriptor_HID_t   Console_HID;
-    USB_Descriptor_Endpoint_t  Console_INEndpoint;
-#endif
-
 #ifdef MIDI_ENABLE
     USB_Descriptor_Interface_Association_t Audio_Interface_Association;
     // MIDI Audio Control Interface
@@ -250,10 +243,6 @@ enum usb_interfaces {
     SHARED_INTERFACE,
 #endif
 
-#ifdef CONSOLE_ENABLE
-    CONSOLE_INTERFACE,
-#endif
-
 #ifdef MIDI_ENABLE
     AC_INTERFACE,
     AS_INTERFACE,
@@ -319,10 +308,6 @@ enum usb_endpoints {
 
 #ifdef SHARED_EP_ENABLE
     SHARED_IN_EPNUM = NEXT_EPNUM,
-#endif
-
-#ifdef CONSOLE_ENABLE
-    CONSOLE_IN_EPNUM = NEXT_EPNUM,
 #endif
 
 #ifdef MIDI_ENABLE
@@ -478,10 +463,6 @@ extern const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[];
 extern  const USB_Descriptor_HIDReport_Datatype_t PROGMEM RawReport[];
 #endif
 
-#ifdef CONSOLE_ENABLE
-extern const USB_Descriptor_HIDReport_Datatype_t PROGMEM ConsoleReport[];
-#endif
-
 
 /*
  * Device descriptor
@@ -530,10 +511,6 @@ extern const USB_Descriptor_String_t PROGMEM SerialNumberString;
 #ifdef KEYBOARD_SHARED_EP
 #define SHARED_EPOUT_ADDR (ENDPOINT_DIR_OUT | SHARED_OUT_EPNUM)
 #endif
-#endif
-
-#ifdef CONSOLE_ENABLE
-#define CONSOLE_EPIN_ADDR  (ENDPOINT_DIR_IN | CONSOLE_IN_EPNUM)
 #endif
 
 #ifdef MIDI_ENABLE
@@ -1204,22 +1181,6 @@ static const USB_Descriptor_HIDReport_Datatype_t PROGMEM RawReport[] = {
 };
 #endif
 
-#ifdef CONSOLE_ENABLE
-static const USB_Descriptor_HIDReport_Datatype_t PROGMEM ConsoleReport[] = {
-    HID_RI_USAGE_PAGE(16, 0xFF31), // Vendor Defined (PJRC Teensy compatible)
-    HID_RI_USAGE(8, 0x74),         // Vendor Defined (PJRC Teensy compatible)
-    HID_RI_COLLECTION(8, 0x01),    // Application
-        // Data to host
-        HID_RI_USAGE(8, 0x75),     // Vendor Defined
-        HID_RI_LOGICAL_MINIMUM(8, 0x00),
-        HID_RI_LOGICAL_MAXIMUM(16, 0x00FF),
-        HID_RI_REPORT_COUNT(8, CONSOLE_EPSIZE),
-        HID_RI_REPORT_SIZE(8, 0x08),
-        HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
-    HID_RI_END_COLLECTION(0),
-};
-#endif
-
 /*
  * Device descriptor
  */
@@ -1454,46 +1415,6 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
         .EndpointSize           = SHARED_EPSIZE,
         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
-    },
-#endif
-
-#ifdef CONSOLE_ENABLE
-    /*
-     * Console
-     */
-    .Console_Interface = {
-        .Header = {
-            .Size               = sizeof(USB_Descriptor_Interface_t),
-            .Type               = DTYPE_Interface
-        },
-        .InterfaceNumber        = CONSOLE_INTERFACE,
-        .AlternateSetting       = 0x00,
-        .TotalEndpoints         = 1,
-        .Class                  = HID_CSCP_HIDClass,
-        .SubClass               = HID_CSCP_NonBootSubclass,
-        .Protocol               = HID_CSCP_NonBootProtocol,
-        .InterfaceStrIndex      = NO_DESCRIPTOR
-    },
-    .Console_HID = {
-        .Header = {
-            .Size               = sizeof(USB_HID_Descriptor_HID_t),
-            .Type               = HID_DTYPE_HID
-        },
-        .HIDSpec                = VERSION_BCD(1, 1, 1),
-        .CountryCode            = 0x00,
-        .TotalReportDescriptors = 1,
-        .HIDReportType          = HID_DTYPE_Report,
-        .HIDReportLength        = sizeof(ConsoleReport)
-    },
-    .Console_INEndpoint = {
-        .Header = {
-            .Size               = sizeof(USB_Descriptor_Endpoint_t),
-            .Type               = DTYPE_Endpoint
-        },
-        .EndpointAddress        = (ENDPOINT_DIR_IN | CONSOLE_IN_EPNUM),
-        .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
-        .EndpointSize           = CONSOLE_EPSIZE,
-        .PollingIntervalMS      = 0x01
     },
 #endif
 

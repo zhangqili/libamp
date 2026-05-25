@@ -86,9 +86,10 @@ enum
     KEYBOARD_CONFIG_DEBUG           = 0,
     KEYBOARD_CONFIG_NKRO            = 1,
     KEYBOARD_CONFIG_WINLOCK         = 2,
-    KEYBOARD_CONFIG_CONTINUOUS_POLL  = 3,
+    KEYBOARD_CONFIG_CONTINUOUS_POLL = 3,
     KEYBOARD_CONFIG_ENABLE_REPORT   = 4,
-    KEYBOARD_CONFIG_NUM             = 5,
+    KEYBOARD_CONFIG_CONSOLED        = 5,
+    KEYBOARD_CONFIG_NUM             = 6,
 };
 
 enum
@@ -108,7 +109,8 @@ typedef union
         bool winlock : 1;
         bool continuous_poll : 1;
         bool enable_report : 1;
-        uint8_t reserved : 3;
+        bool console : 1;
+        uint8_t reserved : 2;
     };
 } __PACKED KeyboardConfig;
 

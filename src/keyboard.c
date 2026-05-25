@@ -8,6 +8,7 @@
 #include "record.h"
 #include "driver.h"
 #include "packet.h"
+#include "amp_protocol.h"
 #include "analog.h"
 
 #include "stdio.h"
@@ -50,6 +51,9 @@
 #endif
 #ifdef GAMEPAD_ENABLE
 #include "gamepad.h"
+#endif
+#ifdef CONSOLE_ENABLE
+#include "console.h"
 #endif
 #include "event_cache.h"
 #include "event_buffer.h"
@@ -271,6 +275,8 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
                 break;
             case KEYBOARD_FACTORY_RESET:
                 keyboard_factory_reset();
+                g_keyboard_config.console = false;
+                g_keyboard_config.debug = false;
                 packet_send_version_packet();
                 break;
             case KEYBOARD_SAVE:
@@ -281,6 +287,8 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
                 break;
             case KEYBOARD_RESET_TO_DEFAULT:
                 keyboard_reset_to_default();
+                g_keyboard_config.console = false;
+                g_keyboard_config.debug = false;
                 packet_send_version_packet();
                 break;
             case KEYBOARD_RECOVERY:
@@ -313,6 +321,8 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
             case KEYBOARD_PROFILE2:
             case KEYBOARD_PROFILE3:
                 keyboard_set_profile_index((event.keycode >> 8) & 0x0F);
+                g_keyboard_config.console = false;
+                g_keyboard_config.debug = false;
                 packet_send_version_packet();
                 break;
             default:
@@ -802,6 +812,7 @@ __WEAK void keyboard_task(void)
 
 void keyboard_process(void)
 {
+    amp_transport_poll();
     event_loop_queue_foreach(&event_buffer, EventLoopQueueElm, event)
     {
         keyboard_event_poller(event->event, event->tick);
@@ -814,10 +825,16 @@ void keyboard_process(void)
     {
         target_calibration_tick = 0;
         analog_calibrate();
+        g_keyboard_config.console = false;
+        g_keyboard_config.debug = false;
         packet_send_version_packet();
     }
+    packet_process_version_notifications();
 #ifdef RGB_ENABLE
     rgb_process();
+#endif
+#ifdef CONSOLE_ENABLE
+    console_flush();
 #endif
 }
 

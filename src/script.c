@@ -6,17 +6,39 @@
 #include "script.h"
 #include "stdio.h"
 #include "string.h"
+#include "console.h"
 
 #include "cutils.h"
 #include "mquickjs.h"
+
+static void script_write_log(const void *buf, size_t buf_len);
+
 #include "mqjs_utils.c"
 
 #include "file_system.h"
 #include "storage.h"
 
 #include "mqjs_stdlib.h"
-void script_log_func(void *opaque, const void *buf, size_t buf_len) {
+static void script_write_log(const void *buf, size_t buf_len)
+{
+    if (buf == NULL || buf_len == 0)
+    {
+        return;
+    }
+#ifdef CONSOLE_ENABLE
+    const char *data = (const char *)buf;
+    for (size_t i = 0; i < buf_len; i++)
+    {
+        console_send_char(data[i]);
+    }
+#else
     fwrite(buf, 1, buf_len, stdout);
+#endif
+}
+
+void script_log_func(void *opaque, const void *buf, size_t buf_len) {
+    UNUSED(opaque);
+    script_write_log(buf, buf_len);
 }
 extern const JSSTDLibraryDef js_stdlib;
 
@@ -76,7 +98,7 @@ void script_run_function(JSContext *ctx, const char *func_name)
     }
     else
     {
-        printf("no %s function\n", func_name);
+        console_printf("no %s function\n", func_name);
     }
 }
 
@@ -201,12 +223,12 @@ void script_load_bytecode(uint8_t *bytecode_buf, size_t len)
     if (!js_ctx || !bytecode_buf) return;
 
     if (!JS_IsBytecode(bytecode_buf, len)) {
-        printf("Error: Invalid bytecode format.\n");
+        console_printf("Error: Invalid bytecode format.\n");
         return;
     }
 
     if (JS_RelocateBytecode(js_ctx, bytecode_buf, len)) {
-        printf("Error: Bytecode relocation failed.\n");
+        console_printf("Error: Bytecode relocation failed.\n");
         return;
     }
 
@@ -434,7 +456,7 @@ static void script_event_handler_(KeyboardEvent event)
         }
         else
         {
-            printf("no on_key_down function\n");
+            console_printf("no on_key_down function\n");
         }
         break;
     case KEYBOARD_EVENT_KEY_UP:
@@ -444,7 +466,7 @@ static void script_event_handler_(KeyboardEvent event)
         }
         else
         {
-            printf("no on_key_up function\n");
+            console_printf("no on_key_up function\n");
         }
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
@@ -479,4 +501,3 @@ void script_deinit(void)
     }
     memset(g_script_watcher_mask, 0, sizeof(g_script_watcher_mask));
 }
-

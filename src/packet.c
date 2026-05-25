@@ -6,7 +6,7 @@
 #include "packet.h"
 #include "rgb.h"
 #include "layer.h"
-#include "driver.h"
+#include "amp_protocol.h"
 
 #include "stddef.h"
 #include "string.h"
@@ -15,6 +15,203 @@
 #endif
 static uint8_t debug_length;
 static uint16_t debug_buffer[7];
+static uint16_t pending_version_notifications;
+
+enum
+{
+    PACKET_ERROR_BAD_FRAME = 1,
+    PACKET_ERROR_TOO_LONG = 2,
+};
+
+static uint8_t packet_clamp_payload_len(uint16_t len)
+{
+    return len > AMP_FRAME_MAX_PAYLOAD ? AMP_FRAME_MAX_PAYLOAD : (uint8_t)len;
+}
+
+static bool packet_from_frame(const AmpFrame *frame, uint8_t *packet, uint16_t *packet_len)
+{
+    if (frame == NULL || packet == NULL || packet_len == NULL)
+    {
+        return false;
+    }
+
+    memset(packet, 0, AMP_FRAME_REPORT_SIZE);
+    if (frame->header.code == PACKET_CODE_EVENT)
+    {
+        if (frame->header.len > AMP_FRAME_REPORT_SIZE - 1)
+        {
+            return false;
+        }
+        packet[0] = frame->header.code;
+        memcpy(packet + 1, frame->payload, frame->header.len);
+        *packet_len = (uint16_t)(frame->header.len + 1);
+        return true;
+    }
+    if (frame->header.code == PACKET_CODE_LOG)
+    {
+        if (frame->header.len > AMP_FRAME_REPORT_SIZE - offsetof(PacketLog, data))
+        {
+            return false;
+        }
+        PacketLog *log = (PacketLog *)packet;
+        log->code = PACKET_CODE_LOG;
+        log->length = frame->header.len;
+        memcpy(log->data, frame->payload, frame->header.len);
+        *packet_len = (uint16_t)(offsetof(PacketLog, data) + frame->header.len);
+        return true;
+    }
+
+    if (frame->header.len > AMP_FRAME_REPORT_SIZE - 2)
+    {
+        return false;
+    }
+    packet[0] = frame->header.code;
+    packet[1] = frame->header.type;
+    memcpy(packet + 2, frame->payload, frame->header.len);
+    *packet_len = (uint16_t)(frame->header.len + 2);
+    return true;
+}
+
+static const uint8_t *packet_payload_ptr(const uint8_t *packet)
+{
+    switch (packet[0])
+    {
+    case PACKET_CODE_EVENT:
+        return packet + 1;
+    case PACKET_CODE_LOG:
+        return packet + offsetof(PacketLog, data);
+    default:
+        return packet + 2;
+    }
+}
+
+static uint8_t packet_payload_type(const uint8_t *packet)
+{
+    switch (packet[0])
+    {
+    case PACKET_CODE_EVENT:
+    case PACKET_CODE_LOG:
+        return 0;
+    default:
+        return packet[1];
+    }
+}
+
+static uint8_t packet_response_payload_len(const uint8_t *packet, uint16_t packet_len)
+{
+    uint16_t fallback = 0;
+    switch (packet[0])
+    {
+    case PACKET_CODE_EVENT:
+        fallback = packet_len > 1 ? (uint16_t)(packet_len - 1) : 0;
+        break;
+    case PACKET_CODE_LOG:
+        fallback = ((const PacketLog *)packet)->length;
+        break;
+    default:
+        fallback = packet_len > 2 ? (uint16_t)(packet_len - 2) : 0;
+        break;
+    }
+
+    switch (packet[0])
+    {
+    case PACKET_CODE_LARGE_SET:
+    case PACKET_CODE_LARGE_GET:
+    {
+        const PacketLargeData *large = (const PacketLargeData *)packet;
+        if (large->sub_cmd == 0)
+        {
+            return packet_clamp_payload_len(1 + sizeof(large->header));
+        }
+        if (large->sub_cmd == 1)
+        {
+            return packet_clamp_payload_len(1 + sizeof(large->payload.offset) + sizeof(large->payload.length) + large->payload.length);
+        }
+        return 1;
+    }
+    case PACKET_CODE_GET:
+    case PACKET_CODE_SET:
+        switch (((const PacketData *)packet)->type)
+        {
+        case PACKET_DATA_VERSION:
+        {
+            const PacketVersion *version = (const PacketVersion *)packet;
+            return packet_clamp_payload_len((uint16_t)(offsetof(PacketVersion, info) - 2 + version->info_length));
+        }
+        case PACKET_DATA_DEBUG:
+        {
+            const PacketDebug *debug = (const PacketDebug *)packet;
+            return packet_clamp_payload_len((uint16_t)(offsetof(PacketDebug, data) - 2 + debug->length * sizeof(debug->data[0])));
+        }
+        default:
+            break;
+        }
+        break;
+    default:
+        break;
+    }
+    return packet_clamp_payload_len(fallback);
+}
+
+static int packet_send_response(uint8_t *packet, uint16_t packet_len, uint8_t channel, uint8_t flags, uint8_t seq, bool stream)
+{
+    uint8_t payload_len = packet_response_payload_len(packet, packet_len);
+    return amp_send_frame(channel, flags, seq, packet[0], packet_payload_type(packet), packet_payload_ptr(packet), payload_len, stream);
+}
+
+bool packet_process_frame_to_report(const AmpFrame *frame, uint8_t channel, uint8_t flags, uint8_t *report)
+{
+    uint8_t packet[AMP_FRAME_REPORT_SIZE];
+    uint16_t packet_len = 0;
+    if (report == NULL || !packet_from_frame(frame, packet, &packet_len))
+    {
+        return false;
+    }
+
+    packet_process_buffer(packet, packet_len);
+    uint8_t payload_len = packet_response_payload_len(packet, packet_len);
+    return amp_frame_encode(report, channel, flags, frame->header.seq, packet[0], packet_payload_type(packet), packet_payload_ptr(packet), payload_len) == 0;
+}
+
+void packet_process_frame(const AmpFrame *frame)
+{
+    if (frame == NULL)
+    {
+        return;
+    }
+
+    const uint8_t channel = amp_frame_channel(&frame->header);
+    const uint8_t flags = amp_frame_flags(&frame->header);
+    if (frame->header.seq != 0 || (flags & AMP_FRAME_FLAG_REQ_ACK))
+    {
+        uint8_t packet[AMP_FRAME_REPORT_SIZE];
+        uint16_t packet_len = 0;
+        if (packet_from_frame(frame, packet, &packet_len))
+        {
+            packet_process_buffer(packet, packet_len);
+            if (packet_send_response(packet, packet_len, channel, AMP_FRAME_FLAG_RESP, frame->header.seq, false) != 0)
+            {
+                amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, PACKET_ERROR_TOO_LONG);
+            }
+        }
+        else
+        {
+            amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, PACKET_ERROR_BAD_FRAME);
+        }
+        return;
+    }
+
+    uint8_t packet[AMP_FRAME_REPORT_SIZE];
+    uint16_t packet_len = 0;
+    if (packet_from_frame(frame, packet, &packet_len))
+    {
+        packet_process_buffer(packet, packet_len);
+    }
+    else
+    {
+        amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, PACKET_ERROR_BAD_FRAME);
+    }
+}
 
 void packet_process_buffer(uint8_t *buf, uint16_t len)
 {
@@ -65,6 +262,8 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         case PACKET_DATA_VERSION:
             if (packet->code == PACKET_CODE_GET)
             {
+                g_keyboard_config.console = false;
+                g_keyboard_config.debug = false;
                 PacketVersion* packet_version = (PacketVersion*)packet;
                 packet_version->info_length = sizeof(KEYBOARD_VERSION_INFO);
                 packet_version->major = KEYBOARD_VERSION_MAJOR;
@@ -125,9 +324,8 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
 
 void packet_process(uint8_t *buf, uint16_t len)
 {
-    UNUSED(len);
     packet_process_buffer(buf, len);
-    hid_send_raw(buf, 63);
+    packet_send_response(buf, len, AMP_CHANNEL_CONTROL, AMP_FRAME_FLAG_RESP, 0, false);
 }
 
 void packet_process_advanced_key(PacketData*data)
@@ -334,9 +532,13 @@ void packet_process_debug(PacketData*data)
 {
     PacketDebug* packet = (PacketDebug*)data;
     if (data->code == PACKET_CODE_GET)
-    {       
+    {
+        if (packet->length > 6)
+        {
+            packet->length = 6;
+        }
         packet->tick = g_keyboard_tick;
-            debug_length = packet->length;
+        debug_length = packet->length;
         for (uint8_t i = 0; i < packet->length; i++)
         {
             uint8_t key_index =  packet->data[i].index;
@@ -416,14 +618,34 @@ void packet_process_feature(PacketData *data)
     }
 }
 
-void packet_send_version_packet(void)
+static int packet_send_version_packet_now(void)
 {
     uint8_t buf[64] = {0};
     PacketVersion* packet = (PacketVersion*)buf;
     packet->code = PACKET_CODE_GET;
     packet->type = PACKET_DATA_VERSION;
     packet_process_buffer((uint8_t*)packet, sizeof(buf));
-    hid_send_raw((uint8_t*)packet, 63);
+    return packet_send_response((uint8_t*)packet, sizeof(buf), AMP_CHANNEL_CONTROL, 0, 0, false);
+}
+
+void packet_send_version_packet(void)
+{
+    if (pending_version_notifications != UINT16_MAX)
+    {
+        pending_version_notifications++;
+    }
+}
+
+void packet_process_version_notifications(void)
+{
+    if (pending_version_notifications == 0 || !amp_transport_control_event_can_enqueue())
+    {
+        return;
+    }
+    if (packet_send_version_packet_now() == 0)
+    {
+        pending_version_notifications--;
+    }
 }
 
 void packet_send_debug_packet(void)
@@ -447,7 +669,7 @@ void packet_send_debug_packet(void)
         packet->data[i].index = debug_buffer[i];
     }
     packet_process_buffer((uint8_t*)packet, sizeof(PacketDebug) + debug_length * sizeof(packet->data[0]));
-    hid_send_raw((uint8_t*)packet, 63);
+    packet_send_response((uint8_t*)packet, sizeof(PacketDebug) + packet->length * sizeof(packet->data[0]), AMP_CHANNEL_DEBUG, 0, 0, true);
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)

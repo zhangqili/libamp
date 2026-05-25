@@ -40,7 +40,6 @@ int usb_send_midi(uint8_t *buffer, uint8_t size);
 int usb_send_mouse(uint8_t *buffer, uint8_t size);
 int usb_send_joystick(uint8_t *buffer, uint8_t size);
 int usb_send_digitizer(uint8_t *buffer, uint8_t size);
-int usb_send_console(uint8_t *buffer, uint8_t size);
 int usb_send_xinput(uint8_t *buffer, uint8_t size);
 
 void usbd_event_handler_user(uint8_t busid, uint8_t event);
