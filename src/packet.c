@@ -15,6 +15,7 @@
 #endif
 static uint8_t debug_length;
 static uint16_t debug_buffer[7];
+static uint16_t pending_version_notifications;
 
 enum
 {
@@ -617,14 +618,34 @@ void packet_process_feature(PacketData *data)
     }
 }
 
-void packet_send_version_packet(void)
+static int packet_send_version_packet_now(void)
 {
     uint8_t buf[64] = {0};
     PacketVersion* packet = (PacketVersion*)buf;
     packet->code = PACKET_CODE_GET;
     packet->type = PACKET_DATA_VERSION;
     packet_process_buffer((uint8_t*)packet, sizeof(buf));
-    packet_send_response((uint8_t*)packet, sizeof(buf), AMP_CHANNEL_CONTROL, 0, 0, false);
+    return packet_send_response((uint8_t*)packet, sizeof(buf), AMP_CHANNEL_CONTROL, 0, 0, false);
+}
+
+void packet_send_version_packet(void)
+{
+    if (pending_version_notifications != UINT16_MAX)
+    {
+        pending_version_notifications++;
+    }
+}
+
+void packet_process_version_notifications(void)
+{
+    if (pending_version_notifications == 0 || !amp_transport_control_event_can_enqueue())
+    {
+        return;
+    }
+    if (packet_send_version_packet_now() == 0)
+    {
+        pending_version_notifications--;
+    }
 }
 
 void packet_send_debug_packet(void)

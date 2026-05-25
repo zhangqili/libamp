@@ -226,6 +226,15 @@ int amp_send_error(uint8_t channel, uint8_t seq, uint8_t code, uint8_t type, uin
     return amp_send_frame(channel, (uint8_t)(AMP_FRAME_FLAG_RESP | AMP_FRAME_FLAG_ERROR), seq, code, type, &error_code, 1, false);
 }
 
+bool amp_transport_control_event_can_enqueue(void)
+{
+#if AMP_TX_HIGH_QUEUE_LENGTH > 1
+    return tx_high_len < (AMP_TX_HIGH_QUEUE_LENGTH - 1);
+#else
+    return false;
+#endif
+}
+
 void amp_transport_receive_report(const uint8_t *report, uint16_t len)
 {
     if (report == NULL || len == 0)

@@ -829,6 +829,7 @@ void keyboard_process(void)
         g_keyboard_config.debug = false;
         packet_send_version_packet();
     }
+    packet_process_version_notifications();
 #ifdef RGB_ENABLE
     rgb_process();
 #endif

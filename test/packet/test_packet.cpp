@@ -163,6 +163,24 @@ TEST(Packet, SetAndGetKeymap)
     EXPECT_EQ(KEY_E, packet->keymap[4]);
 }
 
+TEST(Packet, VersionNotificationIsDeferredUntilPoll)
+{
+    packet_send_version_packet();
+
+    AmpFrame frame = {};
+    EXPECT_FALSE(amp_frame_decode(raw_send_buffer, 64, &frame));
+
+    packet_process_version_notifications();
+
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, 64, &frame));
+    EXPECT_EQ(AMP_CHANNEL_CONTROL, amp_frame_channel(&frame.header));
+    EXPECT_EQ(0, amp_frame_flags(&frame.header));
+    EXPECT_EQ(0, frame.header.seq);
+    EXPECT_EQ(PACKET_CODE_GET, frame.header.code);
+    EXPECT_EQ(PACKET_DATA_VERSION, frame.header.type);
+    EXPECT_GT(frame.header.len, 0);
+}
+
 TEST(Packet, SetAndGetAdvancedKey)
 {
     std::array<uint8_t, 64> buffer = {};
