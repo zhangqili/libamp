@@ -23,18 +23,17 @@ __WEAK NexusSlaveConfig g_nexus_slave_configs[NEXUS_SLAVE_NUM];
 
 static inline void nexus_config_slave(uint8_t slave_id)
 {
-    uint8_t buffer[64];
     const uint16_t length = g_nexus_slave_configs[slave_id].length;
     for (int i = 0; i < length; i++)
     {
         AdvancedKey *key = &g_keyboard_advanced_keys[g_nexus_slave_configs[slave_id].map[i]];
-        PacketAdvancedKey *packet = (PacketAdvancedKey *)buffer;
-        memset(buffer, 0, sizeof(buffer));
-        packet->code = PACKET_CODE_SET;
-        packet->type = PACKET_DATA_ADVANCED_KEY;
-        packet->index = i;
-        memcpy(&packet->data, &key->config, sizeof(AdvancedKeyConfiguration));
-        nexus_send_timeout(slave_id, buffer, sizeof(PacketAdvancedKey), NEXUS_TIMEOUT);
+        PacketAdvancedKey packet;
+        memset(&packet, 0, sizeof(packet));
+        packet.code = PACKET_CODE_SET;
+        packet.type = PACKET_DATA_ADVANCED_KEY;
+        packet.index = i;
+        memcpy(&packet.data, &key->config, sizeof(AdvancedKeyConfiguration));
+        nexus_send_timeout(slave_id, (const uint8_t *)&packet, sizeof(packet), NEXUS_TIMEOUT);
         /*
         PacketKeymap *packet_keymap = (PacketKeymap *)buffer;
         memset(buffer, 0, sizeof(packet));
@@ -153,7 +152,7 @@ int nexus_send_report(void)
     return nexus_report(buffer, sizeof(buffer));
 #else
     static uint16_t counter;
-    static uint8_t buffer[16];
+    static uint8_t buffer[sizeof(PacketNexus)];
 
     // No value field
     PacketNexus* packet = (PacketNexus*)buffer;

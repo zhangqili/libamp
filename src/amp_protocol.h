@@ -8,6 +8,7 @@
 
 #include "stdint.h"
 #include "stdbool.h"
+#include "keyboard_config.h"
 #include "keyboard_def.h"
 
 #ifdef __cplusplus

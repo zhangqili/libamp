@@ -183,14 +183,19 @@ void packet_process_frame(const AmpFrame *frame)
     const uint8_t flags = amp_frame_flags(&frame->header);
     if (frame->header.seq != 0 || (flags & AMP_FRAME_FLAG_REQ_ACK))
     {
-        uint8_t response[AMP_FRAME_REPORT_SIZE];
-        if (packet_process_frame_to_report(frame, channel, AMP_FRAME_FLAG_RESP, response))
+        uint8_t packet[AMP_FRAME_REPORT_SIZE];
+        uint16_t packet_len = 0;
+        if (packet_from_frame(frame, packet, &packet_len))
         {
-            amp_send_encoded_report(response, false);
+            packet_process_buffer(packet, packet_len);
+            if (packet_send_response(packet, packet_len, channel, AMP_FRAME_FLAG_RESP, frame->header.seq, false) != 0)
+            {
+                amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, PACKET_ERROR_TOO_LONG);
+            }
         }
         else
         {
-            amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, PACKET_ERROR_TOO_LONG);
+            amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, PACKET_ERROR_BAD_FRAME);
         }
         return;
     }
