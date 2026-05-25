@@ -145,7 +145,6 @@ static JSValue js_key_emit(JSContext *ctx, JSValue *this_val, int argc, JSValue 
             break;
         }
     }
-    printf("event_id:%d\n", event_id);
     uint8_t report_state = key->report_state;
     keyboard_event_handler(
         MK_EVENT(keycode,event_id,key));
@@ -486,19 +485,19 @@ static JSValue js_print(JSContext *ctx, JSValue *this_val, int argc, JSValue *ar
     JSValue v;
     for(i = 0; i < argc; i++) {
         if (i != 0)
-            putchar(' ');
+            script_write_log(" ", 1);
         v = argv[i];
         if (JS_IsString(ctx, v)) {
             JSCStringBuf buf;
             const char *str;
             size_t len;
             str = JS_ToCStringLen(ctx, &len, v, &buf);
-            fwrite(str, 1, len, stdout);
+            script_write_log(str, len);
         } else {
             JS_PrintValueF(ctx, argv[i], JS_DUMP_LONG);
         }
     }
-    putchar('\n');
+    script_write_log("\n", 1);
     return JS_UNDEFINED;
 }
 
