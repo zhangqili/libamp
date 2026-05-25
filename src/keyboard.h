@@ -258,7 +258,7 @@ static inline bool keyboard_key_set_report_state(Key*key, bool state)
 
 static inline AnalogValue keyboard_get_key_raw_value(Key* key)
 {    
-    return (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->raw : key->state);
+    return (IS_ADVANCED_KEY((key)) ? ((AdvancedKey*)(key))->filtered_raw : key->state);
 }
 
 static inline AnalogValue keyboard_get_key_analog_value(Key* key)

@@ -546,6 +546,7 @@ void packet_process_debug(PacketData*data)
             if (key_index < ADVANCED_KEY_NUM)
             {
                 packet->data[i].raw = g_keyboard_advanced_keys[key_index].raw;
+                packet->data[i].filtered_raw = g_keyboard_advanced_keys[key_index].filtered_raw;
                 packet->data[i].value = g_keyboard_advanced_keys[key_index].value;
                 packet->data[i].state = g_keyboard_advanced_keys[key_index].key.state;
                 packet->data[i].report_state = g_keyboard_advanced_keys[key_index].key.report_state;

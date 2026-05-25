@@ -73,6 +73,7 @@ typedef struct __AdvancedKey
     Key key;
     AnalogValue value;
     AnalogValue raw;
+    AnalogValue filtered_raw;
     AnalogValue extremum;
     int16_t difference;
     int32_t q_scale_to_index;

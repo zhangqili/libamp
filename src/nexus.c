@@ -128,7 +128,7 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
     Key* key = keyboard_get_key(g_nexus_slave_configs[slave_id].map[index]);
     if (IS_ADVANCED_KEY(key))
     {
-        ((AdvancedKey*)key)->raw = packet->raw;
+        ((AdvancedKey*)key)->filtered_raw = packet->raw;
         ((AdvancedKey*)key)->value = packet->value * (1/65536.f) * ANALOG_VALUE_RANGE;
     }
 #endif

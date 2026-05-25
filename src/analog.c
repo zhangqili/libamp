@@ -54,7 +54,7 @@ void analog_reset_range(void)
     {
         AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
         advanced_key->config.calibration_mode = ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED;
-        advanced_key_reset_range(advanced_key, advanced_key->raw);
+        advanced_key_reset_range(advanced_key, advanced_key->filtered_raw);
     }
 }
 

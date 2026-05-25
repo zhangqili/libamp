@@ -175,7 +175,7 @@ static JSValue js_advanced_key_get(JSContext *ctx, JSValue *this_val, int argc,
         return JS_NewInt32(ctx, key->value);
         break;
     case 1:
-        return JS_NewInt32(ctx, key->raw);
+        return JS_NewInt32(ctx, key->filtered_raw);
         break;
     case 2:
         return JS_NewInt32(ctx, key->extremum);

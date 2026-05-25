@@ -119,25 +119,27 @@ bool advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
 
 bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue raw)
 {
+    advanced_key->raw = raw;
+    AnalogRawValue filtered_raw = raw;
     if (advanced_key->config.mode == ADVANCED_KEY_DIGITAL_MODE)
     {
-        return advanced_key_update(advanced_key, raw);
+        return advanced_key_update(advanced_key, filtered_raw);
     }
 #if defined(FILTER_ENABLE) && FILTER_DOMAIN == FILTER_DOMAIN_RAW
-    raw = analog_filter(&g_analog_filters[advanced_key->key.id], raw);
+    filtered_raw = analog_filter(&g_analog_filters[advanced_key->key.id], filtered_raw);
 #endif
 #if defined(FILTER_HYSTERESIS_ENABLE) && FILTER_DOMAIN == FILTER_DOMAIN_RAW
-    raw = hysteresis_filter(&g_analog_hysteresis_filters[advanced_key->key.id], raw);
+    filtered_raw = hysteresis_filter(&g_analog_hysteresis_filters[advanced_key->key.id], filtered_raw);
 #endif
 #ifdef CALIBRATION_LPF_ENABLE
     static AnalogRawValue low_pass_raws[ADVANCED_KEY_NUM];
     low_pass_raws[advanced_key->key.id] = 
-        ((uint32_t)raw + ((uint32_t)low_pass_raws[advanced_key->key.id]<<4) - low_pass_raws[advanced_key->key.id]) >> 4; 
+        ((uint32_t)filtered_raw + ((uint32_t)low_pass_raws[advanced_key->key.id]<<4) - low_pass_raws[advanced_key->key.id]) >> 4; 
     AnalogRawValue lpf_value = low_pass_raws[advanced_key->key.id];
 #else
-    AnalogRawValue lpf_value = raw;
+    AnalogRawValue lpf_value = filtered_raw;
 #endif
-    advanced_key->raw = raw;
+    advanced_key->filtered_raw = filtered_raw;
     switch (advanced_key->config.calibration_mode)
     {
     case ADVANCED_KEY_AUTO_CALIBRATION_POSITIVE:
@@ -166,7 +168,7 @@ bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue raw)
         break;
     }
     
-    return advanced_key_update(advanced_key, advanced_key_normalize(advanced_key, raw));
+    return advanced_key_update(advanced_key, advanced_key_normalize(advanced_key, filtered_raw));
 }
 
 bool advanced_key_update_state(AdvancedKey* advanced_key, bool state)

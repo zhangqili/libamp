@@ -167,8 +167,9 @@ typedef struct __PacketDebug
     uint16_t index;
     uint8_t state;
     uint8_t report_state;
-    uint16_t raw;
     uint16_t value;
+    uint16_t raw;
+    uint16_t filtered_raw;
   } __PACKED data[];
 } __PACKED PacketDebug;
 
