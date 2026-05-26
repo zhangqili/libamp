@@ -13,8 +13,11 @@
 #ifdef MACRO_ENABLE
 #include "macro.h"
 #endif
+
+#define PACKET_DEBUG_MAX_KEYS 5
+
 static uint8_t debug_length;
-static uint16_t debug_buffer[7];
+static uint16_t debug_buffer[PACKET_DEBUG_MAX_KEYS];
 static uint16_t pending_version_notifications;
 
 enum
@@ -533,9 +536,9 @@ void packet_process_debug(PacketData*data)
     PacketDebug* packet = (PacketDebug*)data;
     if (data->code == PACKET_CODE_GET)
     {
-        if (packet->length > 6)
+        if (packet->length > PACKET_DEBUG_MAX_KEYS)
         {
-            packet->length = 6;
+            packet->length = PACKET_DEBUG_MAX_KEYS;
         }
         packet->tick = g_keyboard_tick;
         debug_length = packet->length;
