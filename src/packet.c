@@ -18,7 +18,8 @@
 
 static uint8_t debug_length;
 static uint16_t debug_buffer[PACKET_DEBUG_MAX_KEYS];
-static uint16_t pending_version_notifications;
+static volatile bool pending_version_notification;
+static volatile bool pending_debug_packet;
 
 enum
 {
@@ -336,6 +337,10 @@ void packet_process_advanced_key(PacketData*data)
     PacketAdvancedKey* packet = (PacketAdvancedKey*)data;
     uint16_t key_index = packet->index;
     AdvancedKeyConfiguration config_buffer;
+    if (key_index >= ADVANCED_KEY_NUM)
+    {
+        return;
+    }
     if (data->code == PACKET_CODE_SET)
     {
         memcpy(&config_buffer, &packet->data, sizeof(AdvancedKeyConfiguration));
@@ -402,10 +407,19 @@ void packet_process_rgb_base_config(PacketData*data)
 void packet_process_rgb_config(PacketData*data)
 {
     PacketRGBConfigs* packet = (PacketRGBConfigs*)data;
+    const uint8_t max_length = (uint8_t)((AMP_FRAME_REPORT_SIZE - offsetof(PacketRGBConfigs, data)) / sizeof(packet->data[0]));
+    if (packet->length > max_length)
+    {
+        packet->length = max_length;
+    }
     if (data->code == PACKET_CODE_SET)
     {
         for (uint8_t i = 0; i < packet->length; i++)
         {
+            if (packet->data[i].index >= TOTAL_KEY_NUM)
+            {
+                continue;
+            }
             uint16_t rgb_index = g_rgb_inverse_mapping[packet->data[i].index];
             if (rgb_index < RGB_NUM)
             {
@@ -444,6 +458,20 @@ void packet_process_rgb_config(PacketData*data)
 void packet_process_keymap(PacketData*data)
 {
     PacketKeymap* packet = (PacketKeymap*)data;
+    const uint8_t max_length = (uint8_t)((AMP_FRAME_REPORT_SIZE - offsetof(PacketKeymap, keymap)) / sizeof(packet->keymap[0]));
+    if (packet->length > max_length)
+    {
+        packet->length = max_length;
+    }
+    if (packet->layer >= LAYER_NUM || packet->start >= TOTAL_KEY_NUM)
+    {
+        packet->length = 0;
+        return;
+    }
+    if ((uint16_t)(packet->start + packet->length) > TOTAL_KEY_NUM)
+    {
+        packet->length = (uint8_t)(TOTAL_KEY_NUM - packet->start);
+    }
     if (data->code == PACKET_CODE_SET)
     {       
         for (uint16_t i = 0; i < packet->length; i++)
@@ -501,6 +529,11 @@ void packet_process_profile_index(PacketData*data)
 void packet_process_config(PacketData*data)
 {
     PacketConfig* packet = (PacketConfig*)data;
+    const uint8_t max_length = (uint8_t)((AMP_FRAME_REPORT_SIZE - offsetof(PacketConfig, data)) / sizeof(packet->data[0]));
+    if (packet->length > max_length)
+    {
+        packet->length = max_length;
+    }
     if (data->code == PACKET_CODE_SET)
     {       
         for (int i = 0; i < packet->length; i++)
@@ -634,35 +667,23 @@ static int packet_send_version_packet_now(void)
 
 void packet_send_version_packet(void)
 {
-    if (pending_version_notifications != UINT16_MAX)
-    {
-        pending_version_notifications++;
-    }
+    pending_version_notification = true;
 }
 
 void packet_process_version_notifications(void)
 {
-    if (pending_version_notifications == 0 || !amp_transport_control_event_can_enqueue())
+    if (!pending_version_notification || !amp_transport_control_event_can_enqueue())
     {
         return;
     }
     if (packet_send_version_packet_now() == 0)
     {
-        pending_version_notifications--;
+        pending_version_notification = false;
     }
 }
 
-void packet_send_debug_packet(void)
+static void packet_send_debug_packet_now(void)
 {
-#if DEBUG_INTERVAL > 0
-    static uint16_t timer;
-    timer++;
-    if (timer < DEBUG_INTERVAL)
-    {
-        return;
-    }
-    timer = 0;
-#endif
     uint8_t buf[64];
     PacketDebug* packet = (PacketDebug*)buf;
     packet->code = PACKET_CODE_GET;
@@ -674,6 +695,30 @@ void packet_send_debug_packet(void)
     }
     packet_process_buffer((uint8_t*)packet, sizeof(PacketDebug) + debug_length * sizeof(packet->data[0]));
     packet_send_response((uint8_t*)packet, sizeof(PacketDebug) + packet->length * sizeof(packet->data[0]), AMP_CHANNEL_DEBUG, 0, 0, true);
+}
+
+void packet_schedule_debug_packet(void)
+{
+#if DEBUG_INTERVAL > 0
+    static uint16_t timer;
+    timer++;
+    if (timer < DEBUG_INTERVAL)
+    {
+        return;
+    }
+    timer = 0;
+#endif
+    pending_debug_packet = true;
+}
+
+void packet_process_debug_notifications(void)
+{
+    if (!pending_debug_packet)
+    {
+        return;
+    }
+    pending_debug_packet = false;
+    packet_send_debug_packet_now();
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)
