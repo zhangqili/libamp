@@ -534,10 +534,12 @@ static void usbd_xinput_out_callback(uint8_t busid, uint8_t ep, uint32_t nbytes)
 {
     UNUSED(busid);
     UNUSED(ep);
-    UNUSED(nbytes);
 
+    if (nbytes >= sizeof(GamepadOutReport)) {
+        gamepad_out_callback((GamepadOutReport*)xinput_out_buffer);
+    }
+    memset(xinput_out_buffer, 0, sizeof(xinput_out_buffer));
     usbd_ep_start_read(0, XINPUT_EPOUT_ADDR, xinput_out_buffer, XINPUT_EPSIZE);
-    gamepad_out_callback((GamepadOutReport*)xinput_out_buffer);
     // struct xinput_out_report *out_report = (struct xinput_out_report *)xinput_out_buffer;
 }
 
@@ -840,19 +842,19 @@ int usb_send_digitizer(uint8_t *buffer, uint8_t size)
 int usb_send_xinput(uint8_t *buffer, uint8_t size)
 {
 #ifdef GAMEPAD_ENABLE
-    UNUSED(size);
     if (xinput_state == USB_STATE_BUSY)
     {
         return 1;
     }
     xinput_state = USB_STATE_BUSY;
-    if (size > 0 && size <= XINPUT_EPSIZE)
+    if (buffer != NULL && size > 0 && size <= XINPUT_EPSIZE)
     {
         memset(xinput_in_buffer, 0, XINPUT_EPSIZE);
         memcpy(xinput_in_buffer, buffer, size);
     }
     else
     {
+        xinput_state = USB_STATE_IDLE;
         return 1;
     }
     int ret = usbd_ep_start_write(0, XINPUT_EPIN_ADDR, xinput_in_buffer, size);
