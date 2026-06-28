@@ -17,6 +17,10 @@
 #include "gamepad.h"
 #endif
 
+#if defined(MIDI_ENABLE)
+#include "midi.h"
+#endif
+
 #if defined(WEBUSB_ENABLE) || defined(GAMEPAD_ENABLE) || defined(MTP_ENABLE)
 #define MSOS20_ENABLE
 #define MSOS20_VENDOR_CODE 0x21
@@ -409,7 +413,13 @@ static void usbd_midi_bulk_out(uint8_t busid, uint8_t ep, uint32_t nbytes)
 {
     (void)busid;
     (void)ep;
-    (void)nbytes;
+
+    if (nbytes >= sizeof(MIDIEventPacket))
+    {
+        midi_input_callback((MIDIEventPacket*)midi_out_buffer);
+    }
+    memset(midi_out_buffer, 0, sizeof(midi_out_buffer));
+    usbd_ep_start_read(0, MIDI_EPOUT_ADDR, midi_out_buffer, sizeof(midi_out_buffer));
 }
 
 static void usbd_midi_bulk_in(uint8_t busid, uint8_t ep, uint32_t nbytes)
@@ -597,6 +607,10 @@ static void usbd_event_handler(uint8_t busid, uint8_t event)
     case USBD_EVENT_CONFIGURED:
         memset(raw_out_buffer, 0, sizeof(raw_out_buffer));
         usbd_ep_start_read(0, RAW_EPOUT_ADDR, raw_out_buffer, RAW_EPSIZE);
+#ifdef MIDI_ENABLE
+        memset(midi_out_buffer, 0, sizeof(midi_out_buffer));
+        usbd_ep_start_read(0, MIDI_EPOUT_ADDR, midi_out_buffer, sizeof(midi_out_buffer));
+#endif
 #ifdef GAMEPAD_ENABLE
         memset(xinput_out_buffer, 0, sizeof(xinput_out_buffer));
         usbd_ep_start_read(0, XINPUT_EPOUT_ADDR, xinput_out_buffer, XINPUT_EPSIZE);

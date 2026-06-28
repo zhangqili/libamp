@@ -8,6 +8,10 @@ target_include_directories(libamp PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/test_common
 )
 
+target_compile_definitions(libamp PRIVATE
+    AUDIO_ENABLE
+)
+
 add_executable(libamp_tests
     test_common/keyboard_user.c
     test_common/test_fixture.cpp
@@ -27,6 +31,7 @@ add_executable(libamp_tests
     rgb/test_rgb.cpp
     storage/test_storage.cpp
     layer/test_layer.cpp
+    midi/test_midi.cpp
 )
 
 target_link_libraries(libamp_tests

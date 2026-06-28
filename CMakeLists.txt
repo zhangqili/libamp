@@ -80,8 +80,6 @@ file(GLOB COMPONENT_SRCS
     ${PROJECT_SOURCE_DIR}/src/*.c
     ${PROJECT_SOURCE_DIR}/usb/*.c
     ${PROJECT_SOURCE_DIR}/lib/littlefs/*.c
-    ${PROJECT_SOURCE_DIR}/src/midi/*.c
-    ${PROJECT_SOURCE_DIR}/src/midi/bytequeue/*.c
     ${PROJECT_SOURCE_DIR}/src/lamp_array/*.c
     ${PROJECT_SOURCE_DIR}/src/log/*.c
 )
@@ -126,8 +124,6 @@ target_compile_definitions( ${PROJECT_NAME} PRIVATE
 target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/usb
-    ${PROJECT_SOURCE_DIR}/src/midi
-    ${PROJECT_SOURCE_DIR}/src/midi/bytequeue
     ${PROJECT_SOURCE_DIR}/src/lamp_array
     ${PROJECT_SOURCE_DIR}/src/log
     ${PROJECT_SOURCE_DIR}/lib/littlefs

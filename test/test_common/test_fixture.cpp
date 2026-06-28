@@ -16,6 +16,14 @@ void libamp_test_clear_output_buffers(void)
     std::memset(midi_send_buffer, 0, sizeof(midi_send_buffer));
     std::memset(led_color_buffer, 0, sizeof(ColorRGB) * RGB_NUM);
     led_flush_count = 0;
+    audio_play_note_count = 0;
+    audio_stop_note_count = 0;
+    audio_stop_all_notes_count = 0;
+    audio_last_play_frequency = 0.0f;
+    audio_last_stop_frequency = 0.0f;
+    audio_last_play_velocity = 0;
+    midi_message_callback_count = 0;
+    std::memset(&midi_last_message, 0, sizeof(midi_last_message));
 }
 
 void libamp_test_reset_environment(void)

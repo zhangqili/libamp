@@ -7,7 +7,8 @@
 #include "rgb.h"
 #include "string.h"
 #include "analog.h"
-#include "qmk_midi.h"
+#include "midi.h"
+#include "audio.h"
 
 uint8_t shared_ep_send_buffer[64];
 uint8_t keyboard_send_buffer[64];
@@ -15,6 +16,14 @@ uint8_t raw_send_buffer[64];
 uint8_t midi_send_buffer[64];
 ColorRGB led_color_buffer[RGB_NUM];
 uint32_t led_flush_count;
+uint32_t audio_play_note_count;
+uint32_t audio_stop_note_count;
+uint32_t audio_stop_all_notes_count;
+float audio_last_play_frequency;
+float audio_last_stop_frequency;
+uint8_t audio_last_play_velocity;
+uint32_t midi_message_callback_count;
+MIDIMessage midi_last_message;
 
 const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM] = {
     {
@@ -987,9 +996,37 @@ int hid_send_raw(uint8_t *report, uint16_t len)
     return 0;
 }
 
-void send_midi(uint8_t *report, uint16_t len)
+int send_midi(uint8_t *report, uint16_t len)
 {
     memcpy(midi_send_buffer,report,len);
+    return 0;
+}
+
+void midi_play_note(float frequency, uint8_t velocity)
+{
+    audio_play_note_count++;
+    audio_last_play_frequency = frequency;
+    audio_last_play_velocity = velocity;
+}
+
+void midi_stop_note(float frequency)
+{
+    audio_stop_note_count++;
+    audio_last_stop_frequency = frequency;
+}
+
+void midi_stop_all_notes(void)
+{
+    audio_stop_all_notes_count++;
+}
+
+void midi_message_callback(const MIDIMessage* message)
+{
+    midi_message_callback_count++;
+    if (message)
+    {
+        midi_last_message = *message;
+    }
 }
 
 int led_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b)
