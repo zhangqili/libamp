@@ -4,6 +4,7 @@
  */
 
 #include "keyboard.h"
+#include "usb_serial_number.h"
 #include "mtp_device.h"
 #include <stdio.h>
 #include <string.h>
@@ -15,7 +16,7 @@
 #define DEV_PROP_FRIENDLY_NAME  PRODUCT
 
 static inline size_t board_usb_get_serial(uint16_t desc_str[], size_t max_chars) {
-    const char* serial = SERIAL_NUMBER;
+    const char* serial = usb_descriptor_get_serial_number_ascii();
     size_t len = strlen(serial);
     if (len > max_chars) len = max_chars;
     for (size_t i = 0; i < len; i++) desc_str[i] = serial[i];

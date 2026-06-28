@@ -50,7 +50,6 @@
 #define USBCONCAT(a, b) a##b
 #define USBSTR(s) USBCONCAT(L, s)
 
-#define ATTR_PACKED __attribute__((packed))
 /** Concatenates the given input into a single token, via the C Preprocessor.
  *
  *  \param[in] x  First item to concatenate.
@@ -70,27 +69,49 @@
 #define CONCAT_EXPANDED(x, y) CONCAT(x, y)
 #define CPU_TO_LE16(x) (x)
 
-// We don't need anything from the following files, or we have defined it already
-#define __LUFA_COMMON_H__
-#define __USBMODE_H__
-#define __USBEVENTS_H__
-#define __HIDPARSER_H__
-#define __USBCONTROLLER_AVR8_H__
+#include "usb_descriptor_compat.h"
+#include "usb_serial_number.h"
 
-#define __INCLUDE_FROM_USB_DRIVER
-#define __INCLUDE_FROM_HID_DRIVER
-#define __INCLUDE_FROM_CDC_DRIVER
-#define __INCLUDE_FROM_AUDIO_DRIVER
-#define __INCLUDE_FROM_MIDI_DRIVER
-#include "LUFA/Drivers/USB/Class/Common/HIDClassCommon.h"
-#include "LUFA/Drivers/USB/Class/Common/HIDReportData.h"
-#include "LUFA/Drivers/USB/Class/Common/CDCClassCommon.h"
-#include "LUFA/Drivers/USB/Class/Common/AudioClassCommon.h"
-#include "LUFA/Drivers/USB/Class/Common/MIDIClassCommon.h"
-#include "LUFA/Drivers/USB/Core/USBController.h"
+#if USB_DESCRIPTOR_HAS_SERIAL_NUMBER
+#    define HAS_SERIAL_NUMBER
+#endif
 
 #ifndef MAX_ENDPOINTS
 #define MAX_ENDPOINTS 8
+#endif
+
+#define USB_DESC_U16_LOW(value)  ((uint8_t)((value) & 0xFF))
+#define USB_DESC_U16_HIGH(value) ((uint8_t)(((value) >> 8) & 0xFF))
+#define USB_DESC_U32_BYTE0(value) ((uint8_t)((value) & 0xFF))
+#define USB_DESC_U32_BYTE1(value) ((uint8_t)(((value) >> 8) & 0xFF))
+#define USB_DESC_U32_BYTE2(value) ((uint8_t)(((value) >> 16) & 0xFF))
+#define USB_DESC_U32_BYTE3(value) ((uint8_t)(((value) >> 24) & 0xFF))
+#define USB_DESC_U16_BYTES(value) USB_DESC_U16_LOW(value), USB_DESC_U16_HIGH(value)
+#define USB_DESC_U32_BYTES(value) USB_DESC_U32_BYTE0(value), USB_DESC_U32_BYTE1(value), USB_DESC_U32_BYTE2(value), USB_DESC_U32_BYTE3(value)
+
+#if defined(WEBUSB_ENABLE) || defined(GAMEPAD_ENABLE) || defined(MTP_ENABLE)
+#define MSOS20_ENABLE
+#ifndef MSOS20_VENDOR_CODE
+#define MSOS20_VENDOR_CODE 0x21
+#endif
+#endif
+
+#ifdef WEBUSB_ENABLE
+#ifndef WEBUSB_VENDOR_CODE
+#define WEBUSB_VENDOR_CODE 0x22
+#endif
+
+#ifndef WEBUSB_URL
+#define WEBUSB_URL "emi-keyboard-configurator.vercel.app"
+#endif
+
+#define WEBUSB_URL_DESCRIPTOR_LENGTH (sizeof(USB_Descriptor_Header_t) + sizeof(uint8_t) + sizeof(WEBUSB_URL) - 1)
+
+typedef struct {
+    USB_Descriptor_Header_t Header;
+    uint8_t Scheme;
+    char URL[sizeof(WEBUSB_URL)];
+} __PACKED USB_WebUSB_URL_Descriptor_t;
 #endif
 
 #ifdef GAMEPAD_ENABLE
@@ -109,7 +130,7 @@ typedef struct {
     uint8_t                 bOUTDataSize;
     uint8_t                 bUnknown7;
     uint8_t                 bUnknown8;
-} ATTR_PACKED USB_XInput_Descriptor_HID_t;
+} __PACKED USB_XInput_Descriptor_HID_t;
 #endif
 
 /*
@@ -276,6 +297,153 @@ enum usb_interfaces {
 };
 
 #define IS_VALID_INTERFACE(i) ((i) >= 0 && (i) < TOTAL_INTERFACES)
+
+#ifdef WEBUSB_ENABLE
+static const USB_WebUSB_URL_Descriptor_t PROGMEM WebUSBURLDescriptor = {
+    .Header = {
+        .Size                   = WEBUSB_URL_DESCRIPTOR_LENGTH,
+        .Type                   = WEBUSB_URL_TYPE
+    },
+    .Scheme                     = WEBUSB_URL_SCHEME_HTTPS,
+    .URL                        = WEBUSB_URL
+};
+#endif
+
+#ifdef MSOS20_ENABLE
+#define MSOS20_SET_HEADER_LENGTH                sizeof(USB_MSOS20_Descriptor_SetHeader_t)
+#define MSOS20_FUNCTION_SUBSET_HEADER_LENGTH    sizeof(USB_MSOS20_Descriptor_FunctionSubsetHeader_t)
+#define MSOS20_COMPATIBLE_ID_DESCRIPTOR_LENGTH  sizeof(USB_MSOS20_Descriptor_CompatibleID_t)
+#define MSOS20_WINUSB_REG_PROPERTY_LENGTH       132
+#define MSOS20_WINUSB_FUNCTION_SUBSET_LENGTH    (MSOS20_FUNCTION_SUBSET_HEADER_LENGTH + MSOS20_COMPATIBLE_ID_DESCRIPTOR_LENGTH + MSOS20_WINUSB_REG_PROPERTY_LENGTH)
+#define MSOS20_XINPUT_FUNCTION_SUBSET_LENGTH    (MSOS20_FUNCTION_SUBSET_HEADER_LENGTH + MSOS20_COMPATIBLE_ID_DESCRIPTOR_LENGTH)
+#define MSOS20_MTP_REG_PROPERTY_LENGTH          110
+#define MSOS20_MTP_FUNCTION_SUBSET_LENGTH       (MSOS20_FUNCTION_SUBSET_HEADER_LENGTH + MSOS20_MTP_REG_PROPERTY_LENGTH)
+
+#ifdef GAMEPAD_ENABLE
+#    define MSOS20_GAMEPAD_LENGTH MSOS20_XINPUT_FUNCTION_SUBSET_LENGTH
+#else
+#    define MSOS20_GAMEPAD_LENGTH 0
+#endif
+
+#ifdef WEBUSB_ENABLE
+#    define MSOS20_WEBUSB_LENGTH MSOS20_WINUSB_FUNCTION_SUBSET_LENGTH
+#else
+#    define MSOS20_WEBUSB_LENGTH 0
+#endif
+
+#ifdef MTP_ENABLE
+#    define MSOS20_MTP_LENGTH MSOS20_MTP_FUNCTION_SUBSET_LENGTH
+#else
+#    define MSOS20_MTP_LENGTH 0
+#endif
+
+#define MSOS20_TOTAL_LENGTH (MSOS20_SET_HEADER_LENGTH + MSOS20_GAMEPAD_LENGTH + MSOS20_WEBUSB_LENGTH + MSOS20_MTP_LENGTH)
+
+static const uint8_t PROGMEM MSOS20DescriptorSet[] = {
+    USB_DESC_U16_BYTES(MSOS20_SET_HEADER_LENGTH),
+    USB_DESC_U16_BYTES(USB_MSOS20_DTYPE_SetHeader),
+    USB_DESC_U32_BYTES(0x06030000UL),
+    USB_DESC_U16_BYTES(MSOS20_TOTAL_LENGTH),
+
+#ifdef GAMEPAD_ENABLE
+    USB_DESC_U16_BYTES(MSOS20_FUNCTION_SUBSET_HEADER_LENGTH),
+    USB_DESC_U16_BYTES(USB_MSOS20_DTYPE_SubsetHeaderFunction),
+    XINPUT_INTERFACE,
+    0x00,
+    USB_DESC_U16_BYTES(MSOS20_XINPUT_FUNCTION_SUBSET_LENGTH),
+    USB_DESC_U16_BYTES(MSOS20_COMPATIBLE_ID_DESCRIPTOR_LENGTH),
+    USB_DESC_U16_BYTES(USB_MSOS20_DTYPE_FeatureCompatibleID),
+    'X', 'U', 'S', 'B', '2', '0', 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+#endif
+
+#ifdef WEBUSB_ENABLE
+    USB_DESC_U16_BYTES(MSOS20_FUNCTION_SUBSET_HEADER_LENGTH),
+    USB_DESC_U16_BYTES(USB_MSOS20_DTYPE_SubsetHeaderFunction),
+    WEBUSB_INTERFACE,
+    0x00,
+    USB_DESC_U16_BYTES(MSOS20_WINUSB_FUNCTION_SUBSET_LENGTH),
+    USB_DESC_U16_BYTES(MSOS20_COMPATIBLE_ID_DESCRIPTOR_LENGTH),
+    USB_DESC_U16_BYTES(USB_MSOS20_DTYPE_FeatureCompatibleID),
+    'W', 'I', 'N', 'U', 'S', 'B', 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    USB_DESC_U16_BYTES(MSOS20_WINUSB_REG_PROPERTY_LENGTH),
+    USB_DESC_U16_BYTES(USB_MSOS20_DTYPE_FeatureRegProperty),
+    USB_DESC_U16_BYTES(USB_MSOS20_PROPERTY_TYPE_REG_MULTI_SZ),
+    USB_DESC_U16_BYTES(42),
+    'D', 0x00, 'e', 0x00, 'v', 0x00, 'i', 0x00, 'c', 0x00, 'e', 0x00,
+    'I', 0x00, 'n', 0x00, 't', 0x00, 'e', 0x00, 'r', 0x00, 'f', 0x00, 'a', 0x00, 'c', 0x00, 'e', 0x00,
+    'G', 0x00, 'U', 0x00, 'I', 0x00, 'D', 0x00, 's', 0x00, 0x00, 0x00,
+    USB_DESC_U16_BYTES(80),
+    '{', 0x00,
+    'C', 0x00, 'D', 0x00, 'B', 0x00, '3', 0x00, 'B', 0x00, '5', 0x00, 'A', 0x00, 'D', 0x00, '-', 0x00,
+    '2', 0x00, '9', 0x00, '3', 0x00, 'B', 0x00, '-', 0x00,
+    '4', 0x00, '6', 0x00, '6', 0x00, '3', 0x00, '-', 0x00,
+    'A', 0x00, 'A', 0x00, '3', 0x00, '6', 0x00, '-', 0x00,
+    '1', 0x00, 'A', 0x00, 'A', 0x00, 'E', 0x00, '4', 0x00, '6', 0x00, '4', 0x00, '6', 0x00, '3', 0x00, '7', 0x00, '7', 0x00, '6', 0x00,
+    '}', 0x00, 0x00, 0x00, 0x00, 0x00,
+#endif
+
+#ifdef MTP_ENABLE
+    USB_DESC_U16_BYTES(MSOS20_FUNCTION_SUBSET_HEADER_LENGTH),
+    USB_DESC_U16_BYTES(USB_MSOS20_DTYPE_SubsetHeaderFunction),
+    MTP_INTERFACE,
+    0x00,
+    USB_DESC_U16_BYTES(MSOS20_MTP_FUNCTION_SUBSET_LENGTH),
+    USB_DESC_U16_BYTES(MSOS20_MTP_REG_PROPERTY_LENGTH),
+    USB_DESC_U16_BYTES(USB_MSOS20_DTYPE_FeatureRegProperty),
+    USB_DESC_U16_BYTES(USB_MSOS20_PROPERTY_TYPE_REG_EXPAND_SZ),
+    USB_DESC_U16_BYTES(22),
+    'D', 0x00, 'e', 0x00, 'v', 0x00, 'i', 0x00, 'c', 0x00, 'e', 0x00,
+    'I', 0x00, 'c', 0x00, 'o', 0x00, 'n', 0x00, 0x00, 0x00,
+    USB_DESC_U16_BYTES(78),
+    '%', 0x00, 'S', 0x00, 'y', 0x00, 's', 0x00, 't', 0x00, 'e', 0x00, 'm', 0x00, 'R', 0x00, 'o', 0x00, 'o', 0x00, 't', 0x00, '%', 0x00,
+    '\\', 0x00, 's', 0x00, 'y', 0x00, 's', 0x00, 't', 0x00, 'e', 0x00, 'm', 0x00, '3', 0x00, '2', 0x00, '\\', 0x00,
+    'i', 0x00, 'm', 0x00, 'a', 0x00, 'g', 0x00, 'e', 0x00, 'r', 0x00, 'e', 0x00, 's', 0x00, '.', 0x00, 'd', 0x00, 'l', 0x00, 'l', 0x00,
+    ',', 0x00, '-', 0x00, '5', 0x00, '3', 0x00, 0x00, 0x00
+#endif
+};
+
+#define BOS_HEADER_LENGTH 5
+#define BOS_WEBUSB_PLATFORM_CAPABILITY_LENGTH 24
+#define BOS_MSOS20_PLATFORM_CAPABILITY_LENGTH 28
+
+#ifdef WEBUSB_ENABLE
+#    define BOS_CAPABILITY_COUNT 2
+#    define BOS_TOTAL_LENGTH (BOS_HEADER_LENGTH + BOS_WEBUSB_PLATFORM_CAPABILITY_LENGTH + BOS_MSOS20_PLATFORM_CAPABILITY_LENGTH)
+#else
+#    define BOS_CAPABILITY_COUNT 1
+#    define BOS_TOTAL_LENGTH (BOS_HEADER_LENGTH + BOS_MSOS20_PLATFORM_CAPABILITY_LENGTH)
+#endif
+
+static const uint8_t PROGMEM BOSDescriptor[] = {
+    BOS_HEADER_LENGTH,
+    DTYPE_BOS,
+    USB_DESC_U16_BYTES(BOS_TOTAL_LENGTH),
+    BOS_CAPABILITY_COUNT,
+#ifdef WEBUSB_ENABLE
+    BOS_WEBUSB_PLATFORM_CAPABILITY_LENGTH,
+    DTYPE_DeviceCapability,
+    USB_DCAPTYPE_Platform,
+    0x00,
+    0x38, 0xB6, 0x08, 0x34, 0xA9, 0x09, 0xA0, 0x47,
+    0x8B, 0xFD, 0xA0, 0x76, 0x88, 0x15, 0xB6, 0x65,
+    USB_DESC_U16_BYTES(0x0100),
+    WEBUSB_VENDOR_CODE,
+    0x01,
+#endif
+    BOS_MSOS20_PLATFORM_CAPABILITY_LENGTH,
+    DTYPE_DeviceCapability,
+    USB_DCAPTYPE_Platform,
+    0x00,
+    0xDF, 0x60, 0xDD, 0xD8, 0x89, 0x45, 0xC7, 0x4C,
+    0x9C, 0xD2, 0x65, 0x9D, 0x9E, 0x64, 0x8A, 0x9F,
+    USB_DESC_U32_BYTES(0x06030000UL),
+    USB_DESC_U16_BYTES(sizeof(MSOS20DescriptorSet)),
+    MSOS20_VENDOR_CODE,
+    0x00
+};
+#endif
 
 #define NEXT_EPNUM __COUNTER__
 
@@ -485,11 +653,12 @@ extern const USB_Descriptor_String_t PROGMEM ProductString;
 
 // clang-format on
 
-#if defined(SERIAL_NUMBER)
+#if USB_DESCRIPTOR_HAS_SERIAL_NUMBER
 // clang-format off
-extern const USB_Descriptor_String_t PROGMEM SerialNumberString;
+extern uint8_t SerialNumberString[];
+void set_serial_number_descriptor(void);
 // clang-format on
-#endif // defined(SERIAL_NUMBER)
+#endif // USB_DESCRIPTOR_HAS_SERIAL_NUMBER
 #endif
 
 #ifndef KEYBOARD_SHARED_EP
@@ -592,16 +761,6 @@ extern const USB_Descriptor_String_t PROGMEM SerialNumberString;
 #ifdef OS_DETECTION_ENABLE
 #    include "os_detection.h"
 #endif
-
-#if defined(SERIAL_NUMBER) || (defined(SERIAL_NUMBER_USE_HARDWARE_ID) && SERIAL_NUMBER_USE_HARDWARE_ID == TRUE)
-
-#    define HAS_SERIAL_NUMBER
-
-#    if defined(SERIAL_NUMBER_USE_HARDWARE_ID) && SERIAL_NUMBER_USE_HARDWARE_ID == TRUE
-#        include "hardware_id.h"
-#    endif
-
-#endif // defined(SERIAL_NUMBER) || (defined(SERIAL_NUMBER_USE_HARDWARE_ID) && SERIAL_NUMBER_USE_HARDWARE_ID == TRUE)
 
 // clang-format off
 
@@ -1194,7 +1353,7 @@ static const USB_Descriptor_Device_t PROGMEM DeviceDescriptor = {
 #else
     .USBSpecification           = VERSION_BCD(2, 0, 0),
 #endif
-#if VIRTSER_ENABLE
+#ifdef VIRTSER_ENABLE
     .Class                      = USB_CSCP_IADDeviceClass,
     .SubClass                   = USB_CSCP_IADDeviceSubclass,
     .Protocol                   = USB_CSCP_IADDeviceProtocol,
@@ -1218,6 +1377,22 @@ static const USB_Descriptor_Device_t PROGMEM DeviceDescriptor = {
 #endif // HAS_SERIAL_NUMBER
     .NumberOfConfigurations     = FIXED_NUM_CONFIGURATIONS
 };
+
+#ifdef CONFIG_USB_HS
+static const USB_Descriptor_DeviceQualifier_t PROGMEM DeviceQualifierDescriptor = {
+    .Header = {
+        .Size                   = sizeof(USB_Descriptor_DeviceQualifier_t),
+        .Type                   = DTYPE_DeviceQualifier
+    },
+    .USBSpecification           = VERSION_BCD(2, 0, 0),
+    .Class                      = USB_CSCP_NoDeviceClass,
+    .SubClass                   = USB_CSCP_NoDeviceSubclass,
+    .Protocol                   = USB_CSCP_NoDeviceProtocol,
+    .Endpoint0Size              = FIXED_CONTROL_ENDPOINT_SIZE,
+    .NumberOfConfigurations     = FIXED_NUM_CONFIGURATIONS,
+    .Reserved                   = 0x00
+};
+#endif
 
 #ifndef USB_MAX_POWER_CONSUMPTION
 #    define USB_MAX_POWER_CONSUMPTION 500
@@ -1908,59 +2083,34 @@ static const USB_Descriptor_String_t PROGMEM ProductString = {
 
 // clang-format on
 
-#if defined(SERIAL_NUMBER)
-// clang-format off
-static const USB_Descriptor_String_t PROGMEM SerialNumberString = {
-    .Header = {
-        .Size                   = USB_DESCRIPTOR_SIZE_LITERAL_U16STRING(USBSTR(SERIAL_NUMBER)),
-        .Type                   = DTYPE_String
-    },
-    .UnicodeString              = USBSTR(SERIAL_NUMBER)
-};
-// clang-format on
-
-#else // defined(SERIAL_NUMBER)
-
-#    if defined(SERIAL_NUMBER_USE_HARDWARE_ID) && SERIAL_NUMBER_USE_HARDWARE_ID == TRUE
-
+#if USB_DESCRIPTOR_HAS_SERIAL_NUMBER
 #        if defined(__AVR__)
 #            error Dynamically setting the serial number on AVR is unsupported as LUFA requires the string to be in PROGMEM.
 #        endif // defined(__AVR__)
-
-#        ifndef SERIAL_NUMBER_LENGTH
-#            define SERIAL_NUMBER_LENGTH (sizeof(hardware_id_t) * 2)
-#        endif
 
 #        define SERIAL_NUMBER_DESCRIPTOR_SIZE                                            \
             (sizeof(USB_Descriptor_Header_t)                     /* Descriptor header */ \
              + (((SERIAL_NUMBER_LENGTH) + 1) * sizeof(wchar_t))) /* Length of serial number, with potential extra character as we're converting 2 nibbles at a time */
 
-uint8_t SerialNumberString[SERIAL_NUMBER_DESCRIPTOR_SIZE] = {0};
+static uint8_t SerialNumberString[SERIAL_NUMBER_DESCRIPTOR_SIZE] = {0};
 
-void set_serial_number_descriptor(void) {
-    static bool is_set = false;
-    if (is_set) {
-        return;
+static inline void set_serial_number_descriptor(void) {
+    char                     serial[SERIAL_NUMBER_LENGTH + 1] = {0};
+    size_t                   length = usb_descriptor_get_serial_number(serial, sizeof(serial));
+    USB_Descriptor_String_t* desc   = (USB_Descriptor_String_t*)SerialNumberString;
+
+    if (length >= sizeof(serial)) {
+        length = sizeof(serial) - 1;
     }
-    is_set = true;
+    serial[length] = '\0';
 
-    static const char        hex_str[] = "0123456789ABCDEF";
-    hardware_id_t            id        = get_hardware_id();
-    USB_Descriptor_String_t* desc      = (USB_Descriptor_String_t*)SerialNumberString;
-
-    // Copy across nibbles from the hardware ID as unicode hex characters
-    int      length = MIN(sizeof(id) * 2, SERIAL_NUMBER_LENGTH);
-    uint8_t* p      = (uint8_t*)&id;
-    for (int i = 0; i < length; i += 2) {
-        desc->UnicodeString[i + 0] = hex_str[p[i / 2] >> 4];
-        desc->UnicodeString[i + 1] = hex_str[p[i / 2] & 0xF];
+    for (size_t i = 0; i < length; i++) {
+        desc->UnicodeString[i] = (wchar_t)serial[i];
     }
 
     desc->Header.Size = sizeof(USB_Descriptor_Header_t) + (length * sizeof(wchar_t)); // includes header, don't count null terminator
     desc->Header.Type = DTYPE_String;
 }
 
-#    endif // defined(SERIAL_NUMBER_USE_HARDWARE_ID) && SERIAL_NUMBER_USE_HARDWARE_ID == TRUE
-
-#endif // defined(SERIAL_NUMBER)
+#endif // USB_DESCRIPTOR_HAS_SERIAL_NUMBER
 

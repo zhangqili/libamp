@@ -127,7 +127,6 @@ target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src/lamp_array
     ${PROJECT_SOURCE_DIR}/src/log
     ${PROJECT_SOURCE_DIR}/lib/littlefs
-    ${PROJECT_SOURCE_DIR}/lib/lufa
     ${PROJECT_SOURCE_DIR}/lib/mquickjs
     ${LIBAMP_INCLUDE_DIR}
     ${MQJS_GEN_DIR}

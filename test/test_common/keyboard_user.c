@@ -1068,3 +1068,4 @@ int flash_erase(uint32_t addr, uint32_t size)
     memset(&flash_buffer[addr], 0xff, size);
     return 0;
 }
+

@@ -32,6 +32,8 @@ add_executable(libamp_tests
     storage/test_storage.cpp
     layer/test_layer.cpp
     midi/test_midi.cpp
+    usb/test_usb_descriptor.cpp
+    usb/test_usb_serial_number.cpp
 )
 
 target_link_libraries(libamp_tests
@@ -41,3 +43,15 @@ target_link_libraries(libamp_tests
 )
 
 gtest_discover_tests(libamp_tests)
+
+add_executable(libamp_serial_override_tests
+    usb/test_usb_serial_number_custom.cpp
+)
+
+target_link_libraries(libamp_serial_override_tests
+    PRIVATE
+    libamp
+    GTest::gtest_main
+)
+
+gtest_discover_tests(libamp_serial_override_tests)
