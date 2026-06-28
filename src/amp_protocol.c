@@ -219,6 +219,15 @@ bool amp_transport_control_event_can_enqueue(void)
 #endif
 }
 
+bool amp_transport_stream_event_can_enqueue(void)
+{
+#if AMP_TX_STREAM_QUEUE_LENGTH > 1
+    return tx_stream_len < (AMP_TX_STREAM_QUEUE_LENGTH - 1);
+#else
+    return false;
+#endif
+}
+
 void amp_transport_receive_report(const uint8_t *report, uint16_t len)
 {
     if (report == NULL || len == 0)
@@ -291,4 +300,5 @@ void amp_transport_poll(void)
 
 void amp_transport_raw_sent(void)
 {
+    amp_transport_kick();
 }

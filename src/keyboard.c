@@ -261,7 +261,11 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
     case KEYBOARD_EVENT_KEY_UP:
         if (modifier == KEYBOARD_CALIBRATE)
         {
+#if defined(NEXUS_ENABLE) && !NEXUS_IS_SLAVE
+            nexus_calibrate();
+#else
             target_calibration_tick = g_keyboard_tick + KEYBOARD_TIME_TO_TICK(CALIBRATION_DELAY);
+#endif
         }
         break;
     case KEYBOARD_EVENT_KEY_DOWN:

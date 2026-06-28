@@ -349,8 +349,8 @@ void packet_process_advanced_key(PacketData*data)
         memcpy(&config_buffer, &packet->data, sizeof(AdvancedKeyConfiguration));
         AdvancedKeyConfiguration* config = &g_keyboard_advanced_keys[key_index].config;
         config->mode = config_buffer.mode;
-#if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
-        config->calibration_mode = config_buffer.calibration_mode;
+#if  !(defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE)
+        //config->calibration_mode = config_buffer.calibration_mode;
 #endif
         config->activation_value = config_buffer.activation_value;
         config->deactivation_value = config_buffer.deactivation_value;
@@ -360,9 +360,9 @@ void packet_process_advanced_key(PacketData*data)
         config->release_speed = config_buffer.release_speed;
         config->upper_deadzone = config_buffer.upper_deadzone;
         config->lower_deadzone = config_buffer.lower_deadzone;
-#if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
-        config->upper_bound = config_buffer.upper_bound;
-        config->lower_bound = config_buffer.lower_bound;
+#if  !(defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE)
+        //config->upper_bound = config_buffer.upper_bound;
+        //config->lower_bound = config_buffer.lower_bound;
 #endif
 #if defined(NEXUS_ENABLE) && !NEXUS_IS_SLAVE
         (void)nexus_sync_advanced_key_config(key_index);
@@ -719,12 +719,12 @@ void packet_schedule_debug_packet(void)
 
 void packet_process_debug_notifications(void)
 {
-    if (!pending_debug_packet)
+    if (!pending_debug_packet || !amp_transport_stream_event_can_enqueue())
     {
         return;
     }
-    pending_debug_packet = false;
     packet_send_debug_packet_now();
+    pending_debug_packet = false;
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)

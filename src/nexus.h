@@ -61,6 +61,7 @@ void nexus_init(void);
 void nexus_process(void);
 void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len);
 int nexus_sync_advanced_key_config(uint16_t key_index);
+void nexus_calibrate(void);
 int  nexus_send_report(void);
 int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout);
 

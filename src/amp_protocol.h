@@ -91,6 +91,7 @@ int amp_send_encoded_report(const uint8_t *report, bool stream);
 int amp_send_console_log(const uint8_t *data, uint8_t len);
 int amp_send_error(uint8_t channel, uint8_t seq, uint8_t code, uint8_t type, uint8_t error_code);
 bool amp_transport_control_event_can_enqueue(void);
+bool amp_transport_stream_event_can_enqueue(void);
 
 void amp_transport_receive_report(const uint8_t *report, uint16_t len);
 void amp_transport_poll(void);
