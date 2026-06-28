@@ -7,6 +7,9 @@
 #include "rgb.h"
 #include "layer.h"
 #include "amp_protocol.h"
+#ifdef NEXUS_ENABLE
+#include "nexus.h"
+#endif
 
 #include "stddef.h"
 #include "string.h"
@@ -360,6 +363,9 @@ void packet_process_advanced_key(PacketData*data)
 #if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
         config->upper_bound = config_buffer.upper_bound;
         config->lower_bound = config_buffer.lower_bound;
+#endif
+#if defined(NEXUS_ENABLE) && !NEXUS_IS_SLAVE
+        (void)nexus_sync_advanced_key_config(key_index);
 #endif
     }
     else if (data->code == PACKET_CODE_GET)

@@ -32,6 +32,7 @@ add_executable(libamp_tests
     storage/test_storage.cpp
     layer/test_layer.cpp
     midi/test_midi.cpp
+    nexus/test_nexus.cpp
     usb/test_usb_descriptor.cpp
     usb/test_usb_serial_number.cpp
 )
