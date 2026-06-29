@@ -266,8 +266,7 @@ void packet_process_feature(PacketData*data);
 
 void packet_send_version_packet(void);
 void packet_process_version_notifications(void);
-void packet_schedule_debug_packet(void);
-void packet_process_debug_notifications(void);
+void packet_send_debug_packet(void);
 void packet_process_user(uint8_t *buf, uint16_t len);
 void large_packet_process(PacketLargeData *buf);
 

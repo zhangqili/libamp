@@ -811,7 +811,7 @@ __WEAK void keyboard_task(void)
     }
     if (g_keyboard_config.debug)
     {   
-        packet_schedule_debug_packet();
+        packet_send_debug_packet();
     }
 #endif
 }
@@ -836,7 +836,6 @@ void keyboard_process(void)
         packet_send_version_packet();
     }
     packet_process_version_notifications();
-    packet_process_debug_notifications();
 #ifdef RGB_ENABLE
     rgb_process();
 #endif

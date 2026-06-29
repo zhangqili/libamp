@@ -22,7 +22,6 @@
 static uint8_t debug_length;
 static uint16_t debug_buffer[PACKET_DEBUG_MAX_KEYS];
 static volatile bool pending_version_notification;
-static volatile bool pending_debug_packet;
 
 enum
 {
@@ -688,8 +687,17 @@ void packet_process_version_notifications(void)
     }
 }
 
-static void packet_send_debug_packet_now(void)
+void packet_send_debug_packet(void)
 {
+#if DEBUG_INTERVAL > 0
+    static uint16_t timer;
+    timer++;
+    if (timer < DEBUG_INTERVAL)
+    {
+        return;
+    }
+    timer = 0;
+#endif
     uint8_t buf[64];
     PacketDebug* packet = (PacketDebug*)buf;
     packet->code = PACKET_CODE_GET;
@@ -701,30 +709,6 @@ static void packet_send_debug_packet_now(void)
     }
     packet_process_buffer((uint8_t*)packet, sizeof(PacketDebug) + debug_length * sizeof(packet->data[0]));
     packet_send_response((uint8_t*)packet, sizeof(PacketDebug) + packet->length * sizeof(packet->data[0]), AMP_CHANNEL_DEBUG, 0, 0, true);
-}
-
-void packet_schedule_debug_packet(void)
-{
-#if DEBUG_INTERVAL > 0
-    static uint16_t timer;
-    timer++;
-    if (timer < DEBUG_INTERVAL)
-    {
-        return;
-    }
-    timer = 0;
-#endif
-    pending_debug_packet = true;
-}
-
-void packet_process_debug_notifications(void)
-{
-    if (!pending_debug_packet || !amp_transport_stream_event_can_enqueue())
-    {
-        return;
-    }
-    packet_send_debug_packet_now();
-    pending_debug_packet = false;
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)

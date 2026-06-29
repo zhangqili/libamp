@@ -125,7 +125,7 @@ void nexus_calibrate(void)
         packet.id = 0;
         packet.is_virtual = true;
         packet.use_keymap = false;
-        return nexus_send_timeout(i, (const uint8_t *)&packet, sizeof(packet), NEXUS_TIMEOUT);
+        nexus_send_timeout(i, (const uint8_t *)&packet, sizeof(packet), NEXUS_TIMEOUT);
     }
 }
 
