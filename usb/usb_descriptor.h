@@ -72,10 +72,6 @@
 #include "usb_descriptor_compat.h"
 #include "usb_serial_number.h"
 
-#if USB_DESCRIPTOR_HAS_SERIAL_NUMBER
-#    define HAS_SERIAL_NUMBER
-#endif
-
 #ifndef MAX_ENDPOINTS
 #define MAX_ENDPOINTS 8
 #endif
@@ -653,12 +649,12 @@ extern const USB_Descriptor_String_t PROGMEM ProductString;
 
 // clang-format on
 
-#if USB_DESCRIPTOR_HAS_SERIAL_NUMBER
+#if HAS_SERIAL_NUMBER
 // clang-format off
 extern uint8_t SerialNumberString[];
 void set_serial_number_descriptor(void);
 // clang-format on
-#endif // USB_DESCRIPTOR_HAS_SERIAL_NUMBER
+#endif // HAS_SERIAL_NUMBER
 #endif
 
 #ifndef KEYBOARD_SHARED_EP
@@ -1939,10 +1935,14 @@ static const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         .InterfaceNumber        = MTP_INTERFACE,
         .AlternateSetting       = 0x00,
         .TotalEndpoints         = 3,
-        .Class                  = 6,
-        .SubClass               = 1,
-        .Protocol               = 1,
-        .InterfaceStrIndex      = 4
+        .Class                  = MTP_CSCP_ImageClass,
+        .SubClass               = MTP_CSCP_StillImageSubclass,
+        .Protocol               = MTP_CSCP_PIMA15740Protocol,
+#ifdef HAS_SERIAL_NUMBER
+        .InterfaceStrIndex          = 0x04,
+#else // HAS_SERIAL_NUMBER
+        .InterfaceStrIndex          = 0x03,
+#endif // HAS_SERIAL_NUMBER
     },
     .MTP_EventEndpoint = {
         .Header = {
@@ -2083,7 +2083,7 @@ static const USB_Descriptor_String_t PROGMEM ProductString = {
 
 // clang-format on
 
-#if USB_DESCRIPTOR_HAS_SERIAL_NUMBER
+#if HAS_SERIAL_NUMBER
 #        if defined(__AVR__)
 #            error Dynamically setting the serial number on AVR is unsupported as LUFA requires the string to be in PROGMEM.
 #        endif // defined(__AVR__)
@@ -2112,5 +2112,5 @@ static inline void set_serial_number_descriptor(void) {
     desc->Header.Type = DTYPE_String;
 }
 
-#endif // USB_DESCRIPTOR_HAS_SERIAL_NUMBER
+#endif // HAS_SERIAL_NUMBER
 

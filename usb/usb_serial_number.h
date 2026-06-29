@@ -11,16 +11,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#if defined(SERIAL_NUMBER_USE_CUSTOM) && SERIAL_NUMBER_USE_CUSTOM
+#if defined(SERIAL_NUMBER_USE_CUSTOM)
 #    define USB_DESCRIPTOR_USE_CUSTOM_SERIAL 1
 #else
 #    define USB_DESCRIPTOR_USE_CUSTOM_SERIAL 0
 #endif
 
 #if defined(SERIAL_NUMBER) || USB_DESCRIPTOR_USE_CUSTOM_SERIAL
-#    define USB_DESCRIPTOR_HAS_SERIAL_NUMBER 1
+#    define HAS_SERIAL_NUMBER 1
 #else
-#    define USB_DESCRIPTOR_HAS_SERIAL_NUMBER 0
+#    define HAS_SERIAL_NUMBER 0
 #endif
 
 #ifndef SERIAL_NUMBER_LENGTH

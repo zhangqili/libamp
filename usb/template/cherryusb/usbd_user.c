@@ -78,7 +78,7 @@ static const char *string_descriptors[] = {
     (const char[]){ 0x09, 0x04 }, /* Langid */
     MANUFACTURER,                    /* Manufacturer */
     PRODUCT,                        /* Product */
-#if USB_DESCRIPTOR_HAS_SERIAL_NUMBER
+#if HAS_SERIAL_NUMBER
     NULL,                           /* Serial Number */
 #endif
 #if defined(MTP_ENABLE)
@@ -92,7 +92,7 @@ static const char *string_descriptor_callback(uint8_t speed, uint8_t index)
     if (index >= (sizeof(string_descriptors) / sizeof(char *))) {
         return NULL;
     }
-#if USB_DESCRIPTOR_HAS_SERIAL_NUMBER
+#if HAS_SERIAL_NUMBER
     if (index == DeviceDescriptor.SerialNumStrIndex) {
         return usb_descriptor_get_serial_number_ascii();
     }

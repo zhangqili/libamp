@@ -64,35 +64,35 @@ TEST_F(MidiTest, SendRejectsNullAndWritesPacket)
 
 TEST_F(MidiTest, ToneKeyDownAndUpSendNotePackets)
 {
-    midi_event_handler(make_midi_event(QK_MIDI_NOTE_C_0, KEYBOARD_EVENT_KEY_DOWN));
+    midi_event_handler(make_midi_event(MIDI_NOTE_C_0, KEYBOARD_EVENT_KEY_DOWN));
     expect_midi_packet(kCinNoteOn, 0x90, 48, 127);
 
     libamp_test_clear_output_buffers();
-    midi_event_handler(make_midi_event(QK_MIDI_NOTE_C_0, KEYBOARD_EVENT_KEY_UP));
+    midi_event_handler(make_midi_event(MIDI_NOTE_C_0, KEYBOARD_EVENT_KEY_UP));
     expect_midi_packet(kCinNoteOff, 0x80, 48, 127);
 }
 
 TEST_F(MidiTest, SustainAndAllNotesOffSendControlChange)
 {
-    midi_event_handler(make_midi_event(QK_MIDI_SUSTAIN, KEYBOARD_EVENT_KEY_DOWN));
+    midi_event_handler(make_midi_event(MIDI_SUSTAIN, KEYBOARD_EVENT_KEY_DOWN));
     expect_midi_packet(kCinControlChange, 0xB0, 0x40, 127);
 
     libamp_test_clear_output_buffers();
-    midi_event_handler(make_midi_event(QK_MIDI_ALL_NOTES_OFF, KEYBOARD_EVENT_KEY_DOWN));
+    midi_event_handler(make_midi_event(MIDI_ALL_NOTES_OFF, KEYBOARD_EVENT_KEY_DOWN));
     expect_midi_packet(kCinControlChange, 0xB0, 0x7B, 0);
 }
 
 TEST_F(MidiTest, PitchBendKeysSendFourteenBitValues)
 {
-    midi_event_handler(make_midi_event(QK_MIDI_PITCH_BEND_DOWN, KEYBOARD_EVENT_KEY_DOWN));
+    midi_event_handler(make_midi_event(MIDI_PITCH_BEND_DOWN, KEYBOARD_EVENT_KEY_DOWN));
     expect_midi_packet(kCinPitchBend, 0xE0, 0x00, 0x00);
 
     libamp_test_clear_output_buffers();
-    midi_event_handler(make_midi_event(QK_MIDI_PITCH_BEND_DOWN, KEYBOARD_EVENT_KEY_UP));
+    midi_event_handler(make_midi_event(MIDI_PITCH_BEND_DOWN, KEYBOARD_EVENT_KEY_UP));
     expect_midi_packet(kCinPitchBend, 0xE0, 0x00, 0x40);
 
     libamp_test_clear_output_buffers();
-    midi_event_handler(make_midi_event(QK_MIDI_PITCH_BEND_UP, KEYBOARD_EVENT_KEY_DOWN));
+    midi_event_handler(make_midi_event(MIDI_PITCH_BEND_UP, KEYBOARD_EVENT_KEY_DOWN));
     expect_midi_packet(kCinPitchBend, 0xE0, 0x7F, 0x7F);
 }
 
