@@ -14,6 +14,7 @@ void libamp_test_clear_output_buffers(void)
     std::memset(keyboard_send_buffer, 0, sizeof(keyboard_send_buffer));
     std::memset(raw_send_buffer, 0, sizeof(raw_send_buffer));
     std::memset(midi_send_buffer, 0, sizeof(midi_send_buffer));
+    std::memset(gamepad_send_buffer, 0, sizeof(gamepad_send_buffer));
     std::memset(led_color_buffer, 0, sizeof(ColorRGB) * RGB_NUM);
     led_flush_count = 0;
     audio_play_note_count = 0;

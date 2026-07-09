@@ -26,6 +26,16 @@ MIDIEventPacket make_packet(uint8_t cin, uint8_t data1, uint8_t data2 = 0, uint8
     return packet;
 }
 
+Keycode midi_keycode(uint8_t subcode)
+{
+    return ((Keycode)subcode << 8) | MIDI_COLLECTION;
+}
+
+Keycode midi_direct_note(uint8_t note)
+{
+    return ((Keycode)note << 8) | MIDI_NOTE;
+}
+
 KeyboardEvent make_midi_event(Keycode keycode, KeyboardEventType type)
 {
     digital_key.id = ADVANCED_KEY_NUM;
@@ -64,35 +74,45 @@ TEST_F(MidiTest, SendRejectsNullAndWritesPacket)
 
 TEST_F(MidiTest, ToneKeyDownAndUpSendNotePackets)
 {
-    midi_event_handler(make_midi_event(MIDI_NOTE_C_0, KEYBOARD_EVENT_KEY_DOWN));
+    midi_event_handler(make_midi_event(midi_keycode(MIDI_NOTE_C_0), KEYBOARD_EVENT_KEY_DOWN));
     expect_midi_packet(kCinNoteOn, 0x90, 48, 127);
 
     libamp_test_clear_output_buffers();
-    midi_event_handler(make_midi_event(MIDI_NOTE_C_0, KEYBOARD_EVENT_KEY_UP));
+    midi_event_handler(make_midi_event(midi_keycode(MIDI_NOTE_C_0), KEYBOARD_EVENT_KEY_UP));
     expect_midi_packet(kCinNoteOff, 0x80, 48, 127);
+}
+
+TEST_F(MidiTest, DirectNoteKeyDownAndUpSendRawNoteNumber)
+{
+    midi_event_handler(make_midi_event(midi_direct_note(60), KEYBOARD_EVENT_KEY_DOWN));
+    expect_midi_packet(kCinNoteOn, 0x90, 60, 127);
+
+    libamp_test_clear_output_buffers();
+    midi_event_handler(make_midi_event(midi_direct_note(60), KEYBOARD_EVENT_KEY_UP));
+    expect_midi_packet(kCinNoteOff, 0x80, 60, 127);
 }
 
 TEST_F(MidiTest, SustainAndAllNotesOffSendControlChange)
 {
-    midi_event_handler(make_midi_event(MIDI_SUSTAIN, KEYBOARD_EVENT_KEY_DOWN));
+    midi_event_handler(make_midi_event(midi_keycode(MIDI_SUSTAIN), KEYBOARD_EVENT_KEY_DOWN));
     expect_midi_packet(kCinControlChange, 0xB0, 0x40, 127);
 
     libamp_test_clear_output_buffers();
-    midi_event_handler(make_midi_event(MIDI_ALL_NOTES_OFF, KEYBOARD_EVENT_KEY_DOWN));
+    midi_event_handler(make_midi_event(midi_keycode(MIDI_ALL_NOTES_OFF), KEYBOARD_EVENT_KEY_DOWN));
     expect_midi_packet(kCinControlChange, 0xB0, 0x7B, 0);
 }
 
 TEST_F(MidiTest, PitchBendKeysSendFourteenBitValues)
 {
-    midi_event_handler(make_midi_event(MIDI_PITCH_BEND_DOWN, KEYBOARD_EVENT_KEY_DOWN));
+    midi_event_handler(make_midi_event(midi_keycode(MIDI_PITCH_BEND_DOWN), KEYBOARD_EVENT_KEY_DOWN));
     expect_midi_packet(kCinPitchBend, 0xE0, 0x00, 0x00);
 
     libamp_test_clear_output_buffers();
-    midi_event_handler(make_midi_event(MIDI_PITCH_BEND_DOWN, KEYBOARD_EVENT_KEY_UP));
+    midi_event_handler(make_midi_event(midi_keycode(MIDI_PITCH_BEND_DOWN), KEYBOARD_EVENT_KEY_UP));
     expect_midi_packet(kCinPitchBend, 0xE0, 0x00, 0x40);
 
     libamp_test_clear_output_buffers();
-    midi_event_handler(make_midi_event(MIDI_PITCH_BEND_UP, KEYBOARD_EVENT_KEY_DOWN));
+    midi_event_handler(make_midi_event(midi_keycode(MIDI_PITCH_BEND_UP), KEYBOARD_EVENT_KEY_DOWN));
     expect_midi_packet(kCinPitchBend, 0xE0, 0x7F, 0x7F);
 }
 

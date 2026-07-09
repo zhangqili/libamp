@@ -3,8 +3,7 @@
 #include "keyboard.h"
 #include "joystick.h"
 #include "layer.h"
-
-extern uint8_t shared_ep_send_buffer[64];
+#include "test_fixture.h"
 
 TEST(Joystick, Buffer)
 {

@@ -132,8 +132,8 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
     {
         return;
     }
-    AnalogValue last_value = dynamic_key_s->value;
-    AnalogValue current_value = keyboard_get_key_analog_value(key);
+    AnalogValue last_value = dynamic_key_s->filtered_value;
+    AnalogValue current_value = hysteresis_filter(&dynamic_key->filtered_value, keyboard_get_key_analog_value(key), DYNAMIC_KEY_HYSTERESIS);
     uint8_t last_key_state = dynamic_key_s->key_state;
 
     AnalogValue current_relative_value = current_value - ANALOG_VALUE_MIN;
@@ -171,7 +171,6 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
             CALC_EVENT(BIT_GET(last_key_state, i), BIT_GET(dynamic_key_s->key_state, i)), key));
     }
     keyboard_key_set_report_state(key, dynamic_key_s->key_state > 0);
-    dynamic_key_s->value = current_value;
 }
 
 void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
@@ -249,6 +248,8 @@ void dynamic_key_m_process(DynamicKeyMutex*dynamic_key)
     {
         return;
     }
+    AnalogValue value0 = hysteresis_filter(&dynamic_key_m->filtered_value[0], keyboard_get_key_analog_value(key0), DYNAMIC_KEY_HYSTERESIS);
+    AnalogValue value1 = hysteresis_filter(&dynamic_key_m->filtered_value[1], keyboard_get_key_analog_value(key1), DYNAMIC_KEY_HYSTERESIS);
     bool next_key0_report_state = dynamic_key_m->key_report_state[0];
     bool next_key1_report_state = dynamic_key_m->key_report_state[1];
     const uint8_t mode = dynamic_key->mode & 0x0F;
@@ -259,20 +260,20 @@ void dynamic_key_m_process(DynamicKeyMutex*dynamic_key)
             AdvancedKey* advanced_key0 = (AdvancedKey*)key0;
             AdvancedKey* advanced_key1 = (AdvancedKey*)key1;
 
-            if (advanced_key0->value > advanced_key1->value)
+            if (value0 > value1)
             {
                 next_key0_report_state = true;
                 next_key1_report_state = false;
             }
-            else if (advanced_key0->value < advanced_key1->value)
+            else if (value0 < value1)
             {
                 next_key0_report_state = false;
                 next_key1_report_state = true;
             }
 
-            if (advanced_key0->value < advanced_key0->config.upper_deadzone)
+            if (value0 < advanced_key0->config.upper_deadzone)
                 next_key0_report_state = false;
-            if (advanced_key1->value < advanced_key1->config.upper_deadzone)
+            if (value1 < advanced_key1->config.upper_deadzone)
                 next_key1_report_state = false;
         }
     }
@@ -322,8 +323,8 @@ void dynamic_key_m_process(DynamicKeyMutex*dynamic_key)
     {        
         AdvancedKey*advanced_key0 = (AdvancedKey*)key0;
         AdvancedKey*advanced_key1 = (AdvancedKey*)key1;
-        if ((advanced_key0->value>= (ANALOG_VALUE_MAX - advanced_key0->config.lower_deadzone))&&
-        (advanced_key1->value>= (ANALOG_VALUE_MAX - advanced_key1->config.lower_deadzone)))
+        if ((value0>= (ANALOG_VALUE_MAX - advanced_key0->config.lower_deadzone))&&
+        (value1>= (ANALOG_VALUE_MAX - advanced_key1->config.lower_deadzone)))
         {
             next_key0_report_state = true;
             next_key1_report_state = true;

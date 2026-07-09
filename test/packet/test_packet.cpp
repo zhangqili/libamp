@@ -5,14 +5,17 @@
 #include <cstring>
 
 #include "amp_protocol.h"
+#include "macro.h"
 #include "packet.h"
 #include "rgb.h"
 #include "test_fixture.h"
 
 namespace {
 
+using PacketBuffer = std::array<uint8_t, AMP_FRAME_REPORT_SIZE>;
+
 template <typename T>
-T *packet_as(std::array<uint8_t, 64>& buffer)
+T *packet_as(PacketBuffer& buffer)
 {
     return reinterpret_cast<T *>(buffer.data());
 }
@@ -42,10 +45,20 @@ size_t debug_packet_size(uint8_t length)
     return offsetof(PacketDebug, data) + length * sizeof(reinterpret_cast<PacketDebug *>(0)->data[0]);
 }
 
-void expect_raw_frame_matches_packet(const std::array<uint8_t, 64>& expected, uint16_t expected_len)
+size_t macro_packet_size(uint8_t length)
+{
+    return offsetof(PacketMacro, data) + length * sizeof(reinterpret_cast<PacketMacro *>(0)->data[0]);
+}
+
+Keycode collection_keycode(uint8_t collection, uint8_t subcode)
+{
+    return ((Keycode)subcode << 8) | collection;
+}
+
+void expect_raw_frame_matches_packet(const PacketBuffer& expected, uint16_t expected_len)
 {
     AmpFrame frame = {};
-    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, 64, &frame));
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &frame));
     EXPECT_EQ(AMP_CHANNEL_CONTROL, amp_frame_channel(&frame.header));
     EXPECT_EQ(AMP_FRAME_FLAG_RESP, amp_frame_flags(&frame.header));
     EXPECT_EQ(expected[0], frame.header.code);
@@ -97,7 +110,7 @@ DynamicKey make_dynamic_key()
 
 TEST(AmpProtocol, EncodesAndDecodesFrame)
 {
-    std::array<uint8_t, 64> report = {};
+    PacketBuffer report = {};
     const uint8_t payload[] = {0x11, 0x22, 0x33};
 
     ASSERT_EQ(0, amp_frame_encode(report.data(), AMP_CHANNEL_DEBUG, AMP_FRAME_FLAG_REQ_ACK, 9, PACKET_CODE_GET, PACKET_DATA_DEBUG, payload, sizeof(payload)));
@@ -116,7 +129,7 @@ TEST(AmpProtocol, EncodesAndDecodesFrame)
 
 TEST(AmpProtocol, RejectsOversizedPayload)
 {
-    std::array<uint8_t, 64> report = {};
+    PacketBuffer report = {};
     std::array<uint8_t, AMP_FRAME_MAX_PAYLOAD + 1> payload = {};
 
     EXPECT_NE(0, amp_frame_encode(report.data(), AMP_CHANNEL_CONTROL, 0, 1, PACKET_CODE_GET, PACKET_DATA_VERSION, payload.data(), payload.size()));
@@ -124,7 +137,7 @@ TEST(AmpProtocol, RejectsOversizedPayload)
 
 TEST(Packet, SetAndGetKeymap)
 {
-    std::array<uint8_t, 64> buffer = {};
+    PacketBuffer buffer = {};
     PacketKeymap *packet = packet_as<PacketKeymap>(buffer);
     packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_KEYMAP;
@@ -168,11 +181,11 @@ TEST(Packet, VersionNotificationIsDeferredUntilPoll)
     packet_send_version_packet();
 
     AmpFrame frame = {};
-    EXPECT_FALSE(amp_frame_decode(raw_send_buffer, 64, &frame));
+    EXPECT_FALSE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &frame));
 
     packet_process_version_notifications();
 
-    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, 64, &frame));
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &frame));
     EXPECT_EQ(AMP_CHANNEL_CONTROL, amp_frame_channel(&frame.header));
     EXPECT_EQ(0, amp_frame_flags(&frame.header));
     EXPECT_EQ(0, frame.header.seq);
@@ -183,7 +196,7 @@ TEST(Packet, VersionNotificationIsDeferredUntilPoll)
 
 TEST(Packet, SetAndGetAdvancedKey)
 {
-    std::array<uint8_t, 64> buffer = {};
+    PacketBuffer buffer = {};
     PacketAdvancedKey *packet = packet_as<PacketAdvancedKey>(buffer);
     packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_ADVANCED_KEY;
@@ -217,7 +230,7 @@ TEST(Packet, SetAndGetAdvancedKey)
 TEST(Packet, RejectsOutOfRangeAdvancedKeyIndex)
 {
     const auto original = g_keyboard_advanced_keys[0].config;
-    std::array<uint8_t, 64> buffer = {};
+    PacketBuffer buffer = {};
     PacketAdvancedKey *packet = packet_as<PacketAdvancedKey>(buffer);
     packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_ADVANCED_KEY;
@@ -231,7 +244,7 @@ TEST(Packet, RejectsOutOfRangeAdvancedKeyIndex)
 
 TEST(Packet, SetAndGetRGBBaseConfig)
 {
-    std::array<uint8_t, 64> buffer = {};
+    PacketBuffer buffer = {};
     PacketRGBBaseConfig *packet = packet_as<PacketRGBBaseConfig>(buffer);
     packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_RGB_BASE_CONFIG;
@@ -277,7 +290,7 @@ TEST(Packet, SetAndGetRGBBaseConfig)
 
 TEST(Packet, SetAndGetRGBConfigs)
 {
-    std::array<uint8_t, 64> buffer = {};
+    PacketBuffer buffer = {};
     PacketRGBConfigs *packet = packet_as<PacketRGBConfigs>(buffer);
     packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_RGB_CONFIG;
@@ -330,7 +343,7 @@ TEST(Packet, SetAndGetRGBConfigs)
 TEST(Packet, DynamicKeyUsesExplicitPayloadSize)
 {
     const DynamicKey dynamic_key = make_dynamic_key();
-    std::array<uint8_t, 64> buffer = {};
+    PacketBuffer buffer = {};
     PacketDynamicKey *packet = packet_as<PacketDynamicKey>(buffer);
     packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_DYNAMIC_KEY;
@@ -355,7 +368,7 @@ TEST(Packet, DynamicKeyUsesExplicitPayloadSize)
 
 TEST(Packet, SetAndGetProfileIndex)
 {
-    std::array<uint8_t, 64> buffer = {};
+    PacketBuffer buffer = {};
     PacketProfileIndex *packet = packet_as<PacketProfileIndex>(buffer);
     packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_PROFILE_INDEX;
@@ -374,7 +387,7 @@ TEST(Packet, SetAndGetProfileIndex)
 
 TEST(Packet, SetAndGetKeyboardConfigBits)
 {
-    std::array<uint8_t, 64> buffer = {};
+    PacketBuffer buffer = {};
     PacketConfig *packet = packet_as<PacketConfig>(buffer);
     packet->code = PACKET_CODE_SET;
     packet->type = PACKET_DATA_CONFIG;
@@ -398,15 +411,150 @@ TEST(Packet, SetAndGetKeyboardConfigBits)
     EXPECT_EQ(1, packet->data[1].value);
 }
 
+TEST(Packet, EventPhysicalPreservesReportState)
+{
+    Key* key = keyboard_get_key(2);
+    ASSERT_NE(nullptr, key);
+    key->report_state = true;
+    g_keyboard_report_flags.raw = 0;
+
+    PacketBuffer buffer = {};
+    PacketEvent* packet = packet_as<PacketEvent>(buffer);
+    packet->code = PACKET_CODE_EVENT;
+    packet->event = KEYBOARD_EVENT_KEY_UP;
+    packet->keycode = KEY_A;
+    packet->id = 2;
+    packet->is_virtual = false;
+    packet->use_keymap = false;
+
+    packet_process(buffer.data(), sizeof(PacketEvent));
+
+    EXPECT_TRUE(key->report_state);
+    EXPECT_TRUE((bool)g_keyboard_report_flags.keyboard);
+}
+
+TEST(Packet, EventVirtualUsesExplicitKeycode)
+{
+    g_keyboard_report_flags.raw = 0;
+
+    PacketBuffer buffer = {};
+    PacketEvent* packet = packet_as<PacketEvent>(buffer);
+    packet->code = PACKET_CODE_EVENT;
+    packet->event = KEYBOARD_EVENT_KEY_DOWN;
+    packet->keycode = collection_keycode(MOUSE_COLLECTION, MOUSE_LBUTTON);
+    packet->id = 0;
+    packet->is_virtual = true;
+    packet->use_keymap = false;
+
+    packet_process(buffer.data(), sizeof(PacketEvent));
+
+    EXPECT_TRUE((bool)g_keyboard_report_flags.mouse);
+    EXPECT_FALSE((bool)g_keyboard_report_flags.keyboard);
+}
+
+TEST(Packet, SetAndGetMacroActions)
+{
+    PacketBuffer buffer = {};
+    PacketMacro* packet = packet_as<PacketMacro>(buffer);
+    packet->code = PACKET_CODE_SET;
+    packet->type = PACKET_DATA_MACRO;
+    packet->macro_index = 0;
+    packet->length = 2;
+    packet->data[0].index = 0;
+    packet->data[0].delay = 10;
+    packet->data[0].key_id = 3;
+    packet->data[0].is_virtual = false;
+    packet->data[0].event = KEYBOARD_EVENT_KEY_DOWN;
+    packet->data[0].keycode = KEY_A;
+    packet->data[1].index = 1;
+    packet->data[1].delay = 20;
+    packet->data[1].key_id = 4;
+    packet->data[1].is_virtual = true;
+    packet->data[1].event = KEYBOARD_EVENT_KEY_UP;
+    packet->data[1].keycode = KEY_B;
+
+    packet_process(buffer.data(), macro_packet_size(packet->length));
+
+    EXPECT_EQ(10u, g_macros[0].actions[0].delay);
+    EXPECT_EQ(KEY_A, g_macros[0].actions[0].event.keycode);
+    EXPECT_EQ(keyboard_get_key(3), g_macros[0].actions[0].event.key);
+    EXPECT_FALSE(g_macros[0].actions[0].event.is_virtual);
+    EXPECT_TRUE(g_macros[0].actions[1].event.is_virtual);
+
+    buffer.fill(0);
+    packet = packet_as<PacketMacro>(buffer);
+    packet->code = PACKET_CODE_GET;
+    packet->type = PACKET_DATA_MACRO;
+    packet->macro_index = 0;
+    packet->length = 2;
+    packet->data[0].index = 0;
+    packet->data[1].index = 1;
+
+    packet_process(buffer.data(), macro_packet_size(packet->length));
+
+    EXPECT_EQ(10u, packet->data[0].delay);
+    EXPECT_EQ(3, packet->data[0].key_id);
+    EXPECT_EQ(KEYBOARD_EVENT_KEY_DOWN, packet->data[0].event);
+    EXPECT_EQ(KEY_A, packet->data[0].keycode);
+    EXPECT_EQ(20u, packet->data[1].delay);
+    EXPECT_EQ(4, packet->data[1].key_id);
+    EXPECT_EQ(KEYBOARD_EVENT_KEY_UP, packet->data[1].event);
+    EXPECT_EQ(KEY_B, packet->data[1].keycode);
+    EXPECT_TRUE(packet->data[1].is_virtual);
+}
+
+TEST(Packet, FrameReqAckSendsSequencedResponse)
+{
+    uint8_t report[AMP_FRAME_REPORT_SIZE] = {};
+    ASSERT_EQ(0, amp_frame_encode(report, AMP_CHANNEL_CONTROL, AMP_FRAME_FLAG_REQ_ACK, 7, PACKET_CODE_GET, PACKET_DATA_VERSION, nullptr, 0));
+
+    AmpFrame request = {};
+    ASSERT_TRUE(amp_frame_decode(report, sizeof(report), &request));
+    packet_process_frame(&request);
+
+    AmpFrame response = {};
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &response));
+    EXPECT_EQ(AMP_CHANNEL_CONTROL, amp_frame_channel(&response.header));
+    EXPECT_EQ(AMP_FRAME_FLAG_RESP, amp_frame_flags(&response.header));
+    EXPECT_EQ(7, response.header.seq);
+    EXPECT_EQ(PACKET_CODE_GET, response.header.code);
+    EXPECT_EQ(PACKET_DATA_VERSION, response.header.type);
+    EXPECT_GT(response.header.len, 0);
+}
+
+TEST(Packet, BadFrameSendsErrorResponse)
+{
+    AmpFrame request = {};
+    request.header.proto = AMP_FRAME_PROTO;
+    request.header.channel_flags = (AMP_CHANNEL_CONTROL << 4);
+    request.header.seq = 9;
+    request.header.code = PACKET_CODE_GET;
+    request.header.type = PACKET_DATA_VERSION;
+    request.header.len = AMP_FRAME_REPORT_SIZE;
+
+    packet_process_frame(&request);
+
+    AmpFrame response = {};
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &response));
+    EXPECT_EQ(AMP_CHANNEL_CONTROL, amp_frame_channel(&response.header));
+    EXPECT_EQ((uint8_t)(AMP_FRAME_FLAG_RESP | AMP_FRAME_FLAG_ERROR), amp_frame_flags(&response.header));
+    EXPECT_EQ(9, response.header.seq);
+    EXPECT_EQ(PACKET_CODE_GET, response.header.code);
+    EXPECT_EQ(PACKET_DATA_VERSION, response.header.type);
+    ASSERT_EQ(1, response.header.len);
+    EXPECT_EQ(1, response.payload[0]);
+}
+
 TEST(Packet, GetDebugAndVersionResponses)
 {
-    g_keyboard_tick = 1234;
+    constexpr uint32_t kDebugTick = 1234;
+    g_keyboard_tick = kDebugTick;
     g_keyboard_advanced_keys[2].raw = 111;
     g_keyboard_advanced_keys[2].value = 222;
     g_keyboard_advanced_keys[2].key.state = true;
     g_keyboard_advanced_keys[2].key.report_state = true;
 
-    std::array<uint8_t, 64> buffer = {};
+    PacketBuffer buffer = {};
     PacketDebug *debug = packet_as<PacketDebug>(buffer);
     debug->code = PACKET_CODE_GET;
     debug->type = PACKET_DATA_DEBUG;
@@ -415,7 +563,7 @@ TEST(Packet, GetDebugAndVersionResponses)
 
     packet_process(buffer.data(), debug_packet_size(debug->length));
 
-    EXPECT_EQ(1234U, debug->tick);
+    EXPECT_EQ(kDebugTick, debug->tick);
     EXPECT_EQ(111, debug->data[0].raw);
     EXPECT_EQ(222, debug->data[0].value);
     EXPECT_TRUE(debug->data[0].state);

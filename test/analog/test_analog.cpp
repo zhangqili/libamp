@@ -40,13 +40,34 @@ TEST(Analog, GrayCodeChannelSelectAcceptsAllConfiguredChannels)
 
 TEST(Filter, HysteresisFilterIgnoresSmallChanges)
 {
-    HysteresisFilter filter;
-    hysteresis_filter_init(&filter, 100);
+    constexpr HysteresisFilterValue h = FILTER_HYSTERESIS;
+    constexpr HysteresisFilterValue initial = 1000;
 
-    EXPECT_EQ(100, hysteresis_filter(&filter, 101));
-    EXPECT_EQ(107, hysteresis_filter(&filter, 110));
-    EXPECT_EQ(107, hysteresis_filter(&filter, 105));
-    EXPECT_EQ(97, hysteresis_filter(&filter, 94));
+    ASSERT_GT(h, 0);
+    ASSERT_LT(h + 1, initial);
+
+    HysteresisFilter filter;
+    hysteresis_filter_init(&filter, initial);
+
+    EXPECT_EQ(initial, hysteresis_filter(&filter, initial + h, h));
+    EXPECT_EQ(initial + 1, hysteresis_filter(&filter, initial + h + 1, h));
+
+    hysteresis_filter_init(&filter, initial);
+
+    EXPECT_EQ(initial, hysteresis_filter(&filter, initial - h, h));
+    EXPECT_EQ(initial - 1, hysteresis_filter(&filter, initial - h - 1, h));
+}
+
+TEST(Filter, HysteresisFilterHandlesValueBounds)
+{
+    constexpr HysteresisFilterValue h = FILTER_HYSTERESIS;
+
+    HysteresisFilter filter;
+    hysteresis_filter_init(&filter, 0);
+    EXPECT_EQ(ANALOG_VALUE_MAX - h, hysteresis_filter(&filter, ANALOG_VALUE_MAX, h));
+
+    hysteresis_filter_init(&filter, ANALOG_VALUE_MAX);
+    EXPECT_EQ(h, hysteresis_filter(&filter, 0, h));
 }
 
 TEST(Filter, KalmanFilterMovesTowardMeasurements)

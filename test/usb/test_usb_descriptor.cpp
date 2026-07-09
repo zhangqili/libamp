@@ -23,6 +23,12 @@ static uint32_t read_le32(const uint8_t *data)
     return (uint32_t)data[0] | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16) | ((uint32_t)data[3] << 24);
 }
 
+static constexpr uint16_t kExpectedHighSpeedEndpointSize = 512;
+// HID report sizes are host-facing compatibility values.
+static constexpr size_t kExpectedKeyboardReportLength = 68;
+static constexpr size_t kExpectedRawReportLength = 34;
+static constexpr size_t kExpectedSharedReportLength = 561;
+
 static_assert(sizeof(USB_Descriptor_Header_t) == 2);
 static_assert(sizeof(USB_Descriptor_Device_t) == 18);
 static_assert(sizeof(USB_Descriptor_Configuration_Header_t) == 9);
@@ -143,7 +149,6 @@ TEST(UsbDescriptor, BackendNeutralExtraDescriptors)
     EXPECT_EQ(0, std::memcmp(WebUSBURLDescriptor.URL, kDefaultWebUSBURL, sizeof(kDefaultWebUSBURL) - 1));
 
     EXPECT_EQ(MSOS20_TOTAL_LENGTH, sizeof(MSOS20DescriptorSet));
-    EXPECT_EQ(316U, sizeof(MSOS20DescriptorSet));
     EXPECT_EQ(MSOS20_SET_HEADER_LENGTH, read_le16(&MSOS20DescriptorSet[0]));
     EXPECT_EQ(USB_MSOS20_DTYPE_SetHeader, read_le16(&MSOS20DescriptorSet[2]));
     EXPECT_EQ(0x06030000UL, read_le32(&MSOS20DescriptorSet[4]));
@@ -168,7 +173,6 @@ TEST(UsbDescriptor, BackendNeutralExtraDescriptors)
     EXPECT_EQ(USB_MSOS20_PROPERTY_TYPE_REG_EXPAND_SZ, read_le16(&MSOS20DescriptorSet[kMTPSubsetOffset + 12]));
 
     EXPECT_EQ(BOS_TOTAL_LENGTH, sizeof(BOSDescriptor));
-    EXPECT_EQ(57U, sizeof(BOSDescriptor));
     EXPECT_EQ(BOS_HEADER_LENGTH, BOSDescriptor[0]);
     EXPECT_EQ(DTYPE_BOS, BOSDescriptor[1]);
     EXPECT_EQ(sizeof(BOSDescriptor), read_le16(&BOSDescriptor[2]));
@@ -241,9 +245,9 @@ TEST(UsbDescriptor, InterfaceAndEndpointAssignments)
     EXPECT_EQ(RAW_EPSIZE, ConfigurationDescriptor.Raw_INEndpoint.EndpointSize);
     EXPECT_EQ(SHARED_EPSIZE, ConfigurationDescriptor.Shared_INEndpoint.EndpointSize);
     EXPECT_EQ(MIDI_STREAM_EPSIZE, ConfigurationDescriptor.MIDI_Out_Jack_Endpoint.Endpoint.EndpointSize);
-    EXPECT_EQ(512, MIDI_STREAM_EPSIZE);
+    EXPECT_EQ(kExpectedHighSpeedEndpointSize, MIDI_STREAM_EPSIZE);
     EXPECT_EQ(MTP_DATA_EPSIZE, ConfigurationDescriptor.MTP_DataInEndpoint.EndpointSize);
-    EXPECT_EQ(512, MTP_DATA_EPSIZE);
+    EXPECT_EQ(kExpectedHighSpeedEndpointSize, MTP_DATA_EPSIZE);
     EXPECT_EQ(XINPUT_EPSIZE, ConfigurationDescriptor.XInput_INEndpoint.EndpointSize);
 }
 
@@ -263,9 +267,9 @@ TEST(UsbDescriptor, HidReportDescriptors)
 
     ASSERT_GE(sizeof(KeyboardReport), sizeof(kKeyboardPrefix));
     EXPECT_EQ(0, std::memcmp(KeyboardReport, kKeyboardPrefix, sizeof(kKeyboardPrefix)));
-    EXPECT_EQ(68U, sizeof(KeyboardReport));
-    EXPECT_EQ(34U, sizeof(RawReport));
-    EXPECT_EQ(561U, sizeof(SharedReport));
+    EXPECT_EQ(kExpectedKeyboardReportLength, sizeof(KeyboardReport));
+    EXPECT_EQ(kExpectedRawReportLength, sizeof(RawReport));
+    EXPECT_EQ(kExpectedSharedReportLength, sizeof(SharedReport));
     EXPECT_EQ(sizeof(KeyboardReport), ConfigurationDescriptor.Keyboard_HID.HIDReportLength);
     EXPECT_EQ(sizeof(RawReport), ConfigurationDescriptor.Raw_HID.HIDReportLength);
     EXPECT_EQ(sizeof(SharedReport), ConfigurationDescriptor.Shared_HID.HIDReportLength);

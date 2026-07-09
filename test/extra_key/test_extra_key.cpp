@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "extra_key.h"
-
-extern uint8_t shared_ep_send_buffer[64];
+#include "test_fixture.h"
 
 TEST(ExtraKey, Buffer)
 {

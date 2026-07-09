@@ -40,12 +40,8 @@ extern "C" {
 #endif
 
 typedef float FilterValue;
-
-typedef struct __HysteresisFilter
-{
-    FilterValue state;
-} HysteresisFilter;
-
+typedef uint16_t HysteresisFilterValue;
+typedef HysteresisFilterValue HysteresisFilter;
 typedef struct __LowpassFilter
 {
     FilterValue state;
@@ -69,18 +65,26 @@ typedef struct __KalmanFilter
 
 void filter_reset(void);
 
-static inline void hysteresis_filter_init(HysteresisFilter *filter, FilterValue initial_state)
+static inline void hysteresis_filter_init(HysteresisFilter *filter, HysteresisFilterValue initial_state)
 {
-    filter->state = initial_state;
+    *filter = initial_state;
 }
 
-static inline FilterValue hysteresis_filter(HysteresisFilter *filter, FilterValue value)
+static inline FilterValue hysteresis_filter(HysteresisFilter *filter, HysteresisFilterValue value, HysteresisFilterValue hysteresis)
 {
-    if (value - FILTER_HYSTERESIS > filter->state)
-        filter->state = value - FILTER_HYSTERESIS;
-    if (value + FILTER_HYSTERESIS < filter->state)
-        filter->state = value + FILTER_HYSTERESIS;
-    return filter->state;
+    int32_t delta = (int32_t)value - (int32_t)(*filter);
+    int32_t h = (int32_t)hysteresis;
+
+    if (delta > h)
+    {
+        *filter = (HysteresisFilterValue)((int32_t)value - h);
+    }
+    else if (delta < -h)
+    {
+        *filter = (HysteresisFilterValue)((int32_t)value + h);
+    }
+
+    return *filter;
 }
 
 static inline void lowpass_filter_init(LowpassFilter *filter, FilterValue initial_state)

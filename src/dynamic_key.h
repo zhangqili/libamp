@@ -7,6 +7,7 @@
 #define DYNAMIC_KEY_H_
 
 #include "keyboard.h"
+#include "filter.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,6 +15,10 @@ extern "C" {
 
 #ifndef DYNAMIC_KEY_NUM
 #define DYNAMIC_KEY_NUM 32
+#endif
+
+#ifndef DYNAMIC_KEY_HYSTERESIS
+#define DYNAMIC_KEY_HYSTERESIS A_ANTI_NORM(0.005f)
 #endif
 
 typedef enum __DynamicKeyType
@@ -51,7 +56,7 @@ typedef struct __DynamicKeyStroke4x4
     AnalogValue release_begin_distance;
     AnalogValue release_fully_distance;
     uint16_t key_id;
-    AnalogValue value;
+    HysteresisFilter filtered_value;
     uint32_t key_end_tick[4];
     uint8_t key_state;
 } DynamicKeyStroke4x4;
@@ -96,6 +101,7 @@ typedef struct __DynamicKeyMutex
     uint8_t mode;
     uint8_t key_state[2];
     uint8_t key_report_state[2];
+    HysteresisFilter filtered_value[2];
 } DynamicKeyMutex;
 
 typedef union __DynamicKey

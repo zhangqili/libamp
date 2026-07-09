@@ -96,7 +96,7 @@ bool advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
     value = analog_filter(&g_analog_filters[advanced_key->key.id], value);
 #endif
 #if defined(FILTER_HYSTERESIS_ENABLE) && FILTER_DOMAIN == FILTER_DOMAIN_NORMALIZED
-    value = hysteresis_filter(&g_analog_hysteresis_filters[advanced_key->key.id], value);
+    value = hysteresis_filter(&g_analog_hysteresis_filters[advanced_key->key.id], value, FILTER_HYSTERESIS);
 #endif
     advanced_key->difference = value - advanced_key->value;
     advanced_key->value = value;
@@ -129,7 +129,7 @@ bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue raw)
     filtered_raw = analog_filter(&g_analog_filters[advanced_key->key.id], filtered_raw);
 #endif
 #if defined(FILTER_HYSTERESIS_ENABLE) && FILTER_DOMAIN == FILTER_DOMAIN_RAW
-    filtered_raw = hysteresis_filter(&g_analog_hysteresis_filters[advanced_key->key.id], filtered_raw);
+    filtered_raw = hysteresis_filter(&g_analog_hysteresis_filters[advanced_key->key.id], filtered_raw, FILTER_HYSTERESIS);
 #endif
 #ifdef CALIBRATION_LPF_ENABLE
     static AnalogRawValue low_pass_raws[ADVANCED_KEY_NUM];

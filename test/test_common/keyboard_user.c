@@ -9,11 +9,13 @@
 #include "analog.h"
 #include "midi.h"
 #include "audio.h"
+#include "test_fixture.h"
 
-uint8_t shared_ep_send_buffer[64];
-uint8_t keyboard_send_buffer[64];
-uint8_t raw_send_buffer[64];
-uint8_t midi_send_buffer[64];
+uint8_t shared_ep_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
+uint8_t keyboard_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
+uint8_t raw_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
+uint8_t midi_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
+uint8_t gamepad_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 ColorRGB led_color_buffer[RGB_NUM];
 uint32_t led_flush_count;
 uint32_t audio_play_note_count;
@@ -990,6 +992,12 @@ int hid_send_joystick(uint8_t*report,uint16_t len)
     return 0;
 }
 
+int hid_send_gamepad(uint8_t *report, uint16_t len)
+{
+    memcpy(gamepad_send_buffer, report, len);
+    return 0;
+}
+
 int hid_send_raw(uint8_t *report, uint16_t len)
 {
     memcpy(raw_send_buffer, report, len);
@@ -1068,4 +1076,3 @@ int flash_erase(uint32_t addr, uint32_t size)
     memset(&flash_buffer[addr], 0xff, size);
     return 0;
 }
-

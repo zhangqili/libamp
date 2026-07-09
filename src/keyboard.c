@@ -102,6 +102,13 @@ void keyboard_keycode_event_handler(KeyboardEvent event)
 
 void keyboard_event_handler(KeyboardEvent event)
 {
+    const uint8_t keycode = KEYCODE_GET_MAIN(event.keycode);
+#ifdef DYNAMICKEY_ENABLE
+    if (keycode == DYNAMIC_KEY)
+    {
+        return;
+    }
+#endif
     if (EVENT_CHANGED(event.event))
     {
         event_loop_queue_push(&event_buffer, (EventLoopQueueElm){event, g_keyboard_tick});
@@ -127,7 +134,7 @@ void keyboard_event_handler(KeyboardEvent event)
             keyboard_key_event_up_callback((Key*)event.key);
         }
     }
-    switch (KEYCODE_GET_MAIN(event.keycode))
+    switch (keycode)
     {
 #ifdef MOUSE_ENABLE
     case MOUSE_COLLECTION:

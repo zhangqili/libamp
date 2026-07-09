@@ -4,9 +4,7 @@
 #include "keyboard.h"
 #include "layer.h"
 #include "math.h"
-
-extern uint8_t shared_ep_send_buffer[64];
-extern uint8_t keyboard_send_buffer[64];
+#include "test_fixture.h"
 
 
 void keyboard_advanced_key_update_state(AdvancedKey *key, bool state)

@@ -24,11 +24,14 @@ add_executable(libamp_tests
     event/test_event.cpp
     large_packet/test_large_packet.cpp
     macro/test_macro.cpp
+    record/test_record.cpp
     mouse/test_mouse.cpp
     extra_key/test_extra_key.cpp
     joystick/test_joystick.cpp
+    gamepad/test_gamepad.cpp
     packet/test_packet.cpp
     rgb/test_rgb.cpp
+    console/test_console.cpp
     storage/test_storage.cpp
     layer/test_layer.cpp
     midi/test_midi.cpp

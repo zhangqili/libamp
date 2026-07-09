@@ -2,8 +2,7 @@
 
 #include "keyboard.h"
 #include "mouse.h"
-
-extern uint8_t shared_ep_send_buffer[64];
+#include "test_fixture.h"
 
 TEST(Mouse, Buffer)
 {

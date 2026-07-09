@@ -1,6 +1,7 @@
 #ifndef LIBAMP_TEST_FIXTURE_H_
 #define LIBAMP_TEST_FIXTURE_H_
 
+#include "amp_protocol.h"
 #include "midi.h"
 #include "rgb.h"
 
@@ -8,10 +9,13 @@
 extern "C" {
 #endif
 
-extern uint8_t shared_ep_send_buffer[64];
-extern uint8_t keyboard_send_buffer[64];
-extern uint8_t raw_send_buffer[64];
-extern uint8_t midi_send_buffer[64];
+#define LIBAMP_TEST_REPORT_BUFFER_SIZE AMP_FRAME_REPORT_SIZE
+
+extern uint8_t shared_ep_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
+extern uint8_t keyboard_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
+extern uint8_t raw_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
+extern uint8_t midi_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
+extern uint8_t gamepad_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 extern ColorRGB led_color_buffer[RGB_NUM];
 extern uint32_t led_flush_count;
 extern uint32_t audio_play_note_count;

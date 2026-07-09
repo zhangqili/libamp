@@ -39,7 +39,7 @@ TEST(UsbSerialNumber, ConvertsBytesToUppercaseHexString)
     char buffer[9] = {};
     const uint8_t id[] = {0x12, 0xAB, 0x00, 0xF0};
 
-    EXPECT_EQ(8U, usb_descriptor_bytes_to_hex_string(buffer, sizeof(buffer), id, sizeof(id)));
+    EXPECT_EQ(sizeof(id) * 2, usb_descriptor_bytes_to_hex_string(buffer, sizeof(buffer), id, sizeof(id)));
     EXPECT_STREQ("12AB00F0", buffer);
 }
 
@@ -47,8 +47,9 @@ TEST(UsbSerialNumber, HexStringConversionTruncatesToCompleteBytes)
 {
     char buffer[6] = {};
     const uint8_t id[] = {0x12, 0xAB, 0x00, 0xF0};
+    const size_t expected_hex_chars = ((sizeof(buffer) - 1) / 2) * 2;
 
-    EXPECT_EQ(4U, usb_descriptor_bytes_to_hex_string(buffer, sizeof(buffer), id, sizeof(id)));
+    EXPECT_EQ(expected_hex_chars, usb_descriptor_bytes_to_hex_string(buffer, sizeof(buffer), id, sizeof(id)));
     EXPECT_STREQ("12AB", buffer);
 }
 
