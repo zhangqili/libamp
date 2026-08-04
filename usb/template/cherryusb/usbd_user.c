@@ -257,6 +257,7 @@ static struct usbd_endpoint shared_in_ep = {
 #endif
 
 #ifdef RAW_ENABLE
+STATIC_ASSERT(RAW_EPSIZE == AMP_FRAME_REPORT_SIZE, "Raw HID endpoint must use 64-byte reports");
 static volatile bool  raw_state;
 USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t raw_in_buffer[RAW_EPSIZE];
 USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t raw_out_buffer[RAW_EPSIZE];
@@ -274,7 +275,8 @@ static void usbd_hid_raw_out_callback(uint8_t busid, uint8_t ep, uint32_t nbytes
 {
     UNUSED(busid);
     UNUSED(ep);
-    amp_transport_receive_report(raw_out_buffer, (uint16_t)nbytes);
+    UNUSED(nbytes);
+    amp_transport_receive_report(raw_out_buffer);
     usbd_ep_start_read(0, RAW_EPOUT_ADDR, raw_out_buffer, 64);
 }
 

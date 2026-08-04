@@ -19,7 +19,7 @@ namespace {
 
 struct CapturedNexusPacket {
     uint8_t slave_id;
-    PacketAdvancedKey packet;
+    AmpFrame frame;
 };
 
 CapturedNexusPacket captured_packets[8];
@@ -53,7 +53,7 @@ void set_test_config(uint16_t key_index)
 extern "C" int nexus_send(uint8_t slave_id, uint8_t *report, uint16_t len)
 {
     AmpFrame frame;
-    if (!amp_frame_decode(report, len, &frame) || frame.header.len > sizeof(PacketAdvancedKey) - 2)
+    if (len != AMP_FRAME_REPORT_SIZE || !amp_frame_decode(report, &frame))
     {
         captured_decode_ok = false;
         return 1;
@@ -63,16 +63,16 @@ extern "C" int nexus_send(uint8_t slave_id, uint8_t *report, uint16_t len)
     {
         CapturedNexusPacket *captured = &captured_packets[captured_packet_count++];
         captured->slave_id = slave_id;
-        std::memset(&captured->packet, 0, sizeof(captured->packet));
-        captured->packet.code = frame.header.code;
-        captured->packet.type = frame.header.type;
-        std::memcpy(((uint8_t *)&captured->packet) + 2, frame.payload, frame.header.len);
+        captured->frame = frame;
     }
 
     AmpFrameHeader *response = (AmpFrameHeader *)g_nexus_slave_buffer[slave_id];
     response->proto = AMP_FRAME_PROTO;
     response->channel_flags = (uint8_t)((AMP_CHANNEL_NEXUS_CTRL << 4) | AMP_FRAME_FLAG_RESP);
     response->seq = frame.header.seq;
+    response->code = frame.header.code;
+    response->type = frame.header.type;
+    response->status = AMP_STATUS_OK;
     return 0;
 }
 
@@ -86,12 +86,17 @@ TEST(NexusConfigSync, SendsMappedKeyUsingSlaveLocalIndex)
     ASSERT_TRUE(captured_decode_ok);
     ASSERT_EQ(1u, captured_packet_count);
     EXPECT_EQ(0u, captured_packets[0].slave_id);
-    EXPECT_EQ(PACKET_CODE_SET, captured_packets[0].packet.code);
-    EXPECT_EQ(PACKET_DATA_ADVANCED_KEY, captured_packets[0].packet.type);
-    EXPECT_EQ(1u, captured_packets[0].packet.index);
-    EXPECT_EQ(g_keyboard_advanced_keys[5].config.mode, captured_packets[0].packet.data.mode);
-    EXPECT_EQ(g_keyboard_advanced_keys[5].config.activation_value, captured_packets[0].packet.data.activation_value);
-    EXPECT_EQ(g_keyboard_advanced_keys[5].config.deactivation_value, captured_packets[0].packet.data.deactivation_value);
+    EXPECT_EQ(PACKET_CODE_SET, captured_packets[0].frame.header.code);
+    EXPECT_EQ(PACKET_DATA_ADVANCED_KEY, captured_packets[0].frame.header.type);
+    const PacketAdvancedKeys *body =
+        reinterpret_cast<const PacketAdvancedKeys *>(captured_packets[0].frame.body);
+    ASSERT_EQ(1, body->count);
+    EXPECT_EQ(1u, body->items[0].index);
+    EXPECT_EQ(g_keyboard_advanced_keys[5].config.mode, body->items[0].config.mode);
+    EXPECT_EQ(g_keyboard_advanced_keys[5].config.activation_value,
+              body->items[0].config.activation_value);
+    EXPECT_EQ(g_keyboard_advanced_keys[5].config.deactivation_value,
+              body->items[0].config.deactivation_value);
 }
 
 TEST(NexusConfigSync, SkipsKeysNotMappedToSlaves)
@@ -115,10 +120,22 @@ TEST(NexusConfigSync, InitSendsAllSlaveLocalConfigs)
 
     ASSERT_TRUE(captured_decode_ok);
     ASSERT_EQ(3u, captured_packet_count);
-    EXPECT_EQ(0u, captured_packets[0].packet.index);
-    EXPECT_EQ(1u, captured_packets[1].packet.index);
-    EXPECT_EQ(2u, captured_packets[2].packet.index);
-    EXPECT_EQ(g_keyboard_advanced_keys[2].config.activation_value, captured_packets[0].packet.data.activation_value);
-    EXPECT_EQ(g_keyboard_advanced_keys[5].config.activation_value, captured_packets[1].packet.data.activation_value);
-    EXPECT_EQ(g_keyboard_advanced_keys[8].config.activation_value, captured_packets[2].packet.data.activation_value);
+    const PacketAdvancedKeys *body0 =
+        reinterpret_cast<const PacketAdvancedKeys *>(captured_packets[0].frame.body);
+    const PacketAdvancedKeys *body1 =
+        reinterpret_cast<const PacketAdvancedKeys *>(captured_packets[1].frame.body);
+    const PacketAdvancedKeys *body2 =
+        reinterpret_cast<const PacketAdvancedKeys *>(captured_packets[2].frame.body);
+    ASSERT_EQ(1, body0->count);
+    ASSERT_EQ(1, body1->count);
+    ASSERT_EQ(1, body2->count);
+    EXPECT_EQ(0u, body0->items[0].index);
+    EXPECT_EQ(1u, body1->items[0].index);
+    EXPECT_EQ(2u, body2->items[0].index);
+    EXPECT_EQ(g_keyboard_advanced_keys[2].config.activation_value,
+              body0->items[0].config.activation_value);
+    EXPECT_EQ(g_keyboard_advanced_keys[5].config.activation_value,
+              body1->items[0].config.activation_value);
+    EXPECT_EQ(g_keyboard_advanced_keys[8].config.activation_value,
+              body2->items[0].config.activation_value);
 }

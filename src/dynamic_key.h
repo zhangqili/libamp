@@ -111,7 +111,7 @@ typedef union __DynamicKey
     DynamicKeyModTap mt;
     DynamicKeyToggleKey tk;
     DynamicKeyMutex m;
-    uint32_t aligned_buffer[15];
+    uint32_t aligned_buffer[14];
 } DynamicKey;
 
 extern DynamicKey g_dynamic_keys[DYNAMIC_KEY_NUM];

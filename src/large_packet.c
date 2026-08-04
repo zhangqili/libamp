@@ -4,368 +4,312 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "packet.h"
-#include <string.h> // for memcpy
-
-#include "script.h"
-#include "storage.h"
 
 #include "file_system.h"
+#include "script.h"
+#include "storage.h"
+#include <string.h>
 
-#define LARGE_PKT_HDR_SIZE 9 // code(1)+type(1)+sub(1)+offset(4)+len(2)
-#define MAX_PAYLOAD_SIZE (64 - LARGE_PKT_HDR_SIZE)
+typedef struct {
+    File file;
+    bool active;
+    bool write;
+    uint8_t type;
+    uint32_t total_size;
+    uint32_t offset;
+    const char *final_name;
+    const char *temp_name;
+} LargeTransfer;
 
-enum
+static LargeTransfer transfer;
+
+static AmpStatus large_object_info(uint8_t type, const char **final_name,
+                                   const char **temp_name, uint32_t *max_size)
 {
-    LARGE_DATA_CMD_START = 0,
-    LARGE_DATA_CMD_PAYLOAD = 1,
-    LARGE_DATA_CMD_END = 2,
-    LARGE_DATA_CMD_ABORT = 3,
-};
-
-uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t val, uint8_t *data, uint16_t len)
-{
-#if defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
-    static const char *SCRIPT_FILENAME = "scripts/main.js";
-    static File script_file;
-    static bool script_file_open = false;
-    if (code == PACKET_CODE_LARGE_SET)
+#if defined(SCRIPT_ENABLE) && defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
+    if (type == PACKET_DATA_SCRIPT_SCOURCE)
     {
-        switch (sub_cmd)
-        {
-        case LARGE_DATA_CMD_START:
-            if (script_file_open)
-            {
-                fs_close(&script_file);
-            }
-            fs_unlink(SCRIPT_FILENAME);
-            int res = fs_open(&script_file, SCRIPT_FILENAME, FS_O_RDWR | FS_O_CREAT | FS_O_TRUNC);
-            if (res < 0)
-            {
-                return false;
-            }
-            script_file_open = true;
-            return 0;
-
-        case LARGE_DATA_CMD_PAYLOAD:
-            if (!script_file_open)
-            {
-                return false;
-            }
-            if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
-            {
-                return false;
-            }
-            if (fs_write(&script_file, data, len) < 0)
-            {
-                return false;
-            }
-            return 0;
-
-        case LARGE_DATA_CMD_END:
-        case LARGE_DATA_CMD_ABORT:
-            if (script_file_open)
-            {
-                fs_close(&script_file);
-                script_file_open = false;
-            }
-#if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
-            //script_init();
-#endif
-            return 0;
-        }
+        *final_name = "scripts/main.js";
+        *temp_name = "scripts/main.js.tmp";
+        *max_size = SCRIPT_SOURCE_BUFFER_SIZE;
+        return AMP_STATUS_OK;
     }
-    else if (code == PACKET_CODE_LARGE_GET)
-    {
-        switch (sub_cmd)
-        {
-        case LARGE_DATA_CMD_START:
-            if (val == 0)
-            {
-                if (script_file_open)
-                {
-                    fs_close(&script_file);
-                }
-
-                int res = fs_open(&script_file, SCRIPT_FILENAME, FS_O_RDONLY);
-                if (res < 0)
-                {
-                    return 0;
-                }
-                script_file_open = true;
-                return  fs_size(&script_file);
-            }
-            else if (val == 1)
-            {
-                if (!script_file_open)
-                    return 0;
-
-                if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
-                {
-                    return 0;
-                }
-
-                long read_len = fs_read(&script_file, data, len);
-                if (read_len < 0)
-                {
-                    return 0;
-                }
-                return (uint16_t)read_len;
-            }
-            return 0;
-
-        case LARGE_DATA_CMD_PAYLOAD:
-            if (!script_file_open)
-            {
-                return 0;
-            }
-
-            if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
-            {
-                return 0;
-            }
-
-            long read_len = fs_read(&script_file, data, len);
-            if (read_len < 0)
-            {
-                return 0;
-            }
-            return (uint16_t)read_len;
-        case LARGE_DATA_CMD_END:
-        case LARGE_DATA_CMD_ABORT:
-            if (script_file_open)
-            {
-                fs_close(&script_file);
-                script_file_open = false;
-            }
-            return 0;
-        }
-    }
-#endif
-    return 0;
-}
-
-uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t val, uint8_t *data, uint16_t len)
-{
-#if defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
-    static const char *SCRIPT_FILENAME = "scripts/main.bin";
-    static File script_file;
-    static bool script_file_open = false;
-    if (code == PACKET_CODE_LARGE_SET)
+    if (type == PACKET_DATA_SCRIPT_BYTECODE)
     {
-        switch (sub_cmd)
-        {
-        case LARGE_DATA_CMD_START:
-            if (script_file_open)
-            {
-                fs_close(&script_file);
-            }
-            fs_unlink(SCRIPT_FILENAME);
-            int res = fs_open(&script_file, SCRIPT_FILENAME, FS_O_WRONLY | FS_O_CREAT | FS_O_TRUNC);
-            if (res < 0)
-            {
-                return false;
-            }
-            script_file_open = true;
-            return 0;
-
-        case LARGE_DATA_CMD_PAYLOAD:
-            if (!script_file_open)
-            {
-                return false;
-            }
-            if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
-            {
-                return false;
-            }
-            if (fs_write(&script_file, data, len) < 0)
-            {
-                return false;
-            }
-            return 0;
-
-        case LARGE_DATA_CMD_END:
-        case LARGE_DATA_CMD_ABORT:
-            if (script_file_open)
-            {
-                fs_close(&script_file);
-                script_file_open = false;
-            }
-            //script_init();
-            return 0;
-        }
-    }
-    else if (code == PACKET_CODE_LARGE_GET)
-    {
-        switch (sub_cmd)
-        {
-        case LARGE_DATA_CMD_START:
-            if (val == 0)
-            {
-                if (script_file_open)
-                {
-                    fs_close(&script_file);
-                }
-
-                int res = fs_open(&script_file, SCRIPT_FILENAME, FS_O_RDONLY);
-                if (res < 0)
-                {
-                    return 0;
-                }
-                script_file_open = true;
-                return fs_size(&script_file);
-            }
-            else if (val == 1)
-            {
-                if (!script_file_open)
-                    return 0;
-
-                if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
-                {
-                    return 0;
-                }
-
-                long read_len = fs_read(&script_file, data, len);
-                if (read_len < 0)
-                {
-                    return 0;
-                }
-                return (uint16_t)read_len;
-            }
-            return 0;
-
-        case LARGE_DATA_CMD_PAYLOAD:
-            if (!script_file_open)
-            {
-                return 0;
-            }
-
-            if (fs_seek(&script_file, val, FS_SEEK_SET) < 0)
-            {
-                return 0;
-            }
-
-            long read_len = fs_read(&script_file, data, len);
-            if (read_len < 0)
-            {
-                return 0;
-            }
-            return (uint16_t)read_len;
-        case LARGE_DATA_CMD_END:
-        case LARGE_DATA_CMD_ABORT:
-            if (script_file_open)
-            {
-                fs_close(&script_file);
-                script_file_open = false;
-            }
-            return 0;
-        }
+        *final_name = "scripts/main.bin";
+        *temp_name = "scripts/main.bin.tmp";
+        *max_size = SCRIPT_BYTECODE_BUFFER_SIZE;
+        return AMP_STATUS_OK;
     }
 #endif
+#else
+    UNUSED(type);
+    UNUSED(final_name);
+    UNUSED(temp_name);
+    UNUSED(max_size);
 #endif
-    return 0;
+    return AMP_STATUS_UNSUPPORTED;
 }
 
-uint32_t large_packet_dispatch(uint8_t type, uint8_t code, uint8_t sub_cmd, uint32_t val, uint8_t *data, uint16_t len)
+static void large_reset(void)
 {
-    switch (type)
+    memset(&transfer, 0, sizeof(transfer));
+}
+
+static AmpStatus large_abort(void)
+{
+    if (!transfer.active)
     {
-#ifdef SCRIPT_ENABLE
-    case PACKET_DATA_SCRIPT_SCOURCE:
-        return script_source_handle_large_data(code, sub_cmd, val, data, len);
-    case PACKET_DATA_SCRIPT_BYTECODE:
-        return script_bytecode_handle_large_data(code, sub_cmd, val, data, len);
-#endif
+        return AMP_STATUS_OK;
+    }
+    bool write = transfer.write;
+    const char *temp_name = transfer.temp_name;
+    int close_result = fs_close(&transfer.file);
+    if (write && temp_name != NULL)
+    {
+        (void)fs_unlink(temp_name);
+    }
+    large_reset();
+    return close_result < 0 ? AMP_STATUS_IO_ERROR : AMP_STATUS_OK;
+}
+
+static AmpStatus process_set_start(const AmpFrame *request)
+{
+    const PacketLargeStart *body = (const PacketLargeStart *)request->body;
+    const char *final_name = NULL;
+    const char *temp_name = NULL;
+    uint32_t max_size = 0;
+    AmpStatus status = large_object_info(request->header.type, &final_name,
+                                         &temp_name, &max_size);
+    if (status != AMP_STATUS_OK)
+    {
+        return status;
+    }
+    if (body->total_size > max_size)
+    {
+        return AMP_STATUS_INVALID_ARGUMENT;
+    }
+
+    /*
+     * START is also the recovery boundary for an abandoned transfer.  A host
+     * can disappear without being able to send ABORT (for example when its
+     * browser tab is closed), so a valid new START must not remain blocked by
+     * stale in-memory session state.
+     */
+    status = large_abort();
+    if (status != AMP_STATUS_OK)
+    {
+        return status;
+    }
+
+    (void)fs_unlink(temp_name);
+    if (fs_open(&transfer.file, temp_name,
+                FS_O_WRONLY | FS_O_CREAT | FS_O_TRUNC) < 0)
+    {
+        large_reset();
+        return AMP_STATUS_IO_ERROR;
+    }
+    transfer.active = true;
+    transfer.write = true;
+    transfer.type = request->header.type;
+    transfer.total_size = body->total_size;
+    transfer.final_name = final_name;
+    transfer.temp_name = temp_name;
+    return AMP_STATUS_OK;
+}
+
+static AmpStatus process_set_payload(const AmpFrame *request)
+{
+    const PacketLargePayload *body = (const PacketLargePayload *)request->body;
+    if (!transfer.active || !transfer.write || transfer.type != request->header.type)
+    {
+        return AMP_STATUS_INVALID_STATE;
+    }
+    if (body->chunk_length > PACKET_LARGE_CHUNK_SIZE || body->offset != transfer.offset ||
+        (uint64_t)body->offset + body->chunk_length > transfer.total_size)
+    {
+        return AMP_STATUS_INVALID_ARGUMENT;
+    }
+    if (fs_seek(&transfer.file, body->offset, FS_SEEK_SET) < 0 ||
+        fs_write(&transfer.file, (void *)body->data, body->chunk_length) != body->chunk_length)
+    {
+        (void)large_abort();
+        return AMP_STATUS_IO_ERROR;
+    }
+    transfer.offset += body->chunk_length;
+    return AMP_STATUS_OK;
+}
+
+static AmpStatus process_set_end(const AmpFrame *request)
+{
+    if (!transfer.active || !transfer.write || transfer.type != request->header.type)
+    {
+        return AMP_STATUS_INVALID_STATE;
+    }
+    if (transfer.offset != transfer.total_size)
+    {
+        return AMP_STATUS_INVALID_STATE;
+    }
+
+    const char *temp_name = transfer.temp_name;
+    const char *final_name = transfer.final_name;
+    int sync_result = fs_sync(&transfer.file);
+    int close_result = fs_close(&transfer.file);
+    if (sync_result < 0 || close_result < 0)
+    {
+        (void)fs_unlink(temp_name);
+        large_reset();
+        return AMP_STATUS_IO_ERROR;
+    }
+    if (fs_rename(temp_name, final_name) < 0)
+    {
+        (void)fs_unlink(temp_name);
+        large_reset();
+        return AMP_STATUS_IO_ERROR;
+    }
+    large_reset();
+    return AMP_STATUS_OK;
+}
+
+static AmpStatus process_large_set(const AmpFrame *request)
+{
+    const PacketLarge *body = (const PacketLarge *)request->body;
+    switch (body->sub_cmd)
+    {
+    case LARGE_DATA_CMD_START:
+        return process_set_start(request);
+    case LARGE_DATA_CMD_PAYLOAD:
+        return process_set_payload(request);
+    case LARGE_DATA_CMD_END:
+        return process_set_end(request);
+    case LARGE_DATA_CMD_ABORT:
+        return large_abort();
     default:
-        return 0;
+        return AMP_STATUS_INVALID_ARGUMENT;
     }
 }
 
-static uint32_t large_rx_total = 0;
-static uint32_t large_rx_recv = 0;
-static uint8_t large_rx_type = 0;
-
-static void process_large_set(PacketLargeData *pkt)
+static AmpStatus process_get_start(const AmpFrame *request, AmpFrame *response)
 {
-    uint8_t sub_cmd = pkt->sub_cmd;
-    uint8_t type = pkt->type;
-
-    if (sub_cmd == LARGE_DATA_CMD_START)
+    const char *final_name = NULL;
+    const char *temp_name = NULL;
+    uint32_t max_size = 0;
+    AmpStatus status = large_object_info(request->header.type, &final_name,
+                                         &temp_name, &max_size);
+    UNUSED(temp_name);
+    UNUSED(max_size);
+    if (status != AMP_STATUS_OK)
     {
-        uint32_t total_size = pkt->header.total_size;
-
-        large_rx_type = type;
-        large_rx_total = total_size;
-        large_rx_recv = 0;
-
-        large_packet_dispatch(type, PACKET_CODE_LARGE_SET, LARGE_DATA_CMD_START, total_size, NULL, 0);
+        return status;
     }
-    else if (sub_cmd == LARGE_DATA_CMD_PAYLOAD)
+    status = large_abort();
+    if (status != AMP_STATUS_OK)
     {
-        uint32_t offset = pkt->payload.offset;
-        uint16_t len = pkt->payload.length;
-
-        if (len > MAX_PAYLOAD_SIZE || offset != large_rx_recv)
-        {
-            large_packet_dispatch(type, PACKET_CODE_LARGE_SET, LARGE_DATA_CMD_ABORT, 0, NULL, 0);
-            return;
-        }
-        large_packet_dispatch(type, PACKET_CODE_LARGE_SET, LARGE_DATA_CMD_PAYLOAD, offset, pkt->payload.data, len);
-        large_rx_recv += len;
-        if (large_rx_recv >= large_rx_total)
-        {
-            large_packet_dispatch(type, PACKET_CODE_LARGE_SET, LARGE_DATA_CMD_END, 0, NULL, 0);
-            large_rx_total = 0;
-            large_rx_recv = 0;
-        }
+        return status;
     }
-    else if (sub_cmd == LARGE_DATA_CMD_ABORT)
+    if (fs_open(&transfer.file, final_name, FS_O_RDONLY) < 0)
     {
-        large_packet_dispatch(type, PACKET_CODE_LARGE_SET, LARGE_DATA_CMD_ABORT, 0, NULL, 0);
-        large_rx_total = 0;
-        large_rx_recv = 0;
+        large_reset();
+        return AMP_STATUS_IO_ERROR;
+    }
+    FilePosition size = fs_size(&transfer.file);
+    if (size < 0)
+    {
+        (void)fs_close(&transfer.file);
+        large_reset();
+        return AMP_STATUS_IO_ERROR;
+    }
+
+    transfer.active = true;
+    transfer.write = false;
+    transfer.type = request->header.type;
+    transfer.total_size = (uint32_t)size;
+    transfer.final_name = final_name;
+    PacketLargeStart *out = (PacketLargeStart *)response->body;
+    out->sub_cmd = LARGE_DATA_CMD_START;
+    out->total_size = transfer.total_size;
+    return AMP_STATUS_OK;
+}
+
+static AmpStatus process_get_payload(const AmpFrame *request, AmpFrame *response)
+{
+    const PacketLargePayload *body = (const PacketLargePayload *)request->body;
+    if (!transfer.active || transfer.write || transfer.type != request->header.type)
+    {
+        return AMP_STATUS_INVALID_STATE;
+    }
+    if (body->chunk_length > PACKET_LARGE_CHUNK_SIZE ||
+        body->offset > transfer.total_size)
+    {
+        return AMP_STATUS_INVALID_ARGUMENT;
+    }
+
+    uint32_t remaining = transfer.total_size - body->offset;
+    uint8_t read_length = body->chunk_length;
+    if (read_length > remaining)
+    {
+        read_length = (uint8_t)remaining;
+    }
+    PacketLargePayload *out = (PacketLargePayload *)response->body;
+    out->sub_cmd = LARGE_DATA_CMD_PAYLOAD;
+    out->offset = body->offset;
+    if (fs_seek(&transfer.file, body->offset, FS_SEEK_SET) < 0)
+    {
+        return AMP_STATUS_IO_ERROR;
+    }
+    size_t actual = fs_read(&transfer.file, out->data, read_length);
+    if (actual != read_length)
+    {
+        return AMP_STATUS_IO_ERROR;
+    }
+    out->chunk_length = (uint8_t)actual;
+    transfer.offset = body->offset + (uint32_t)actual;
+    return AMP_STATUS_OK;
+}
+
+static AmpStatus process_get_end(const AmpFrame *request)
+{
+    if (!transfer.active || transfer.write || transfer.type != request->header.type)
+    {
+        return AMP_STATUS_INVALID_STATE;
+    }
+    int result = fs_close(&transfer.file);
+    large_reset();
+    return result < 0 ? AMP_STATUS_IO_ERROR : AMP_STATUS_OK;
+}
+
+static AmpStatus process_large_get(const AmpFrame *request, AmpFrame *response)
+{
+    const PacketLarge *body = (const PacketLarge *)request->body;
+    switch (body->sub_cmd)
+    {
+    case LARGE_DATA_CMD_START:
+        return process_get_start(request, response);
+    case LARGE_DATA_CMD_PAYLOAD:
+        return process_get_payload(request, response);
+    case LARGE_DATA_CMD_END:
+        return process_get_end(request);
+    case LARGE_DATA_CMD_ABORT:
+        return large_abort();
+    default:
+        return AMP_STATUS_INVALID_ARGUMENT;
     }
 }
 
-static void process_large_get(PacketLargeData *pkt)
+AmpStatus large_packet_process(const AmpFrame *request, AmpFrame *response)
 {
-    uint8_t sub_cmd = pkt->sub_cmd;
-    uint8_t type = pkt->type;
-
-    if (sub_cmd == LARGE_DATA_CMD_START)
+    if (request == NULL || response == NULL)
     {
-        uint32_t size = large_packet_dispatch(type, PACKET_CODE_LARGE_GET, LARGE_DATA_CMD_START, 0, NULL, 0);
-        uint32_t checksum = large_packet_dispatch(type, PACKET_CODE_LARGE_GET, LARGE_DATA_CMD_START, 1, NULL, 0);
-
-        pkt->header.total_size = size;
-        pkt->header.checksum = checksum;
+        return AMP_STATUS_INVALID_ARGUMENT;
     }
-    else if (sub_cmd == LARGE_DATA_CMD_PAYLOAD)
+    if (request->header.code == PACKET_CODE_LARGE_SET)
     {
-        uint32_t offset = pkt->payload.offset;
-        uint16_t req_len = pkt->payload.length;
-
-        if (req_len > MAX_PAYLOAD_SIZE)
-            req_len = MAX_PAYLOAD_SIZE;
-
-        uint16_t actual_len = (uint16_t)large_packet_dispatch(type, PACKET_CODE_LARGE_GET, LARGE_DATA_CMD_PAYLOAD, offset, pkt->payload.data, req_len);
-
-        pkt->payload.length = actual_len;
+        return process_large_set(request);
     }
-    else if (sub_cmd == LARGE_DATA_CMD_ABORT)
+    if (request->header.code == PACKET_CODE_LARGE_GET)
     {
-        large_packet_dispatch(type, PACKET_CODE_LARGE_GET, LARGE_DATA_CMD_ABORT, 0, NULL, 0);
+        return process_large_get(request, response);
     }
-}
-
-void large_packet_process(PacketLargeData *buf)
-{
-    if (buf->code == PACKET_CODE_LARGE_SET)
-    {
-        process_large_set(buf);
-    }
-    else if (buf->code == PACKET_CODE_LARGE_GET)
-    {
-        process_large_get(buf);
-    }
+    return AMP_STATUS_UNSUPPORTED;
 }

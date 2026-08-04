@@ -39,13 +39,28 @@ static uint16_t nexus_slave_config_length(uint8_t slave_id)
 
 static int nexus_send_advanced_key_config(uint8_t slave_id, uint16_t local_index, uint16_t key_index)
 {
-    PacketAdvancedKey packet;
-    memset(&packet, 0, sizeof(packet));
-    packet.code = PACKET_CODE_SET;
-    packet.type = PACKET_DATA_ADVANCED_KEY;
-    packet.index = local_index;
-    memcpy(&packet.data, &g_keyboard_advanced_keys[key_index].config, sizeof(AdvancedKeyConfiguration));
-    return nexus_send_timeout(slave_id, (const uint8_t *)&packet, sizeof(packet), NEXUS_TIMEOUT);
+    AmpFrame frame = {0};
+    PacketAdvancedKeys *body = (PacketAdvancedKeys *)frame.body;
+    const AdvancedKeyConfiguration *config = &g_keyboard_advanced_keys[key_index].config;
+    frame.header.proto = AMP_FRAME_PROTO;
+    frame.header.channel_flags = (uint8_t)(AMP_CHANNEL_NEXUS_CTRL << 4);
+    frame.header.code = PACKET_CODE_SET;
+    frame.header.type = PACKET_DATA_ADVANCED_KEY;
+    body->count = 1;
+    body->items[0].index = local_index;
+    body->items[0].config.mode = config->mode;
+    body->items[0].config.calibration_mode = config->calibration_mode;
+    body->items[0].config.activation_value = config->activation_value;
+    body->items[0].config.deactivation_value = config->deactivation_value;
+    body->items[0].config.trigger_distance = config->trigger_distance;
+    body->items[0].config.release_distance = config->release_distance;
+    body->items[0].config.trigger_speed = config->trigger_speed;
+    body->items[0].config.release_speed = config->release_speed;
+    body->items[0].config.upper_deadzone = config->upper_deadzone;
+    body->items[0].config.lower_deadzone = config->lower_deadzone;
+    body->items[0].config.upper_bound = config->upper_bound;
+    body->items[0].config.lower_bound = config->lower_bound;
+    return nexus_send_timeout(slave_id, (const uint8_t *)&frame, sizeof(frame), NEXUS_TIMEOUT);
 }
 
 static inline int nexus_config_slave(uint8_t slave_id)
@@ -118,14 +133,15 @@ void nexus_calibrate(void)
 {
     for (int i = 0; i < NEXUS_SLAVE_NUM; i++)
     {
-        PacketEvent packet;
-        packet.code = PACKET_CODE_SET;
-        packet.event = KEYBOARD_EVENT_KEY_DOWN;
-        packet.keycode = KEYCODE(KEYBOARD_OPERATION, KEYBOARD_CALIBRATE);
-        packet.id = 0;
-        packet.is_virtual = true;
-        packet.use_keymap = false;
-        nexus_send_timeout(i, (const uint8_t *)&packet, sizeof(packet), NEXUS_TIMEOUT);
+        AmpFrame frame = {0};
+        PacketEvent *body = (PacketEvent *)frame.body;
+        frame.header.proto = AMP_FRAME_PROTO;
+        frame.header.channel_flags = (uint8_t)(AMP_CHANNEL_NEXUS_CTRL << 4);
+        frame.header.code = PACKET_CODE_EVENT;
+        body->event = KEYBOARD_EVENT_KEY_DOWN;
+        body->keycode = KEYCODE(KEYBOARD_OPERATION, KEYBOARD_CALIBRATE);
+        body->is_virtual = true;
+        nexus_send_timeout(i, (const uint8_t *)&frame, sizeof(frame), NEXUS_TIMEOUT);
     }
 }
 
@@ -175,7 +191,7 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
     AmpFrame frame;
     uint8_t response[AMP_FRAME_REPORT_SIZE];
 
-    if (!amp_frame_decode(buf, len, &frame))
+    if (len < AMP_FRAME_REPORT_SIZE || !amp_frame_decode(buf, &frame))
     {
         return;
     }
@@ -190,9 +206,13 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
     }
     slave_flags[slave_id] = true;
 
-    if (amp_is_frame(buf, len))
+    if (amp_is_frame(buf))
     {
-        uint16_t copy_len = len > NEXUS_BUFFER_SIZE ? NEXUS_BUFFER_SIZE : len;
+        const uint16_t copy_len = NEXUS_MIN(len, NEXUS_BUFFER_SIZE);
+        if (copy_len < AMP_FRAME_HEADER_SIZE)
+        {
+            return;
+        }
         if (buf != g_nexus_slave_buffer[slave_id])
         {
             memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_BUFFER_SIZE);
@@ -314,7 +334,7 @@ int nexus_send_report(void)
 #endif
 }
 
-int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout, AmpFrame *out_response)
+int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout)
 {
     static uint8_t sequence;
     uint8_t frame_report[AMP_FRAME_REPORT_SIZE];
@@ -323,12 +343,17 @@ int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len,
     {
         seq = ++sequence;
     }
-    if (slave_id >= NEXUS_SLAVE_NUM || report == NULL || len < 2 || len - 2 > AMP_FRAME_MAX_PAYLOAD ||
-        amp_frame_encode(frame_report, AMP_CHANNEL_NEXUS_CTRL, AMP_FRAME_FLAG_REQ_ACK, seq,
-                         report[0], report[1], report + 2, (uint8_t)(len - 2)) != 0)
+    if (slave_id >= NEXUS_SLAVE_NUM || report == NULL || len != AMP_FRAME_REPORT_SIZE)
     {
         return 1;
     }
+    memcpy(frame_report, report, AMP_FRAME_REPORT_SIZE);
+    AmpFrameHeader *request_header = (AmpFrameHeader *)frame_report;
+    request_header->proto = AMP_FRAME_PROTO;
+    request_header->channel_flags = (uint8_t)((AMP_CHANNEL_NEXUS_CTRL << 4) |
+                                               AMP_FRAME_FLAG_REQ_ACK);
+    request_header->seq = seq;
+    request_header->status = AMP_STATUS_OK;
 
     const uint32_t start = g_keyboard_tick;
     uint32_t retry_count = 0;
@@ -346,16 +371,15 @@ int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len,
         AmpFrameHeader *header = (AmpFrameHeader *)g_nexus_slave_buffer[slave_id];
         if (header->proto == AMP_FRAME_PROTO &&
             header->seq == seq &&
+            amp_frame_channel(header) == AMP_CHANNEL_NEXUS_CTRL &&
+            header->code == request_header->code &&
+            header->type == request_header->type &&
             (amp_frame_flags(header) & AMP_FRAME_FLAG_RESP))
         {
-            int rc = 0;
-            if (out_response != NULL && !amp_frame_decode(g_nexus_slave_buffer[slave_id], NEXUS_BUFFER_SIZE, out_response))
-            {
-                rc = 1;
-            }
+            uint8_t status = header->status;
             memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_BUFFER_SIZE);
             slave_flags[slave_id] = false;
-            return rc;
+            return status == AMP_STATUS_OK ? 0 : 1;
         }
         count++;
         if (count > 10000)
@@ -370,9 +394,4 @@ int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len,
         }
     }
     return 1;
-}
-
-int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout)
-{
-    return nexus_request_timeout(slave_id, report, len, timeout, NULL);
 }

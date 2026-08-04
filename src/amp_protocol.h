@@ -17,6 +17,8 @@ extern "C" {
 
 #define AMP_FRAME_PROTO       0x41
 #define AMP_FRAME_REPORT_SIZE 64
+#define AMP_FRAME_HEADER_SIZE 6
+#define AMP_FRAME_BODY_SIZE   (AMP_FRAME_REPORT_SIZE - AMP_FRAME_HEADER_SIZE)
 
 typedef enum {
     AMP_CHANNEL_CONTROL    = 0,
@@ -30,9 +32,16 @@ typedef enum {
 enum {
     AMP_FRAME_FLAG_REQ_ACK = 0x01,
     AMP_FRAME_FLAG_RESP    = 0x02,
-    AMP_FRAME_FLAG_ERROR   = 0x04,
-    AMP_FRAME_FLAG_MORE    = 0x08,
 };
+
+typedef enum {
+    AMP_STATUS_OK               = 0,
+    AMP_STATUS_UNSUPPORTED      = 1,
+    AMP_STATUS_INVALID_ARGUMENT = 2,
+    AMP_STATUS_BUSY             = 3,
+    AMP_STATUS_IO_ERROR         = 4,
+    AMP_STATUS_INVALID_STATE    = 5,
+} AmpStatus;
 
 typedef struct __AmpFrameHeader
 {
@@ -41,17 +50,17 @@ typedef struct __AmpFrameHeader
     uint8_t seq;
     uint8_t code;
     uint8_t type;
-    uint8_t len;
+    uint8_t status;
 } __PACKED AmpFrameHeader;
-
-#define AMP_FRAME_HEADER_SIZE ((uint8_t)sizeof(AmpFrameHeader))
-#define AMP_FRAME_MAX_PAYLOAD (AMP_FRAME_REPORT_SIZE - AMP_FRAME_HEADER_SIZE)
 
 typedef struct __AmpFrame
 {
     AmpFrameHeader header;
-    uint8_t payload[AMP_FRAME_MAX_PAYLOAD];
+    uint8_t body[AMP_FRAME_BODY_SIZE];
 } __PACKED AmpFrame;
+
+STATIC_ASSERT(sizeof(AmpFrameHeader) == AMP_FRAME_HEADER_SIZE, "AmpFrameHeader must be 6 bytes");
+STATIC_ASSERT(sizeof(AmpFrame) == AMP_FRAME_REPORT_SIZE, "AmpFrame must be 64 bytes");
 
 #ifndef AMP_RX_QUEUE_LENGTH
 #define AMP_RX_QUEUE_LENGTH 4
@@ -82,18 +91,21 @@ static inline uint8_t amp_frame_flags(const AmpFrameHeader *header)
     return (uint8_t)(header->channel_flags & 0x0F);
 }
 
-bool amp_is_frame(const uint8_t *report, uint16_t len);
-bool amp_frame_decode(const uint8_t *report, uint16_t len, AmpFrame *frame);
-int amp_frame_encode(uint8_t *report, uint8_t channel, uint8_t flags, uint8_t seq, uint8_t code, uint8_t type, const uint8_t *payload, uint8_t payload_len);
+bool amp_is_frame(const uint8_t report[AMP_FRAME_REPORT_SIZE]);
+bool amp_frame_decode(const uint8_t report[AMP_FRAME_REPORT_SIZE], AmpFrame *frame);
+int amp_frame_encode(uint8_t report[AMP_FRAME_REPORT_SIZE], uint8_t channel, uint8_t flags,
+                     uint8_t seq, uint8_t code, uint8_t type, uint8_t status,
+                     const uint8_t body[AMP_FRAME_BODY_SIZE]);
 
-int amp_send_frame(uint8_t channel, uint8_t flags, uint8_t seq, uint8_t code, uint8_t type, const uint8_t *payload, uint8_t payload_len, bool stream);
-int amp_send_encoded_report(const uint8_t *report, bool stream);
+int amp_send_frame(uint8_t channel, uint8_t flags, uint8_t seq, uint8_t code, uint8_t type,
+                   uint8_t status, const uint8_t body[AMP_FRAME_BODY_SIZE], bool stream);
+int amp_send_encoded_report(const uint8_t report[AMP_FRAME_REPORT_SIZE], bool stream);
 int amp_send_console_log(const uint8_t *data, uint8_t len);
-int amp_send_error(uint8_t channel, uint8_t seq, uint8_t code, uint8_t type, uint8_t error_code);
+int amp_send_error(uint8_t channel, uint8_t seq, uint8_t code, uint8_t type, AmpStatus status);
 bool amp_transport_control_event_can_enqueue(void);
 bool amp_transport_stream_event_can_enqueue(void);
 
-void amp_transport_receive_report(const uint8_t *report, uint16_t len);
+void amp_transport_receive_report(const uint8_t report[AMP_FRAME_REPORT_SIZE]);
 void amp_transport_poll(void);
 void amp_transport_raw_sent(void);
 void amp_transport_kick(void);

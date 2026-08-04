@@ -56,7 +56,7 @@ TEST(Console, DisabledConsoleDropsOutput)
     console_flush();
 
     AmpFrame frame = {};
-    EXPECT_FALSE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &frame));
+    EXPECT_FALSE(amp_frame_decode(raw_send_buffer, &frame));
 }
 
 TEST(Console, PrintfFlushesConsoleFrame)
@@ -68,11 +68,12 @@ TEST(Console, PrintfFlushesConsoleFrame)
     console_flush();
 
     AmpFrame frame = {};
-    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &frame));
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, &frame));
     EXPECT_EQ(AMP_CHANNEL_CONSOLE, amp_frame_channel(&frame.header));
     EXPECT_EQ(PACKET_CODE_LOG, frame.header.code);
-    ASSERT_EQ(sizeof(kExpectedMessage) - 1, frame.header.len);
-    EXPECT_EQ(0, std::memcmp(frame.payload, kExpectedMessage, sizeof(kExpectedMessage) - 1));
+    const PacketConsole *body = reinterpret_cast<const PacketConsole *>(frame.body);
+    ASSERT_EQ(sizeof(kExpectedMessage) - 1, body->length);
+    EXPECT_EQ(0, std::memcmp(body->data, kExpectedMessage, sizeof(kExpectedMessage) - 1));
 }
 
 TEST(Console, FlushSplitsLargeOutputIntoPayloadSizedFrames)
@@ -80,15 +81,16 @@ TEST(Console, FlushSplitsLargeOutputIntoPayloadSizedFrames)
     reset_console_output();
 
     static constexpr uint8_t kTailLength = 3;
-    for (uint8_t i = 0; i < (uint8_t)(AMP_FRAME_MAX_PAYLOAD * 2 + kTailLength); i++)
+    for (uint8_t i = 0; i < (uint8_t)(PACKET_CONSOLE_DATA_SIZE * 2 + kTailLength); i++)
     {
         console_send_char((char)('a' + (i % 26)));
     }
     console_flush();
 
     AmpFrame frame = {};
-    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &frame));
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, &frame));
     EXPECT_EQ(AMP_CHANNEL_CONSOLE, amp_frame_channel(&frame.header));
     EXPECT_EQ(PACKET_CODE_LOG, frame.header.code);
-    EXPECT_EQ(kTailLength, frame.header.len);
+    const PacketConsole *body = reinterpret_cast<const PacketConsole *>(frame.body);
+    EXPECT_EQ(kTailLength, body->length);
 }

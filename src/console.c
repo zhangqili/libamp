@@ -121,13 +121,13 @@ void console_flush(void)
 
     while (!console_buffer_is_empty(&console_tx_buffer))
     {
-        uint8_t temp_buf[AMP_FRAME_MAX_PAYLOAD] = {0};
+        uint8_t temp_buf[PACKET_CONSOLE_DATA_SIZE] = {0};
         uint8_t idx = 0;
 
         int16_t peek_front = console_tx_buffer.front;
         int16_t peek_len = console_tx_buffer.len;
 
-        while (idx < AMP_FRAME_MAX_PAYLOAD && peek_len > 0)
+        while (idx < PACKET_CONSOLE_DATA_SIZE && peek_len > 0)
         {
             temp_buf[idx++] = (uint8_t)console_tx_buffer.data[peek_front];
             peek_front = (peek_front + 1) % CONSOLE_BUFFER_LENGTH;
