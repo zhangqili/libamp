@@ -535,7 +535,11 @@ static AmpStatus packet_dispatch(const AmpFrame *request, AmpFrame *response)
         return process_event((const PacketEvent *)request->body);
     case PACKET_CODE_LARGE_SET:
     case PACKET_CODE_LARGE_GET:
+#if LARGE_PACKET_ENABLE
         return large_packet_process(request, response);
+#else
+        return AMP_STATUS_UNSUPPORTED;
+#endif
     case PACKET_CODE_USER:
         return packet_process_user(request->header.code, request->header.type,
                                    request->body, response->body);

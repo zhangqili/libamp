@@ -14,6 +14,12 @@
 extern "C" {
 #endif
 
+#if defined(SCRIPT_ENABLE) && defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
+#define LARGE_PACKET_ENABLE 1
+#else
+#define LARGE_PACKET_ENABLE 0
+#endif
+
 enum {
     PACKET_CODE_EVENT = 0x00,
     PACKET_CODE_SET = 0x01,
