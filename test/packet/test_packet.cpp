@@ -79,6 +79,27 @@ TEST(AmpProtocol, EncodesAndDecodesFixedV3Frame)
     EXPECT_EQ(0x22, frame.body[57]);
 }
 
+TEST(AmpProtocol, SessionResetDropsQueuedReports)
+{
+    std::array<uint8_t, AMP_FRAME_BODY_SIZE> body = {};
+    raw_send_result = 1;
+
+    ASSERT_EQ(0, amp_send_frame(AMP_CHANNEL_CONTROL, AMP_FRAME_FLAG_RESP,
+                                9, PACKET_CODE_GET, PACKET_DATA_VERSION,
+                                AMP_STATUS_OK, body.data(), false));
+    ASSERT_EQ(0, amp_send_frame(AMP_CHANNEL_DEBUG, 0, 0, PACKET_CODE_GET,
+                                PACKET_DATA_DEBUG, AMP_STATUS_OK,
+                                body.data(), true));
+    ASSERT_GT(raw_send_count, 0u);
+
+    amp_transport_reset_session();
+    raw_send_result = 0;
+    raw_send_count = 0;
+    amp_transport_kick();
+
+    EXPECT_EQ(0u, raw_send_count);
+}
+
 TEST(PacketV3, SetAndGetKeymap)
 {
     PacketKeymap set = {};
@@ -270,9 +291,13 @@ TEST(PacketV3, SetAndGetProfileAndConfig)
 {
     PacketProfileIndex profile = {};
     profile.index = 2;
+    g_keyboard_config.debug = true;
+    g_keyboard_config.console = true;
     ASSERT_EQ(AMP_STATUS_OK,
               transact(PACKET_CODE_SET, PACKET_DATA_PROFILE_INDEX, &profile)
                   .header.status);
+    EXPECT_FALSE(g_keyboard_config.debug);
+    EXPECT_FALSE(g_keyboard_config.console);
     AmpFrame response =
         transact(PACKET_CODE_GET, PACKET_DATA_PROFILE_INDEX, nullptr);
     EXPECT_EQ(2, reinterpret_cast<const PacketProfileIndex *>(response.body)->index);

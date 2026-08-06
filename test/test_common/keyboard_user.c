@@ -14,6 +14,8 @@
 uint8_t shared_ep_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 uint8_t keyboard_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 uint8_t raw_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
+int raw_send_result;
+uint32_t raw_send_count;
 uint8_t midi_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 uint8_t gamepad_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 ColorRGB led_color_buffer[RGB_NUM];
@@ -1000,6 +1002,11 @@ int hid_send_gamepad(uint8_t *report, uint16_t len)
 
 int hid_send_raw(uint8_t *report, uint16_t len)
 {
+    raw_send_count++;
+    if (raw_send_result != 0)
+    {
+        return raw_send_result;
+    }
     memcpy(raw_send_buffer, report, len);
     return 0;
 }

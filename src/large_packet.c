@@ -208,7 +208,9 @@ static AmpStatus process_get_start(const AmpFrame *request, AmpFrame *response)
     {
         return status;
     }
-    if (fs_open(&transfer.file, final_name, FS_O_RDONLY) < 0)
+    /* Script objects are optional. Treat a missing object as an empty file so
+       configuration discovery is not blocked after a factory reset. */
+    if (fs_open(&transfer.file, final_name, FS_O_RDWR | FS_O_CREAT) < 0)
     {
         large_reset();
         return AMP_STATUS_IO_ERROR;

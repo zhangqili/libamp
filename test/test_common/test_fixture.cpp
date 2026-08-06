@@ -13,6 +13,8 @@ void libamp_test_clear_output_buffers(void)
     std::memset(shared_ep_send_buffer, 0, sizeof(shared_ep_send_buffer));
     std::memset(keyboard_send_buffer, 0, sizeof(keyboard_send_buffer));
     std::memset(raw_send_buffer, 0, sizeof(raw_send_buffer));
+    raw_send_result = 0;
+    raw_send_count = 0;
     std::memset(midi_send_buffer, 0, sizeof(midi_send_buffer));
     std::memset(gamepad_send_buffer, 0, sizeof(gamepad_send_buffer));
     std::memset(led_color_buffer, 0, sizeof(ColorRGB) * RGB_NUM);

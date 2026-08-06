@@ -276,6 +276,8 @@ static AmpStatus process_profile(uint8_t code, const PacketProfileIndex *request
             return AMP_STATUS_INVALID_ARGUMENT;
         }
         keyboard_set_profile_index(request->index);
+        g_keyboard_config.console = false;
+        g_keyboard_config.debug = false;
         return AMP_STATUS_OK;
     }
     return AMP_STATUS_UNSUPPORTED;

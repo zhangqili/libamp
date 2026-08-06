@@ -226,6 +226,18 @@ void amp_transport_receive_report(const uint8_t report[AMP_FRAME_REPORT_SIZE])
     }
 }
 
+void amp_transport_reset_session(void)
+{
+    rx_head = 0;
+    rx_tail = 0;
+    tx_high_head = 0;
+    tx_high_tail = 0;
+    tx_high_len = 0;
+    tx_stream_head = 0;
+    tx_stream_tail = 0;
+    tx_stream_len = 0;
+}
+
 void amp_transport_kick(void)
 {
     const uint8_t *report = queue_peek_ptr(tx_high_queue, tx_high_len, tx_high_head);

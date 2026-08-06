@@ -258,9 +258,41 @@ static struct usbd_endpoint shared_in_ep = {
 
 #ifdef RAW_ENABLE
 STATIC_ASSERT(RAW_EPSIZE == AMP_FRAME_REPORT_SIZE, "Raw HID endpoint must use 64-byte reports");
+STATIC_ASSERT(sizeof(USB_Descriptor_Endpoint_t) == sizeof(struct usb_endpoint_descriptor),
+              "Endpoint descriptors must have the same wire layout");
 static volatile bool  raw_state;
 USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t raw_in_buffer[RAW_EPSIZE];
 USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t raw_out_buffer[RAW_EPSIZE];
+
+static bool raw_is_session_start(uint32_t nbytes)
+{
+    return nbytes == AMP_FRAME_REPORT_SIZE &&
+           raw_out_buffer[0] == AMP_FRAME_PROTO &&
+           (raw_out_buffer[1] >> 4) == AMP_CHANNEL_CONTROL &&
+           (raw_out_buffer[1] & AMP_FRAME_FLAG_REQ_ACK) != 0 &&
+           raw_out_buffer[2] != 0 &&
+           raw_out_buffer[3] == PACKET_CODE_GET &&
+           raw_out_buffer[4] == PACKET_DATA_VERSION;
+}
+
+static void raw_start_session(void)
+{
+    amp_transport_reset_session();
+    if (raw_state != USB_STATE_BUSY)
+    {
+        return;
+    }
+
+    /* WebHID close can cancel host polling without completing the device-side
+       interrupt IN transfer. Flush that stale transfer before replying to the
+       next connection's Version GET. Endpoint callback registration remains
+       owned by CherryUSB; only the controller endpoint is reopened here. */
+    (void)usbd_ep_close(0, RAW_EPIN_ADDR);
+    (void)usbd_ep_open(
+        0,
+        (const struct usb_endpoint_descriptor *)&ConfigurationDescriptor.Raw_INEndpoint);
+    raw_state = USB_STATE_IDLE;
+}
 
 static void usbd_hid_raw_in_callback(uint8_t busid, uint8_t ep, uint32_t nbytes)
 {
@@ -275,7 +307,10 @@ static void usbd_hid_raw_out_callback(uint8_t busid, uint8_t ep, uint32_t nbytes
 {
     UNUSED(busid);
     UNUSED(ep);
-    UNUSED(nbytes);
+    if (raw_is_session_start(nbytes))
+    {
+        raw_start_session();
+    }
     amp_transport_receive_report(raw_out_buffer);
     usbd_ep_start_read(0, RAW_EPOUT_ADDR, raw_out_buffer, 64);
 }

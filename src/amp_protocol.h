@@ -106,6 +106,7 @@ bool amp_transport_control_event_can_enqueue(void);
 bool amp_transport_stream_event_can_enqueue(void);
 
 void amp_transport_receive_report(const uint8_t report[AMP_FRAME_REPORT_SIZE]);
+void amp_transport_reset_session(void);
 void amp_transport_poll(void);
 void amp_transport_raw_sent(void);
 void amp_transport_kick(void);

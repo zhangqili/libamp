@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include "file_system.h"
 #include "packet.h"
 #include "script.h"
 #include "storage.h"
@@ -155,6 +156,39 @@ TEST(LargePacketV3, GetsPayloadAndClosesOnEnd)
                             PACKET_DATA_SCRIPT_BYTECODE, &end));
 #else
     GTEST_SKIP() << "Large packet script test targets the AOT bytecode path.";
+#endif
+}
+
+TEST(LargePacketV3, MissingScriptObjectIsAnEmptyDownload)
+{
+#if defined(SCRIPT_ENABLE) && SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
+    constexpr uint8_t type = PACKET_DATA_SCRIPT_BYTECODE;
+    const char *path = "scripts/main.bin";
+#elif defined(SCRIPT_ENABLE) && SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
+    constexpr uint8_t type = PACKET_DATA_SCRIPT_SCOURCE;
+    const char *path = "scripts/main.js";
+#else
+    GTEST_SKIP() << "Large packet script support is disabled.";
+#endif
+
+#ifdef SCRIPT_ENABLE
+    PacketLargeControl abort = {};
+    abort.sub_cmd = LARGE_DATA_CMD_ABORT;
+    (void)process_large(PACKET_CODE_LARGE_GET, type, &abort);
+    (void)fs_unlink(path);
+
+    PacketLargeStart start = {};
+    start.sub_cmd = LARGE_DATA_CMD_START;
+    AmpFrame response = {};
+    ASSERT_EQ(AMP_STATUS_OK,
+              process_large(PACKET_CODE_LARGE_GET, type, &start, &response));
+    EXPECT_EQ(0u,
+              reinterpret_cast<const PacketLargeStart *>(response.body)->total_size);
+
+    PacketLargeControl end = {};
+    end.sub_cmd = LARGE_DATA_CMD_END;
+    EXPECT_EQ(AMP_STATUS_OK,
+              process_large(PACKET_CODE_LARGE_GET, type, &end));
 #endif
 }
 

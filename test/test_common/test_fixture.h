@@ -14,6 +14,8 @@ extern "C" {
 extern uint8_t shared_ep_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 extern uint8_t keyboard_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 extern uint8_t raw_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
+extern int raw_send_result;
+extern uint32_t raw_send_count;
 extern uint8_t midi_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 extern uint8_t gamepad_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 extern ColorRGB led_color_buffer[RGB_NUM];
