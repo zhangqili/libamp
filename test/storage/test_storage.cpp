@@ -2,7 +2,9 @@
 
 #include <array>
 #include <cstring>
+#include <vector>
 
+#include "config_document.h"
 #include "dynamic_key.h"
 #include "file_system.h"
 #include "rgb.h"
@@ -203,6 +205,65 @@ TEST(Storage, ProfilesAreIsolated)
     g_current_profile_index = 1;
     storage_read_profile();
     EXPECT_EQ(0, std::memcmp(profile1_keymap.data(), g_keymap, sizeof(g_keymap)));
+}
+
+TEST(Storage, ConfigDocumentSkipsKnownRecordTailExtensions)
+{
+    char path[24];
+    ASSERT_TRUE(storage_profile_path(path, sizeof(path), 0));
+    File file;
+    ASSERT_GE(fs_open(&file, path, FS_O_RDONLY), 0);
+    const FilePosition file_size = fs_size(&file);
+    ASSERT_GT(file_size, 0);
+    std::vector<uint8_t> original(static_cast<size_t>(file_size));
+    ASSERT_EQ(original.size(), fs_read(&file, original.data(), original.size()));
+    ASSERT_GE(fs_close(&file), 0);
+
+    size_t section_offset = sizeof(AmpConfigDocumentHeader);
+    size_t payload_offset = 0;
+    AmpConfigSectionHeader section = {};
+    AmpRecordArrayHeader records = {};
+    while (section_offset + sizeof(section) <= original.size())
+    {
+        std::memcpy(&section, original.data() + section_offset, sizeof(section));
+        payload_offset = section_offset + sizeof(section);
+        if (section.section_type == AMP_CONFIG_SECTION_ADVANCED_KEYS)
+        {
+            std::memcpy(&records, original.data() + payload_offset, sizeof(records));
+            break;
+        }
+        section_offset = payload_offset + section.section_length;
+    }
+    ASSERT_EQ(AMP_CONFIG_SECTION_ADVANCED_KEYS, section.section_type);
+    ASSERT_EQ(sizeof(AdvancedKeyConfiguration), records.record_size);
+
+    const size_t record_data = payload_offset + sizeof(records);
+    const size_t old_section_end = payload_offset + section.section_length;
+    std::vector<uint8_t> extended;
+    extended.insert(extended.end(), original.begin(), original.begin() + record_data);
+    for (uint32_t i = 0; i < records.record_count; i++)
+    {
+        const size_t begin = record_data + i * records.record_size;
+        extended.insert(extended.end(), original.begin() + begin,
+                        original.begin() + begin + records.record_size);
+        extended.push_back(0xa5);
+    }
+    extended.insert(extended.end(), original.begin() + old_section_end,
+                    original.end());
+    const uint16_t extended_record_size = records.record_size + 1;
+    const uint32_t extended_section_length = section.section_length +
+                                             records.record_count;
+    std::memcpy(extended.data() + payload_offset + offsetof(AmpRecordArrayHeader,
+                record_size), &extended_record_size, sizeof(extended_record_size));
+    std::memcpy(extended.data() + section_offset + offsetof(AmpConfigSectionHeader,
+                section_length), &extended_section_length,
+                sizeof(extended_section_length));
+
+    ASSERT_GE(fs_open(&file, path, FS_O_WRONLY | FS_O_TRUNC), 0);
+    ASSERT_EQ(extended.size(), fs_write(&file, extended.data(), extended.size()));
+    ASSERT_GE(fs_close(&file), 0);
+    EXPECT_EQ(AMP_STATUS_OK, amp_config_document_validate(path, 0));
+    EXPECT_EQ(AMP_STATUS_OK, amp_config_document_apply(path, 0));
 }
 
 TEST(Storage, ProfileIndexRejectsOutOfRangeValue)

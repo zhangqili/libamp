@@ -13,6 +13,7 @@
 #include"script.h"
 #endif
 #include "file_system.h"
+#include "config_document.h"
 #include "string.h"
 
 #if defined(STORAGE_ENABLE) && (!defined(LFS_ENABLE))
@@ -25,34 +26,7 @@
 
 #define STORAGE_FLASH_RESERVED_SIZE 0x0400
 
-#define STORAGE_ADVANCED_KEY_CONFIG_SIZE (sizeof(AdvancedKeyConfiguration) * ADVANCED_KEY_NUM)
-#define STORAGE_KEYMAP_SIZE (sizeof(g_keymap))
-#ifdef RGB_ENABLE
-#define STORAGE_RGB_CONFIG_SIZE (sizeof(g_rgb_base_config) +  sizeof(g_rgb_configs))
-#else
-#define STORAGE_RGB_CONFIG_SIZE 0
-#endif
-#ifdef DYNAMICKEY_ENABLE
-#define STORAGE_DYNAMIC_KEY_CONFIG_SIZE (sizeof(g_dynamic_keys))
-#else
-#define STORAGE_DYNAMIC_KEY_CONFIG_SIZE 0
-#endif
-
-#define STORAGE_CONFIG_FILE_SIZE (STORAGE_ADVANCED_KEY_CONFIG_SIZE + STORAGE_KEYMAP_SIZE + STORAGE_RGB_CONFIG_SIZE + STORAGE_DYNAMIC_KEY_CONFIG_SIZE)
-#define STORAGE_CONFIG_FILE_ADDRESS(n) (STORAGE_FLASH_BASE_ADDRESS + STORAGE_FLASH_RESERVED_SIZE + ((n) * sizeof(STORAGE_CONFIG_FILE_SIZE)))
-
 uint8_t g_current_profile_index = 0;
-
-static inline void save_advanced_key_config(File *file, AdvancedKey* key)
-{
-    fs_write(file, ((void *)(&key->config)), sizeof(AdvancedKeyConfiguration));
-}
-
-static inline void read_advanced_key_config(File *file, AdvancedKey* key)
-{
-    fs_read(file, &key->config, sizeof(AdvancedKeyConfiguration));
-    advanced_key_set_range(key, key->config.upper_bound, key->config.lower_bound);
-}
 
 int storage_mount(void)
 {
@@ -66,7 +40,7 @@ int storage_check_version(void)
     if (res < 0)    {
         return 0;
     }
-    uint32_t version[3] = {0};
+    uint32_t version[4] = {0};
     bool need_factory_reset = false;
     bool need_update = false;
     fs_read(&file, &version, sizeof(version));
@@ -80,6 +54,12 @@ int storage_check_version(void)
     if (version[2] != KEYBOARD_VERSION_PATCH)
     {
         version[2] = KEYBOARD_VERSION_PATCH;
+        need_update = true;
+    }
+    if (version[3] != AMP_CONFIG_SCHEMA_VERSION)
+    {
+        version[3] = AMP_CONFIG_SCHEMA_VERSION;
+        need_factory_reset = true;
         need_update = true;
     }
     if (need_update)
@@ -131,57 +111,121 @@ void storage_save_profile_index(void)
 
 void storage_read_profile(void)
 {
-    char config_file_name[] = "profiles/profile0";
-    config_file_name[sizeof(config_file_name) - 2] = g_current_profile_index + '0';
-    File file;
-    int res = fs_open(&file, config_file_name, FS_O_RDWR | FS_O_CREAT);
-    if (res < 0)    {
-        return;
-    }
-    for (int i = 0; i < ADVANCED_KEY_NUM; i++)
+    char path[24];
+    if (storage_profile_path(path, sizeof(path), g_current_profile_index))
     {
-        read_advanced_key_config(&file, &g_keyboard_advanced_keys[i]);
+        (void)amp_config_document_apply(path, g_current_profile_index);
     }
-    fs_read(&file, g_keymap, sizeof(g_keymap));
-    layer_cache_refresh();
-#ifdef RGB_ENABLE
-    fs_read(&file, &g_rgb_base_config, sizeof(g_rgb_base_config));
-    fs_read(&file, g_rgb_configs, sizeof(g_rgb_configs));
-    g_rgb_base_config.begin_tick = 0;
-    for (int i = 0; i < RGB_NUM; i++)
-    {
-        g_rgb_configs[i].begin_tick = 0;
-    }
-#endif
-#ifdef DYNAMICKEY_ENABLE
-    fs_read(&file, g_dynamic_keys, sizeof(g_dynamic_keys));
-#endif
-    fs_close(&file);
 }
 
 void storage_save_profile(void)
 {
-    char config_file_name[] = "profiles/profile0";
-    config_file_name[sizeof(config_file_name) - 2] = g_current_profile_index + '0';
-    File file;
-    int res = fs_open(&file, config_file_name, FS_O_RDWR | FS_O_CREAT);
-    if (res < 0)
+    char path[24];
+    char temporary[28];
+    if (!storage_profile_path(path, sizeof(path), g_current_profile_index))
     {
         return;
     }
-    for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
+    memcpy(temporary, path, strlen(path) + 1);
+    memcpy(temporary + strlen(path), ".tmp", 5);
+    (void)fs_unlink(temporary);
+    if (amp_config_document_write(temporary, g_current_profile_index) == 0 &&
+        fs_rename(temporary, path) >= 0)
     {
-        save_advanced_key_config(&file, &g_keyboard_advanced_keys[i]);
+        (void)storage_bump_profile_revision(g_current_profile_index);
     }
-    fs_write(&file, g_keymap, sizeof(g_keymap));
-#ifdef RGB_ENABLE
-    fs_write(&file, &g_rgb_base_config, sizeof(g_rgb_base_config));
-    fs_write(&file, g_rgb_configs, sizeof(g_rgb_configs));
-#endif
-#ifdef DYNAMICKEY_ENABLE
-    fs_write(&file, g_dynamic_keys, sizeof(g_dynamic_keys));
-#endif
-    fs_close(&file);
+    else
+    {
+        (void)fs_unlink(temporary);
+    }
+}
+
+bool storage_profile_path(char *buffer, size_t buffer_size, uint16_t profile_id)
+{
+    static const char prefix[] = "profiles/profile";
+    if (buffer == NULL || buffer_size < sizeof(prefix) + 3 ||
+        profile_id >= STORAGE_PROFILE_FILE_NUM || profile_id > 999)
+    {
+        return false;
+    }
+    size_t index = 0;
+    memcpy(buffer, prefix, sizeof(prefix) - 1);
+    index = sizeof(prefix) - 1;
+    if (profile_id >= 100)
+    {
+        buffer[index++] = (char)('0' + profile_id / 100);
+    }
+    if (profile_id >= 10)
+    {
+        buffer[index++] = (char)('0' + (profile_id / 10) % 10);
+    }
+    buffer[index++] = (char)('0' + profile_id % 10);
+    buffer[index] = '\0';
+    return true;
+}
+
+static void read_profile_revisions(uint32_t revisions[STORAGE_PROFILE_FILE_NUM])
+{
+    File file;
+    memset(revisions, 0, sizeof(uint32_t) * STORAGE_PROFILE_FILE_NUM);
+    if (fs_open(&file, "system/profile_revisions", FS_O_RDONLY) < 0)
+    {
+        return;
+    }
+    size_t actual = fs_read(&file, revisions,
+                            sizeof(uint32_t) * STORAGE_PROFILE_FILE_NUM);
+    (void)fs_close(&file);
+    if (actual != sizeof(uint32_t) * STORAGE_PROFILE_FILE_NUM)
+    {
+        memset(revisions, 0, sizeof(uint32_t) * STORAGE_PROFILE_FILE_NUM);
+    }
+}
+
+static bool write_profile_revisions(
+    const uint32_t revisions[STORAGE_PROFILE_FILE_NUM])
+{
+    File file;
+    if (fs_open(&file, "system/profile_revisions",
+                FS_O_WRONLY | FS_O_CREAT | FS_O_TRUNC) < 0)
+    {
+        return false;
+    }
+    bool ok = fs_write(&file, (void *)revisions,
+                       sizeof(uint32_t) * STORAGE_PROFILE_FILE_NUM) ==
+              sizeof(uint32_t) * STORAGE_PROFILE_FILE_NUM;
+    ok = ok && fs_sync(&file) >= 0;
+    if (fs_close(&file) < 0)
+    {
+        ok = false;
+    }
+    return ok;
+}
+
+uint32_t storage_get_profile_revision(uint16_t profile_id)
+{
+    uint32_t revisions[STORAGE_PROFILE_FILE_NUM];
+    if (profile_id >= STORAGE_PROFILE_FILE_NUM)
+    {
+        return 0;
+    }
+    read_profile_revisions(revisions);
+    return revisions[profile_id];
+}
+
+uint32_t storage_bump_profile_revision(uint16_t profile_id)
+{
+    uint32_t revisions[STORAGE_PROFILE_FILE_NUM];
+    if (profile_id >= STORAGE_PROFILE_FILE_NUM)
+    {
+        return 0;
+    }
+    read_profile_revisions(revisions);
+    revisions[profile_id]++;
+    if (revisions[profile_id] == 0)
+    {
+        revisions[profile_id] = 1;
+    }
+    return write_profile_revisions(revisions) ? revisions[profile_id] : 0;
 }
 
 void storage_save_script(void)

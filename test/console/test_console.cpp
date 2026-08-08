@@ -11,7 +11,25 @@ namespace {
 
 void reset_console_output(void)
 {
-    g_keyboard_config.console = true;
+    AmpHelloRequest hello = {AMP_FRAME_PAYLOAD_SIZE, AMP_FRAME_PAYLOAD_SIZE, 0};
+    AmpFrame request = {};
+    request.header.proto = AMP_FRAME_PROTO;
+    request.header.version = AMP_WIRE_VERSION;
+    request.header.channel_flags = AMP_CHANNEL_CONTROL << 4;
+    request.header.session_id = 1;
+    request.header.request_id = 1;
+    request.header.opcode = AMP_CONTROL_HELLO;
+    request.header.payload_len = sizeof(hello);
+    std::memcpy(request.payload, &hello, sizeof(hello));
+    packet_process_frame(&request);
+    request = {};
+    request.header.proto = AMP_FRAME_PROTO;
+    request.header.version = AMP_WIRE_VERSION;
+    request.header.channel_flags = AMP_CHANNEL_CONSOLE << 4;
+    request.header.session_id = 1;
+    request.header.request_id = 2;
+    request.header.opcode = AMP_CONSOLE_SUBSCRIBE;
+    packet_process_frame(&request);
     console_flush();
     std::memset(raw_send_buffer, 0, sizeof(raw_send_buffer));
 }
@@ -56,7 +74,7 @@ TEST(Console, DisabledConsoleDropsOutput)
     console_flush();
 
     AmpFrame frame = {};
-    EXPECT_FALSE(amp_frame_decode(raw_send_buffer, &frame));
+    EXPECT_FALSE(amp_frame_decode(raw_send_buffer, AMP_FRAME_REPORT_SIZE, &frame));
 }
 
 TEST(Console, PrintfFlushesConsoleFrame)
@@ -68,12 +86,13 @@ TEST(Console, PrintfFlushesConsoleFrame)
     console_flush();
 
     AmpFrame frame = {};
-    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, &frame));
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, AMP_FRAME_REPORT_SIZE, &frame));
     EXPECT_EQ(AMP_CHANNEL_CONSOLE, amp_frame_channel(&frame.header));
-    EXPECT_EQ(PACKET_CODE_LOG, frame.header.code);
-    const PacketConsole *body = reinterpret_cast<const PacketConsole *>(frame.body);
-    ASSERT_EQ(sizeof(kExpectedMessage) - 1, body->length);
-    EXPECT_EQ(0, std::memcmp(body->data, kExpectedMessage, sizeof(kExpectedMessage) - 1));
+    EXPECT_EQ(AMP_CONSOLE_DATA, frame.header.opcode);
+    ASSERT_EQ(sizeof(uint32_t) + sizeof(kExpectedMessage) - 1,
+              frame.header.payload_len);
+    EXPECT_EQ(0, std::memcmp(frame.payload + sizeof(uint32_t), kExpectedMessage,
+                             sizeof(kExpectedMessage) - 1));
 }
 
 TEST(Console, FlushSplitsLargeOutputIntoPayloadSizedFrames)
@@ -88,9 +107,8 @@ TEST(Console, FlushSplitsLargeOutputIntoPayloadSizedFrames)
     console_flush();
 
     AmpFrame frame = {};
-    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, &frame));
+    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, AMP_FRAME_REPORT_SIZE, &frame));
     EXPECT_EQ(AMP_CHANNEL_CONSOLE, amp_frame_channel(&frame.header));
-    EXPECT_EQ(PACKET_CODE_LOG, frame.header.code);
-    const PacketConsole *body = reinterpret_cast<const PacketConsole *>(frame.body);
-    EXPECT_EQ(kTailLength, body->length);
+    EXPECT_EQ(AMP_CONSOLE_DATA, frame.header.opcode);
+    EXPECT_EQ(sizeof(uint32_t) + kTailLength, frame.header.payload_len);
 }

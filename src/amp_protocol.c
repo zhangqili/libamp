@@ -5,49 +5,104 @@
  */
 #include "amp_protocol.h"
 
-#include "driver.h"
 #include "packet.h"
 #include "stddef.h"
 #include "string.h"
 
-typedef struct
-{
-    uint8_t report[AMP_FRAME_REPORT_SIZE];
+typedef struct {
+    uint8_t message[AMP_FRAME_MESSAGE_SIZE];
 } AmpReportSlot;
+
+typedef struct {
+    AmpReportSlot *slots;
+    uint8_t capacity;
+    uint8_t head;
+    uint8_t tail;
+    uint8_t length;
+} AmpTxQueue;
 
 static AmpReportSlot rx_queue[AMP_RX_QUEUE_LENGTH];
 static volatile uint8_t rx_head;
 static volatile uint8_t rx_tail;
 
-static AmpReportSlot tx_high_queue[AMP_TX_HIGH_QUEUE_LENGTH];
-static uint8_t tx_high_head;
-static uint8_t tx_high_tail;
-static uint8_t tx_high_len;
+static AmpReportSlot tx_response_slots[AMP_TX_RESPONSE_QUEUE_LENGTH];
+static AmpReportSlot tx_control_slots[AMP_TX_CONTROL_QUEUE_LENGTH];
+static AmpReportSlot tx_stream_slots[AMP_TX_STREAM_QUEUE_LENGTH];
+static AmpTxQueue tx_response = {
+    tx_response_slots, AMP_TX_RESPONSE_QUEUE_LENGTH, 0, 0, 0
+};
+static AmpTxQueue tx_control = {
+    tx_control_slots, AMP_TX_CONTROL_QUEUE_LENGTH, 0, 0, 0
+};
+static AmpTxQueue tx_stream = {
+    tx_stream_slots, AMP_TX_STREAM_QUEUE_LENGTH, 0, 0, 0
+};
 
-static AmpReportSlot tx_stream_queue[AMP_TX_STREAM_QUEUE_LENGTH];
-static uint8_t tx_stream_head;
-static uint8_t tx_stream_tail;
-static uint8_t tx_stream_len;
+static uint16_t current_session_id;
+static uint16_t current_max_rx_payload;
+static uint16_t current_max_tx_payload;
+
+static uint16_t min_u16(uint16_t left, uint16_t right)
+{
+    return left < right ? left : right;
+}
+
+static uint16_t local_transport_max_payload(void)
+{
+    return min_u16(amp_transport_max_payload(), AMP_FRAME_PAYLOAD_SIZE);
+}
 
 static uint8_t queue_next(uint8_t index, uint8_t capacity)
 {
     return (uint8_t)((index + 1U) % capacity);
 }
 
-static bool queue_push(AmpReportSlot *queue, uint8_t capacity, uint8_t *tail,
-                       uint8_t *len, const uint8_t report[AMP_FRAME_REPORT_SIZE])
+static void tx_queue_clear(AmpTxQueue *queue)
 {
-    if (*len >= capacity)
+    queue->head = 0;
+    queue->tail = 0;
+    queue->length = 0;
+}
+
+static bool tx_queue_push(AmpTxQueue *queue,
+                          const uint8_t *message, uint16_t message_len)
+{
+    if (queue->length >= queue->capacity || message == NULL ||
+        message_len > AMP_FRAME_MESSAGE_SIZE)
     {
         return false;
     }
-    memcpy(queue[*tail].report, report, AMP_FRAME_REPORT_SIZE);
-    *tail = queue_next(*tail, capacity);
-    (*len)++;
+    memcpy(queue->slots[queue->tail].message, message, message_len);
+    queue->tail = queue_next(queue->tail, queue->capacity);
+    queue->length++;
     return true;
 }
 
-static bool rx_queue_push_report(const uint8_t report[AMP_FRAME_REPORT_SIZE])
+static bool tx_stream_push(const uint8_t *message, uint16_t message_len)
+{
+    if (tx_stream.length >= tx_stream.capacity)
+    {
+        tx_stream.head = queue_next(tx_stream.head, tx_stream.capacity);
+        tx_stream.length--;
+    }
+    return tx_queue_push(&tx_stream, message, message_len);
+}
+
+static const AmpReportSlot *tx_queue_peek(const AmpTxQueue *queue)
+{
+    return queue->length == 0 ? NULL : &queue->slots[queue->head];
+}
+
+static void tx_queue_pop(AmpTxQueue *queue)
+{
+    if (queue->length != 0)
+    {
+        queue->head = queue_next(queue->head, queue->capacity);
+        queue->length--;
+    }
+}
+
+static bool rx_queue_push(const uint8_t *message, uint16_t message_len)
 {
     uint8_t tail = rx_tail;
     uint8_t next_tail = queue_next(tail, AMP_RX_QUEUE_LENGTH);
@@ -55,212 +110,270 @@ static bool rx_queue_push_report(const uint8_t report[AMP_FRAME_REPORT_SIZE])
     {
         return false;
     }
-
-    memcpy(rx_queue[tail].report, report, AMP_FRAME_REPORT_SIZE);
+    if (message == NULL || message_len > AMP_FRAME_MESSAGE_SIZE)
+    {
+        return false;
+    }
+    memcpy(rx_queue[tail].message, message, message_len);
     rx_tail = next_tail;
     return true;
 }
 
-static bool queue_push_drop_oldest(AmpReportSlot *queue, uint8_t capacity,
-                                   uint8_t *head, uint8_t *tail, uint8_t *len,
-                                   const uint8_t report[AMP_FRAME_REPORT_SIZE])
+bool amp_is_frame(const uint8_t *message, uint16_t message_len)
 {
-    if (*len >= capacity)
-    {
-        *head = queue_next(*head, capacity);
-        (*len)--;
-    }
-    return queue_push(queue, capacity, tail, len, report);
+    return message != NULL && message_len >= AMP_FRAME_HEADER_SIZE &&
+           message[0] == AMP_FRAME_PROTO;
 }
 
-static bool queue_push_stream_report(const uint8_t report[AMP_FRAME_REPORT_SIZE])
+bool amp_frame_decode(const uint8_t *message, uint16_t message_len, AmpFrame *frame)
 {
-#if AMP_TX_POLICY == AMP_TX_POLICY_RELIABLE_FIFO
-    return queue_push(tx_stream_queue, AMP_TX_STREAM_QUEUE_LENGTH,
-                      &tx_stream_tail, &tx_stream_len, report);
-#else
-    return queue_push_drop_oldest(tx_stream_queue, AMP_TX_STREAM_QUEUE_LENGTH,
-                                  &tx_stream_head, &tx_stream_tail,
-                                  &tx_stream_len, report);
-#endif
-}
-
-static const uint8_t *queue_peek_ptr(AmpReportSlot *queue, uint8_t len, uint8_t head)
-{
-    return len == 0 ? NULL : queue[head].report;
-}
-
-static void queue_pop(uint8_t capacity, uint8_t *head, uint8_t *len)
-{
-    if (*len == 0)
-    {
-        return;
-    }
-    *head = queue_next(*head, capacity);
-    (*len)--;
-}
-
-bool amp_is_frame(const uint8_t report[AMP_FRAME_REPORT_SIZE])
-{
-    return report != NULL && report[0] == AMP_FRAME_PROTO;
-}
-
-bool amp_frame_decode(const uint8_t report[AMP_FRAME_REPORT_SIZE], AmpFrame *frame)
-{
-    if (!amp_is_frame(report) || frame == NULL)
+    AmpFrameHeader header;
+    if (!amp_is_frame(message, message_len) || frame == NULL)
     {
         return false;
     }
-    memcpy(frame, report, sizeof(*frame));
+    memcpy(&header, message, sizeof(header));
+    if (header.version != AMP_WIRE_VERSION ||
+        header.payload_len > AMP_FRAME_PAYLOAD_SIZE ||
+        (uint32_t)AMP_FRAME_HEADER_SIZE + header.payload_len > message_len)
+    {
+        return false;
+    }
+    memset(frame, 0, sizeof(*frame));
+    memcpy(&frame->header, &header, sizeof(header));
+    if (header.payload_len != 0)
+    {
+        memcpy(frame->payload, message + AMP_FRAME_HEADER_SIZE,
+               header.payload_len);
+    }
     return true;
 }
 
-int amp_frame_encode(uint8_t report[AMP_FRAME_REPORT_SIZE], uint8_t channel, uint8_t flags,
-                     uint8_t seq, uint8_t code, uint8_t type, uint8_t status,
-                     const uint8_t body[AMP_FRAME_BODY_SIZE])
+int amp_frame_encode(uint8_t *message, uint16_t capacity, uint8_t channel,
+                     uint8_t flags, uint16_t session_id, uint16_t request_id,
+                     uint16_t opcode, AmpStatus status, const void *payload,
+                     uint16_t payload_len)
 {
-    if (report == NULL)
+    if (message == NULL || payload_len > AMP_FRAME_PAYLOAD_SIZE ||
+        capacity < (uint16_t)(AMP_FRAME_HEADER_SIZE + payload_len))
     {
-        return 1;
+        return -1;
     }
-
-    AmpFrame frame = {0};
-    frame.header.proto = AMP_FRAME_PROTO;
-    frame.header.channel_flags = (uint8_t)(((channel & 0x0F) << 4) | (flags & 0x0F));
-    frame.header.seq = seq;
-    frame.header.code = code;
-    frame.header.type = type;
-    frame.header.status = status;
-    if (body != NULL)
+    AmpFrameHeader header = {
+        .proto = AMP_FRAME_PROTO,
+        .version = AMP_WIRE_VERSION,
+        .channel_flags = (uint8_t)(((channel & 0x0f) << 4) | (flags & 0x0f)),
+        .status = (uint8_t)status,
+        .session_id = session_id,
+        .request_id = request_id,
+        .opcode = opcode,
+        .payload_len = payload_len,
+    };
+    memset(message, 0, capacity);
+    memcpy(message, &header, sizeof(header));
+    if (payload_len != 0 && payload != NULL)
     {
-        memcpy(frame.body, body, AMP_FRAME_BODY_SIZE);
+        memcpy(message + AMP_FRAME_HEADER_SIZE, payload, payload_len);
     }
-    memcpy(report, &frame, sizeof(frame));
-    return 0;
+    return AMP_FRAME_HEADER_SIZE + payload_len;
 }
 
-static int amp_enqueue_report(const uint8_t report[AMP_FRAME_REPORT_SIZE], bool stream)
+static int amp_enqueue_report(const uint8_t *message, uint16_t message_len,
+                              AmpQueueClass queue_class)
 {
-    if (stream)
+    bool queued = false;
+    switch (queue_class)
     {
-        if (!queue_push_stream_report(report))
-        {
-            return 1;
-        }
+    case AMP_QUEUE_RESPONSE:
+        queued = tx_queue_push(&tx_response, message, message_len);
+        break;
+    case AMP_QUEUE_CONTROL:
+        queued = tx_queue_push(&tx_control, message, message_len);
+        break;
+    case AMP_QUEUE_STREAM:
+        queued = tx_stream_push(message, message_len);
+        break;
+    default:
+        break;
     }
-    else if (!queue_push(tx_high_queue, AMP_TX_HIGH_QUEUE_LENGTH,
-                         &tx_high_tail, &tx_high_len, report))
+    if (!queued)
     {
         return 1;
     }
-
     amp_transport_kick();
     return 0;
 }
 
-int amp_send_frame(uint8_t channel, uint8_t flags, uint8_t seq, uint8_t code, uint8_t type,
-                   uint8_t status, const uint8_t body[AMP_FRAME_BODY_SIZE], bool stream)
+int amp_send_frame(uint8_t channel, uint8_t flags, uint16_t session_id,
+                   uint16_t request_id, uint16_t opcode, AmpStatus status,
+                   const void *payload, uint16_t payload_len,
+                   AmpQueueClass queue_class)
 {
-    uint8_t report[AMP_FRAME_REPORT_SIZE];
-    if (amp_frame_encode(report, channel, flags, seq, code, type, status, body) != 0)
+    if (current_session_id != 0 && session_id == current_session_id &&
+        payload_len > current_max_tx_payload)
     {
         return 1;
     }
-    return amp_enqueue_report(report, stream);
+    uint8_t message[AMP_FRAME_MESSAGE_SIZE];
+    int message_len = amp_frame_encode(message, sizeof(message), channel, flags,
+                                       session_id, request_id, opcode, status,
+                                       payload, payload_len);
+    if (message_len < 0)
+    {
+        return 1;
+    }
+    return amp_enqueue_report(message, (uint16_t)message_len, queue_class);
 }
 
-int amp_send_encoded_report(const uint8_t report[AMP_FRAME_REPORT_SIZE], bool stream)
+int amp_send_encoded_message(const uint8_t *message,
+                             AmpQueueClass queue_class)
 {
-    if (report == NULL)
+    AmpFrameHeader header;
+    if (message == NULL)
     {
         return 1;
     }
-    return amp_enqueue_report(report, stream);
+    memcpy(&header, message, sizeof(header));
+    uint16_t message_len = (uint16_t)(AMP_FRAME_HEADER_SIZE + header.payload_len);
+    if (header.proto != AMP_FRAME_PROTO || header.version != AMP_WIRE_VERSION ||
+        header.payload_len > AMP_FRAME_PAYLOAD_SIZE ||
+        (current_session_id != 0 &&
+         header.session_id == current_session_id &&
+         header.payload_len > current_max_tx_payload))
+    {
+        return 1;
+    }
+    return amp_enqueue_report(message, message_len, queue_class);
 }
 
 int amp_send_console_log(const uint8_t *data, uint8_t len)
 {
-    uint8_t body[AMP_FRAME_BODY_SIZE] = {0};
-    if (len > AMP_FRAME_BODY_SIZE - 1)
+    if (!packet_console_is_subscribed() || current_session_id == 0)
     {
-        len = AMP_FRAME_BODY_SIZE - 1;
+        return 1;
     }
-    body[0] = len;
-    if (data != NULL && len > 0)
+    uint16_t max_payload = amp_session_max_tx_payload();
+    if (max_payload < sizeof(uint32_t))
     {
-        memcpy(body + 1, data, len);
+        return 1;
     }
-    return amp_send_frame(AMP_CHANNEL_CONSOLE, 0, 0, PACKET_CODE_LOG, 0,
-                          AMP_STATUS_OK, body, true);
-}
-
-int amp_send_error(uint8_t channel, uint8_t seq, uint8_t code, uint8_t type, AmpStatus status)
-{
-    return amp_send_frame(channel, AMP_FRAME_FLAG_RESP, seq, code, type,
-                          (uint8_t)status, NULL, false);
+    if (len > max_payload - sizeof(uint32_t))
+    {
+        len = (uint8_t)(max_payload - sizeof(uint32_t));
+    }
+    uint8_t payload[AMP_FRAME_PAYLOAD_SIZE];
+    uint32_t sequence = packet_next_console_sequence();
+    memcpy(payload, &sequence, sizeof(sequence));
+    if (len != 0 && data != NULL)
+    {
+        memcpy(payload + sizeof(sequence), data, len);
+    }
+    return amp_send_frame(AMP_CHANNEL_CONSOLE, AMP_FRAME_FLAG_EVENT,
+                          current_session_id, 0, AMP_CONSOLE_DATA,
+                          AMP_STATUS_OK, payload,
+                          (uint16_t)(sizeof(sequence) + len), AMP_QUEUE_STREAM);
 }
 
 bool amp_transport_control_event_can_enqueue(void)
 {
-#if AMP_TX_HIGH_QUEUE_LENGTH > 1
-    return tx_high_len < (AMP_TX_HIGH_QUEUE_LENGTH - 1);
-#else
-    return false;
-#endif
+    return tx_control.length < tx_control.capacity;
 }
 
 bool amp_transport_stream_event_can_enqueue(void)
 {
-#if AMP_TX_STREAM_QUEUE_LENGTH > 1
-    return tx_stream_len < (AMP_TX_STREAM_QUEUE_LENGTH - 1);
-#else
-    return false;
-#endif
+    return tx_stream.length < tx_stream.capacity;
 }
 
-void amp_transport_receive_report(const uint8_t report[AMP_FRAME_REPORT_SIZE])
+void amp_transport_receive(const uint8_t *message, uint16_t message_len)
 {
-    if (report != NULL)
+    if (message == NULL || message_len < AMP_FRAME_HEADER_SIZE)
     {
-        (void)rx_queue_push_report(report);
+        return;
     }
+    AmpFrameHeader header;
+    memcpy(&header, message, sizeof(header));
+    uint16_t logical_len = (uint16_t)(AMP_FRAME_HEADER_SIZE + header.payload_len);
+    if (header.payload_len > AMP_FRAME_PAYLOAD_SIZE || logical_len > message_len ||
+        (current_session_id != 0 &&
+         header.session_id == current_session_id &&
+         !(amp_frame_channel(&header) == AMP_CHANNEL_CONTROL &&
+           header.opcode == AMP_CONTROL_HELLO) &&
+         header.payload_len > current_max_rx_payload))
+    {
+        return;
+    }
+    (void)rx_queue_push(message, logical_len);
 }
 
 void amp_transport_reset_session(void)
 {
     rx_head = 0;
     rx_tail = 0;
-    tx_high_head = 0;
-    tx_high_tail = 0;
-    tx_high_len = 0;
-    tx_stream_head = 0;
-    tx_stream_tail = 0;
-    tx_stream_len = 0;
+    tx_queue_clear(&tx_response);
+    tx_queue_clear(&tx_control);
+    tx_queue_clear(&tx_stream);
+    current_session_id = 0;
+    current_max_rx_payload = 0;
+    current_max_tx_payload = 0;
+    packet_reset_session();
+}
+
+uint16_t amp_session_id(void)
+{
+    return current_session_id;
+}
+
+bool amp_session_is_active(void)
+{
+    return current_session_id != 0;
+}
+
+uint16_t amp_session_max_rx_payload(void)
+{
+    return current_session_id == 0 ? local_transport_max_payload() :
+                                     current_max_rx_payload;
+}
+
+uint16_t amp_session_max_tx_payload(void)
+{
+    return current_session_id == 0 ? local_transport_max_payload() :
+                                     current_max_tx_payload;
+}
+
+void amp_session_begin(uint16_t session_id, uint16_t peer_max_rx_payload,
+                       uint16_t peer_max_tx_payload)
+{
+    amp_transport_reset_session();
+    amp_transport_prepare_session();
+    current_session_id = session_id;
+    uint16_t transport_limit = local_transport_max_payload();
+    current_max_rx_payload = min_u16(transport_limit, peer_max_tx_payload);
+    current_max_tx_payload = min_u16(transport_limit, peer_max_rx_payload);
 }
 
 void amp_transport_kick(void)
 {
-    const uint8_t *report = queue_peek_ptr(tx_high_queue, tx_high_len, tx_high_head);
-    bool from_high = report != NULL;
-    if (report == NULL)
+    AmpTxQueue *selected = &tx_response;
+    const AmpReportSlot *slot = tx_queue_peek(selected);
+    if (slot == NULL)
     {
-        report = queue_peek_ptr(tx_stream_queue, tx_stream_len, tx_stream_head);
+        selected = &tx_control;
+        slot = tx_queue_peek(selected);
     }
-
-    if (report == NULL)
+    if (slot == NULL)
     {
-        return;
+        selected = &tx_stream;
+        slot = tx_queue_peek(selected);
     }
-
-    if (hid_send_raw((uint8_t *)report, AMP_FRAME_REPORT_SIZE) == 0)
+    if (slot != NULL)
     {
-        if (from_high)
+        AmpFrameHeader header;
+        memcpy(&header, slot->message, sizeof(header));
+        uint16_t message_len = (uint16_t)(AMP_FRAME_HEADER_SIZE +
+                                          header.payload_len);
+        if (amp_transport_send(slot->message, message_len) == 0)
         {
-            queue_pop(AMP_TX_HIGH_QUEUE_LENGTH, &tx_high_head, &tx_high_len);
-        }
-        else
-        {
-            queue_pop(AMP_TX_STREAM_QUEUE_LENGTH, &tx_stream_head, &tx_stream_len);
+            tx_queue_pop(selected);
         }
     }
 }
@@ -274,9 +387,13 @@ void amp_transport_poll(void)
         {
             break;
         }
-
         AmpFrame frame;
-        bool decoded = amp_frame_decode(rx_queue[head].report, &frame);
+        AmpFrameHeader header;
+        memcpy(&header, rx_queue[head].message, sizeof(header));
+        uint16_t message_len = (uint16_t)(AMP_FRAME_HEADER_SIZE +
+                                          header.payload_len);
+        bool decoded = amp_frame_decode(rx_queue[head].message, message_len,
+                                        &frame);
         rx_head = queue_next(head, AMP_RX_QUEUE_LENGTH);
         if (decoded)
         {

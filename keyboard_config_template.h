@@ -118,6 +118,8 @@
 // #define LFS_LOOKAHEAD_SIZE 16           /* littlefs allocation lookahead size. */
 // #define LFS_BLOCK_CYCLES 500            /* Wear-leveling relocation interval. */
 // #define STORAGE_PROFILE_FILE_NUM 4      /* Number of persistent profiles. */
+// #define AMP_OBJECT_CRC32_ENABLE 1       /* Verify complete Object transfers with CRC32. */
+// #define AMP_OBJECT_TEMP_FILE_ENABLE 1   /* Commit Object writes by atomically renaming a temporary file. */
 
 /********/
 /* RGB */

@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 #ifndef NEXUS_BUFFER_SIZE
-#define NEXUS_BUFFER_SIZE 8
+#define NEXUS_BUFFER_SIZE 64
 #endif
 
 #ifndef NEXUS_RETRY_COUNT

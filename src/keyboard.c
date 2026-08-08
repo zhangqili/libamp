@@ -285,8 +285,6 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
                 break;
             case KEYBOARD_FACTORY_RESET:
                 keyboard_factory_reset();
-                g_keyboard_config.console = false;
-                g_keyboard_config.debug = false;
                 packet_send_version_packet();
                 break;
             case KEYBOARD_SAVE:
@@ -297,8 +295,7 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
                 break;
             case KEYBOARD_RESET_TO_DEFAULT:
                 keyboard_reset_to_default();
-                g_keyboard_config.console = false;
-                g_keyboard_config.debug = false;
+                //keyboard_save();
                 packet_send_version_packet();
                 break;
             case KEYBOARD_RECOVERY:
@@ -331,8 +328,6 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
             case KEYBOARD_PROFILE2:
             case KEYBOARD_PROFILE3:
                 keyboard_set_profile_index((event.keycode >> 8) & 0x0F);
-                g_keyboard_config.console = false;
-                g_keyboard_config.debug = false;
                 packet_send_version_packet();
                 break;
             default:
@@ -513,6 +508,15 @@ void keyboard_init(void)
     {
         g_keyboard_keys[i].id = ADVANCED_KEY_NUM + i;
     }
+#ifdef RGB_ENABLE
+    rgb_init();
+#endif
+#if defined(MACRO_ENABLE) || defined(SCRIPT_ENABLE)
+    event_cache_init();
+#endif
+#ifdef MACRO_ENABLE
+    macro_init();
+#endif
 #ifdef STORAGE_ENABLE
     storage_mount();
     if (storage_check_version())
@@ -520,19 +524,10 @@ void keyboard_init(void)
         keyboard_factory_reset();
     }
 #endif
-#ifdef RGB_ENABLE
-    rgb_init();
-#endif
 #ifdef MIDI_ENABLE
     midi_init();
 #endif
-#if defined(MACRO_ENABLE) || defined(SCRIPT_ENABLE)
-    event_cache_init();
-#endif
     event_loop_queue_init(&event_buffer, event_buffers, EVENT_BUFFER_LENGTH);
-#ifdef MACRO_ENABLE
-    macro_init();
-#endif
     keyboard_recovery();
 #ifdef NEXUS_ENABLE
 #if NEXUS_IS_SLAVE
@@ -625,6 +620,9 @@ void keyboard_save(void)
 {
 #ifdef STORAGE_ENABLE
     storage_save_profile();
+    packet_notify_profile_changed(
+        g_current_profile_index,
+        storage_get_profile_revision(g_current_profile_index));
 #endif
 }
 
@@ -838,8 +836,7 @@ void keyboard_process(void)
     {
         target_calibration_tick = 0;
         analog_calibrate();
-        g_keyboard_config.console = false;
-        g_keyboard_config.debug = false;
+        //keyboard_save();
         packet_send_version_packet();
     }
     packet_process_version_notifications();

@@ -17,6 +17,13 @@
 #define NEXUS_LOCAL_KEY_COUNT NEXUS_MIN(TOTAL_KEY_NUM, NEXUS_SLICE_LENGTH_MAX)
 #define NEXUS_LOCAL_ADVANCED_KEY_COUNT NEXUS_MIN(ADVANCED_KEY_NUM, NEXUS_SLICE_LENGTH_MAX)
 #define NEXUS_LOCAL_BITMAP_SIZE ((NEXUS_LOCAL_KEY_COUNT + 7) / 8)
+#define NEXUS_OPCODE_SET_ADVANCED_KEY 0x7001
+#define NEXUS_OPCODE_KEY_EVENT        0x7002
+
+typedef struct {
+    uint16_t index;
+    AdvancedKeyConfiguration config;
+} __PACKED NexusAdvancedKeyConfig;
 
 static bool slave_flags[NEXUS_SLAVE_NUM];
 static uint32_t slave_bitmap[NEXUS_SLAVE_NUM][(NEXUS_SLICE_LENGTH_MAX+31)/32];
@@ -39,28 +46,18 @@ static uint16_t nexus_slave_config_length(uint8_t slave_id)
 
 static int nexus_send_advanced_key_config(uint8_t slave_id, uint16_t local_index, uint16_t key_index)
 {
-    AmpFrame frame = {0};
-    PacketAdvancedKeys *body = (PacketAdvancedKeys *)frame.body;
+    uint8_t report[AMP_FRAME_REPORT_SIZE];
     const AdvancedKeyConfiguration *config = &g_keyboard_advanced_keys[key_index].config;
-    frame.header.proto = AMP_FRAME_PROTO;
-    frame.header.channel_flags = (uint8_t)(AMP_CHANNEL_NEXUS_CTRL << 4);
-    frame.header.code = PACKET_CODE_SET;
-    frame.header.type = PACKET_DATA_ADVANCED_KEY;
-    body->count = 1;
-    body->items[0].index = local_index;
-    body->items[0].config.mode = config->mode;
-    body->items[0].config.calibration_mode = config->calibration_mode;
-    body->items[0].config.activation_value = config->activation_value;
-    body->items[0].config.deactivation_value = config->deactivation_value;
-    body->items[0].config.trigger_distance = config->trigger_distance;
-    body->items[0].config.release_distance = config->release_distance;
-    body->items[0].config.trigger_speed = config->trigger_speed;
-    body->items[0].config.release_speed = config->release_speed;
-    body->items[0].config.upper_deadzone = config->upper_deadzone;
-    body->items[0].config.lower_deadzone = config->lower_deadzone;
-    body->items[0].config.upper_bound = config->upper_bound;
-    body->items[0].config.lower_bound = config->lower_bound;
-    return nexus_send_timeout(slave_id, (const uint8_t *)&frame, sizeof(frame), NEXUS_TIMEOUT);
+    NexusAdvancedKeyConfig payload = {.index = local_index};
+    memcpy(&payload.config, config, sizeof(payload.config));
+    if (amp_frame_encode(report, sizeof(report), AMP_CHANNEL_USER, 0,
+                         (uint16_t)(slave_id + 1U), 1,
+                         NEXUS_OPCODE_SET_ADVANCED_KEY, AMP_STATUS_OK,
+                         &payload, sizeof(payload)) < 0)
+    {
+        return 1;
+    }
+    return nexus_send_timeout(slave_id, report, sizeof(report), NEXUS_TIMEOUT);
 }
 
 static inline int nexus_config_slave(uint8_t slave_id)
@@ -82,20 +79,6 @@ static inline int nexus_config_slave(uint8_t slave_id)
         {
             ret = 1;
         }
-        /*
-        PacketKeymap *packet_keymap = (PacketKeymap *)buffer;
-        memset(buffer, 0, sizeof(packet));
-        packet_keymap->code = PACKET_CODE_SET;
-        packet_keymap->type = PACKET_DATA_KEYMAP;
-        packet_keymap->start = i;
-        packet_keymap->length = 1;
-        for (int j = 0; j < LAYER_NUM; j++)
-        {
-            packet_keymap->keymap[0] = g_keymap[j][i];
-            packet_keymap->layer = j;
-            nexus_send_timeout(slave_id,buffer,64,NEXUS_TIMEOUT);
-        }
-        */
     }
     return ret;
 }
@@ -133,15 +116,18 @@ void nexus_calibrate(void)
 {
     for (int i = 0; i < NEXUS_SLAVE_NUM; i++)
     {
-        AmpFrame frame = {0};
-        PacketEvent *body = (PacketEvent *)frame.body;
-        frame.header.proto = AMP_FRAME_PROTO;
-        frame.header.channel_flags = (uint8_t)(AMP_CHANNEL_NEXUS_CTRL << 4);
-        frame.header.code = PACKET_CODE_EVENT;
-        body->event = KEYBOARD_EVENT_KEY_DOWN;
-        body->keycode = KEYCODE(KEYBOARD_OPERATION, KEYBOARD_CALIBRATE);
-        body->is_virtual = true;
-        nexus_send_timeout(i, (const uint8_t *)&frame, sizeof(frame), NEXUS_TIMEOUT);
+        uint8_t report[AMP_FRAME_REPORT_SIZE];
+        AmpKeyEvent event = {
+            .event = KEYBOARD_EVENT_KEY_DOWN,
+            .keycode = KEYCODE(KEYBOARD_OPERATION, KEYBOARD_CALIBRATE),
+            .is_virtual = true,
+        };
+        if (amp_frame_encode(report, sizeof(report), AMP_CHANNEL_USER, 0,
+                             (uint16_t)(i + 1U), 1, NEXUS_OPCODE_KEY_EVENT,
+                             AMP_STATUS_OK, &event, sizeof(event)) >= 0)
+        {
+            (void)nexus_send_timeout(i, report, sizeof(report), NEXUS_TIMEOUT);
+        }
     }
 }
 
@@ -191,13 +177,53 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
     AmpFrame frame;
     uint8_t response[AMP_FRAME_REPORT_SIZE];
 
-    if (len < AMP_FRAME_REPORT_SIZE || !amp_frame_decode(buf, &frame))
+    if (len < AMP_FRAME_REPORT_SIZE ||
+        !amp_frame_decode(buf, len, &frame) ||
+        amp_frame_channel(&frame.header) != AMP_CHANNEL_USER ||
+        amp_frame_flags(&frame.header) != 0)
     {
         return;
     }
-    if (packet_process_frame_to_report(&frame, AMP_CHANNEL_NEXUS_CTRL, AMP_FRAME_FLAG_RESP, response))
+    AmpStatus status = AMP_STATUS_UNSUPPORTED;
+    if (frame.header.opcode == NEXUS_OPCODE_SET_ADVANCED_KEY &&
+        frame.header.payload_len == sizeof(NexusAdvancedKeyConfig))
     {
-        nexus_report(response, sizeof(response));
+        NexusAdvancedKeyConfig payload;
+        memcpy(&payload, frame.payload, sizeof(payload));
+        if (payload.index < ADVANCED_KEY_NUM)
+        {
+            memcpy(&g_keyboard_advanced_keys[payload.index].config,
+                   &payload.config, sizeof(payload.config));
+            advanced_key_set_range(&g_keyboard_advanced_keys[payload.index],
+                                   payload.config.upper_bound,
+                                   payload.config.lower_bound);
+            status = AMP_STATUS_OK;
+        }
+        else
+        {
+            status = AMP_STATUS_INVALID_ARGUMENT;
+        }
+    }
+    else if (frame.header.opcode == NEXUS_OPCODE_KEY_EVENT &&
+             frame.header.payload_len == sizeof(AmpKeyEvent))
+    {
+        AmpKeyEvent payload;
+        memcpy(&payload, frame.payload, sizeof(payload));
+        KeyboardEvent event = {
+            .event = payload.event,
+            .keycode = payload.keycode,
+            .is_virtual = payload.is_virtual,
+            .key = payload.is_virtual ? NULL : keyboard_get_key(payload.key_id),
+        };
+        keyboard_event_handler(event);
+        status = AMP_STATUS_OK;
+    }
+    if (amp_frame_encode(response, sizeof(response), AMP_CHANNEL_USER,
+                         AMP_FRAME_FLAG_RESPONSE, frame.header.session_id,
+                         frame.header.request_id, frame.header.opcode, status,
+                         NULL, 0) >= 0)
+    {
+        (void)nexus_report(response, sizeof(response));
     }
 #else
     if (slave_id >= NEXUS_SLAVE_NUM || buf == NULL || len == 0)
@@ -206,7 +232,7 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
     }
     slave_flags[slave_id] = true;
 
-    if (amp_is_frame(buf))
+    if (amp_is_frame(buf, len))
     {
         const uint16_t copy_len = NEXUS_MIN(len, NEXUS_BUFFER_SIZE);
         if (copy_len < AMP_FRAME_HEADER_SIZE)
@@ -336,9 +362,9 @@ int nexus_send_report(void)
 
 int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout)
 {
-    static uint8_t sequence;
+    static uint16_t sequence;
     uint8_t frame_report[AMP_FRAME_REPORT_SIZE];
-    uint8_t seq = ++sequence;
+    uint16_t seq = ++sequence;
     if (seq == 0)
     {
         seq = ++sequence;
@@ -350,9 +376,10 @@ int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, ui
     memcpy(frame_report, report, AMP_FRAME_REPORT_SIZE);
     AmpFrameHeader *request_header = (AmpFrameHeader *)frame_report;
     request_header->proto = AMP_FRAME_PROTO;
-    request_header->channel_flags = (uint8_t)((AMP_CHANNEL_NEXUS_CTRL << 4) |
-                                               AMP_FRAME_FLAG_REQ_ACK);
-    request_header->seq = seq;
+    request_header->version = AMP_WIRE_VERSION;
+    request_header->channel_flags = (uint8_t)(AMP_CHANNEL_USER << 4);
+    request_header->session_id = (uint16_t)(slave_id + 1U);
+    request_header->request_id = seq;
     request_header->status = AMP_STATUS_OK;
 
     const uint32_t start = g_keyboard_tick;
@@ -370,11 +397,11 @@ int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, ui
     {
         AmpFrameHeader *header = (AmpFrameHeader *)g_nexus_slave_buffer[slave_id];
         if (header->proto == AMP_FRAME_PROTO &&
-            header->seq == seq &&
-            amp_frame_channel(header) == AMP_CHANNEL_NEXUS_CTRL &&
-            header->code == request_header->code &&
-            header->type == request_header->type &&
-            (amp_frame_flags(header) & AMP_FRAME_FLAG_RESP))
+            header->version == AMP_WIRE_VERSION &&
+            header->request_id == seq &&
+            amp_frame_channel(header) == AMP_CHANNEL_USER &&
+            header->opcode == request_header->opcode &&
+            (amp_frame_flags(header) & AMP_FRAME_FLAG_RESPONSE))
         {
             uint8_t status = header->status;
             memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_BUFFER_SIZE);

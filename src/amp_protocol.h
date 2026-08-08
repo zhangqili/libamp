@@ -6,8 +6,8 @@
 #ifndef AMP_PROTOCOL_H
 #define AMP_PROTOCOL_H
 
-#include "stdint.h"
 #include "stdbool.h"
+#include "stdint.h"
 #include "keyboard_config.h"
 #include "keyboard_def.h"
 
@@ -15,23 +15,28 @@
 extern "C" {
 #endif
 
-#define AMP_FRAME_PROTO       0x41
-#define AMP_FRAME_REPORT_SIZE 64
-#define AMP_FRAME_HEADER_SIZE 6
-#define AMP_FRAME_BODY_SIZE   (AMP_FRAME_REPORT_SIZE - AMP_FRAME_HEADER_SIZE)
+#define AMP_FRAME_PROTO        0x41
+#define AMP_WIRE_VERSION       4
+#define AMP_FRAME_REPORT_SIZE  64
+#define AMP_FRAME_HEADER_SIZE  12
+#ifndef AMP_FRAME_PAYLOAD_SIZE
+#define AMP_FRAME_PAYLOAD_SIZE (AMP_FRAME_REPORT_SIZE - AMP_FRAME_HEADER_SIZE)
+#endif
+#define AMP_FRAME_MESSAGE_SIZE (AMP_FRAME_HEADER_SIZE + AMP_FRAME_PAYLOAD_SIZE)
 
 typedef enum {
-    AMP_CHANNEL_CONTROL    = 0,
-    AMP_CHANNEL_DEBUG      = 1,
-    AMP_CHANNEL_CONSOLE    = 2,
-    AMP_CHANNEL_LARGE      = 3,
-    AMP_CHANNEL_NEXUS_CTRL = 4,
-    AMP_CHANNEL_USER       = 15,
+    AMP_CHANNEL_CONTROL   = 0,
+    AMP_CHANNEL_CONFIG    = 1,
+    AMP_CHANNEL_OBJECT    = 2,
+    AMP_CHANNEL_DEBUG     = 3,
+    AMP_CHANNEL_CONSOLE   = 4,
+    AMP_CHANNEL_TELEMETRY = 5,
+    AMP_CHANNEL_USER      = 15,
 } AmpChannel;
 
 enum {
-    AMP_FRAME_FLAG_REQ_ACK = 0x01,
-    AMP_FRAME_FLAG_RESP    = 0x02,
+    AMP_FRAME_FLAG_RESPONSE = 0x01,
+    AMP_FRAME_FLAG_EVENT    = 0x02,
 };
 
 typedef enum {
@@ -41,44 +46,52 @@ typedef enum {
     AMP_STATUS_BUSY             = 3,
     AMP_STATUS_IO_ERROR         = 4,
     AMP_STATUS_INVALID_STATE    = 5,
+    AMP_STATUS_CONFLICT         = 6,
+    AMP_STATUS_STALE_REVISION   = 7,
+    AMP_STATUS_NOT_FOUND        = 8,
+    AMP_STATUS_INTEGRITY_ERROR  = 9,
+    AMP_STATUS_ABORTED          = 10,
+    AMP_STATUS_NO_SPACE         = 11,
 } AmpStatus;
 
-typedef struct __AmpFrameHeader
-{
+typedef enum {
+    AMP_QUEUE_RESPONSE,
+    AMP_QUEUE_CONTROL,
+    AMP_QUEUE_STREAM,
+} AmpQueueClass;
+
+typedef struct __AmpFrameHeader {
     uint8_t proto;
+    uint8_t version;
     uint8_t channel_flags;
-    uint8_t seq;
-    uint8_t code;
-    uint8_t type;
     uint8_t status;
+    uint16_t session_id;
+    uint16_t request_id;
+    uint16_t opcode;
+    uint16_t payload_len;
 } __PACKED AmpFrameHeader;
 
-typedef struct __AmpFrame
-{
+typedef struct __AmpFrame {
     AmpFrameHeader header;
-    uint8_t body[AMP_FRAME_BODY_SIZE];
+    uint8_t payload[AMP_FRAME_PAYLOAD_SIZE];
 } __PACKED AmpFrame;
 
-STATIC_ASSERT(sizeof(AmpFrameHeader) == AMP_FRAME_HEADER_SIZE, "AmpFrameHeader must be 6 bytes");
-STATIC_ASSERT(sizeof(AmpFrame) == AMP_FRAME_REPORT_SIZE, "AmpFrame must be 64 bytes");
+STATIC_ASSERT(sizeof(AmpFrameHeader) == AMP_FRAME_HEADER_SIZE,
+              "AmpFrameHeader must be 12 bytes");
+STATIC_ASSERT(sizeof(AmpFrame) == AMP_FRAME_MESSAGE_SIZE,
+              "AmpFrame must contain one complete logical message");
 
 #ifndef AMP_RX_QUEUE_LENGTH
 #define AMP_RX_QUEUE_LENGTH 4
 #endif
-
-#ifndef AMP_TX_HIGH_QUEUE_LENGTH
-#define AMP_TX_HIGH_QUEUE_LENGTH 4
+#ifndef AMP_TX_RESPONSE_QUEUE_LENGTH
+#define AMP_TX_RESPONSE_QUEUE_LENGTH 4
 #endif
-
+#ifndef AMP_TX_CONTROL_QUEUE_LENGTH
+#define AMP_TX_CONTROL_QUEUE_LENGTH 4
+#endif
 #ifndef AMP_TX_STREAM_QUEUE_LENGTH
 #define AMP_TX_STREAM_QUEUE_LENGTH 4
-#endif
-
-#define AMP_TX_POLICY_CONTROL_PRIORITY 1
-#define AMP_TX_POLICY_RELIABLE_FIFO    2
-
-#ifndef AMP_TX_POLICY
-#define AMP_TX_POLICY AMP_TX_POLICY_CONTROL_PRIORITY
 #endif
 
 static inline uint8_t amp_frame_channel(const AmpFrameHeader *header)
@@ -88,31 +101,44 @@ static inline uint8_t amp_frame_channel(const AmpFrameHeader *header)
 
 static inline uint8_t amp_frame_flags(const AmpFrameHeader *header)
 {
-    return (uint8_t)(header->channel_flags & 0x0F);
+    return (uint8_t)(header->channel_flags & 0x0f);
 }
 
-bool amp_is_frame(const uint8_t report[AMP_FRAME_REPORT_SIZE]);
-bool amp_frame_decode(const uint8_t report[AMP_FRAME_REPORT_SIZE], AmpFrame *frame);
-int amp_frame_encode(uint8_t report[AMP_FRAME_REPORT_SIZE], uint8_t channel, uint8_t flags,
-                     uint8_t seq, uint8_t code, uint8_t type, uint8_t status,
-                     const uint8_t body[AMP_FRAME_BODY_SIZE]);
+bool amp_is_frame(const uint8_t *message, uint16_t message_len);
+bool amp_frame_decode(const uint8_t *message, uint16_t message_len, AmpFrame *frame);
+int amp_frame_encode(uint8_t *message, uint16_t capacity, uint8_t channel,
+                     uint8_t flags, uint16_t session_id, uint16_t request_id,
+                     uint16_t opcode, AmpStatus status, const void *payload,
+                     uint16_t payload_len);
 
-int amp_send_frame(uint8_t channel, uint8_t flags, uint8_t seq, uint8_t code, uint8_t type,
-                   uint8_t status, const uint8_t body[AMP_FRAME_BODY_SIZE], bool stream);
-int amp_send_encoded_report(const uint8_t report[AMP_FRAME_REPORT_SIZE], bool stream);
+int amp_send_frame(uint8_t channel, uint8_t flags, uint16_t session_id,
+                   uint16_t request_id, uint16_t opcode, AmpStatus status,
+                   const void *payload, uint16_t payload_len,
+                   AmpQueueClass queue_class);
+int amp_send_encoded_message(const uint8_t *message,
+                             AmpQueueClass queue_class);
 int amp_send_console_log(const uint8_t *data, uint8_t len);
-int amp_send_error(uint8_t channel, uint8_t seq, uint8_t code, uint8_t type, AmpStatus status);
 bool amp_transport_control_event_can_enqueue(void);
 bool amp_transport_stream_event_can_enqueue(void);
 
-void amp_transport_receive_report(const uint8_t report[AMP_FRAME_REPORT_SIZE]);
+void amp_transport_receive(const uint8_t *message, uint16_t message_len);
 void amp_transport_reset_session(void);
 void amp_transport_poll(void);
 void amp_transport_raw_sent(void);
 void amp_transport_kick(void);
+void amp_transport_prepare_session(void);
+int amp_transport_send(const uint8_t *message, uint16_t message_len);
+uint16_t amp_transport_max_payload(void);
+
+uint16_t amp_session_id(void);
+bool amp_session_is_active(void);
+uint16_t amp_session_max_rx_payload(void);
+uint16_t amp_session_max_tx_payload(void);
+void amp_session_begin(uint16_t session_id, uint16_t peer_max_rx_payload,
+                       uint16_t peer_max_tx_payload);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // AMP_PROTOCOL_H
+#endif /* AMP_PROTOCOL_H */

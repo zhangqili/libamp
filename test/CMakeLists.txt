@@ -22,7 +22,7 @@ add_executable(libamp_tests
     keyboard/test_keyboard.cpp
     dynamic_key/test_dynamic_key.cpp
     event/test_event.cpp
-    large_packet/test_large_packet.cpp
+    object/test_object_service.cpp
     macro/test_macro.cpp
     record/test_record.cpp
     mouse/test_mouse.cpp

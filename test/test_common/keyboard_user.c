@@ -1011,6 +1011,13 @@ int hid_send_raw(uint8_t *report, uint16_t len)
     return 0;
 }
 
+uint32_t amp_transport_prepare_session_count;
+
+void amp_transport_prepare_session(void)
+{
+    amp_transport_prepare_session_count++;
+}
+
 int send_midi(uint8_t *report, uint16_t len)
 {
     memcpy(midi_send_buffer,report,len);

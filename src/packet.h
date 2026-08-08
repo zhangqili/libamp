@@ -1,241 +1,238 @@
 /*
- * Copyright (c) 2025 Zhangqi Li (@zhangqili)
+ * Copyright (c) 2026 Zhangqi Li (@zhangqili)
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-#ifndef PACKET_H
-#define PACKET_H
+#ifndef AMP_PACKET_H
+#define AMP_PACKET_H
 
-#include "keyboard.h"
-#include "storage.h"
 #include "amp_protocol.h"
+#include "keyboard.h"
+#include "macro.h"
+#include "storage.h"
+
+#define PACKET_CONSOLE_DATA_SIZE (AMP_FRAME_PAYLOAD_SIZE - sizeof(uint32_t))
+
+#ifndef AMP_OBJECT_CRC32_ENABLE
+#define AMP_OBJECT_CRC32_ENABLE 1
+#endif
+
+#ifndef AMP_OBJECT_TEMP_FILE_ENABLE
+#define AMP_OBJECT_TEMP_FILE_ENABLE 1
+#endif
+
+#if AMP_OBJECT_CRC32_ENABLE != 0 && AMP_OBJECT_CRC32_ENABLE != 1
+#error "AMP_OBJECT_CRC32_ENABLE must be 0 or 1"
+#endif
+
+#if AMP_OBJECT_TEMP_FILE_ENABLE != 0 && AMP_OBJECT_TEMP_FILE_ENABLE != 1
+#error "AMP_OBJECT_TEMP_FILE_ENABLE must be 0 or 1"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#if defined(SCRIPT_ENABLE) && defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
-#define LARGE_PACKET_ENABLE 1
-#else
-#define LARGE_PACKET_ENABLE 0
-#endif
-
 enum {
-    PACKET_CODE_EVENT = 0x00,
-    PACKET_CODE_SET = 0x01,
-    PACKET_CODE_GET = 0x02,
-    PACKET_CODE_LOG = 0x03,
-    PACKET_CODE_LARGE_SET = 0x04,
-    PACKET_CODE_LARGE_GET = 0x05,
-    PACKET_CODE_USER = 0xFF,
+    AMP_CONTROL_HELLO     = 0x0001,
+    AMP_CONTROL_KEY_EVENT = 0x0002,
 };
 
 enum {
-    PACKET_DATA_VERSION = 0x00,
-    PACKET_DATA_ADVANCED_KEY = 0x01,
-    PACKET_DATA_KEYMAP = 0x02,
-    PACKET_DATA_RGB_BASE_CONFIG = 0x03,
-    PACKET_DATA_RGB_CONFIG = 0x04,
-    PACKET_DATA_DYNAMIC_KEY = 0x05,
-    PACKET_DATA_PROFILE_INDEX = 0x06,
-    PACKET_DATA_CONFIG = 0x07,
-    PACKET_DATA_DEBUG = 0x08,
-    PACKET_DATA_REPORT = 0x09,
-    PACKET_DATA_MACRO = 0x0A,
-    PACKET_DATA_FEATURE = 0x0B,
-    PACKET_DATA_SCRIPT_SCOURCE = 0x0C,
-    PACKET_DATA_SCRIPT_BYTECODE = 0x0D,
+    AMP_CONFIG_ACTIVATE_PROFILE       = 0x0001,
+    AMP_CONFIG_ACTIVE_PROFILE_CHANGED = 0x8001,
+    AMP_CONFIG_PROFILE_CHANGED        = 0x8002,
 };
 
 enum {
-    LARGE_DATA_CMD_START = 0,
-    LARGE_DATA_CMD_PAYLOAD = 1,
-    LARGE_DATA_CMD_END = 2,
-    LARGE_DATA_CMD_ABORT = 3,
+    AMP_OBJECT_OPEN_READ  = 0x0001,
+    AMP_OBJECT_READ       = 0x0002,
+    AMP_OBJECT_CLOSE_READ = 0x0003,
+    AMP_OBJECT_OPEN_WRITE = 0x0004,
+    AMP_OBJECT_WRITE      = 0x0005,
+    AMP_OBJECT_COMMIT     = 0x0006,
+    AMP_OBJECT_ABORT      = 0x0007,
 };
 
-#define PACKET_ADVANCED_KEY_ITEMS 2
-#define PACKET_KEYMAP_ITEMS 27
-#define PACKET_RGB_ITEMS 7
-#define PACKET_CONFIG_ITEMS 28
-#define PACKET_DEBUG_ITEMS 5
-#define PACKET_MACRO_ITEMS 4
-#define PACKET_LARGE_CHUNK_SIZE 52
-#define PACKET_CONSOLE_DATA_SIZE 57
-#define PACKET_DYNAMIC_KEY_DATA_OFFSET sizeof(uint16_t)
+enum {
+    AMP_DEBUG_SUBSCRIBE   = 0x0001,
+    AMP_DEBUG_UNSUBSCRIBE = 0x0002,
+    AMP_DEBUG_SAMPLE      = 0x0003,
+    AMP_DEBUG_DATA        = 0x8001,
+};
+
+enum {
+    AMP_CONSOLE_SUBSCRIBE   = 0x0001,
+    AMP_CONSOLE_UNSUBSCRIBE = 0x0002,
+    AMP_CONSOLE_DATA        = 0x8001,
+};
+
+typedef enum {
+    AMP_OBJECT_CONFIG_PROFILE  = 1,
+    AMP_OBJECT_SCRIPT_SOURCE   = 2,
+    AMP_OBJECT_SCRIPT_BYTECODE = 3,
+    AMP_OBJECT_USER_BASE       = 0x8000,
+} AmpObjectType;
+
+enum {
+    AMP_CAP_CONFIG_OBJECT = 1U << 0,
+    AMP_CAP_SCRIPT_SOURCE = 1U << 1,
+    AMP_CAP_SCRIPT_BYTECODE = 1U << 2,
+    AMP_CAP_DEBUG_STREAM = 1U << 3,
+    AMP_CAP_CONSOLE_STREAM = 1U << 4,
+    AMP_CAP_OBJECT_CRC32 = 1U << 5,
+    AMP_CAP_OBJECT_ATOMIC_COMMIT = 1U << 6,
+};
+
+typedef struct {
+    uint16_t max_rx_payload;
+    uint16_t max_tx_payload;
+    uint32_t capabilities;
+} __PACKED AmpHelloRequest;
+
+typedef struct {
+    uint16_t max_rx_payload;
+    uint16_t max_tx_payload;
+    uint32_t capabilities;
+    uint32_t device_state_revision;
+    uint16_t active_profile;
+    uint16_t profile_count;
+    uint16_t firmware_major;
+    uint16_t firmware_minor;
+    uint16_t firmware_patch;
+    uint16_t max_inflight_requests;
+    uint16_t advanced_key_count;
+    uint16_t total_key_count;
+    uint16_t layer_count;
+    uint16_t dynamic_key_count;
+    uint16_t macro_count;
+    uint16_t macro_action_count;
+    uint16_t rgb_count;
+    uint8_t firmware_info_length;
+    uint8_t firmware_info[13];
+} __PACKED AmpHelloResponse;
 
 typedef struct {
     uint8_t event;
     uint16_t keycode;
-    uint16_t id;
+    uint16_t key_id;
     uint8_t is_virtual;
     uint8_t use_keymap;
-    uint8_t reserved[51];
-} __PACKED PacketEvent;
+} __PACKED AmpKeyEvent;
 
 typedef struct {
-    uint8_t count;
-    struct {
-        uint16_t index;
-        AdvancedKeyConfiguration config;
-    } __PACKED items[PACKET_ADVANCED_KEY_ITEMS];
-    uint8_t reserved[9];
-} __PACKED PacketAdvancedKeys;
+    uint16_t profile_id;
+} __PACKED AmpActivateProfileRequest;
 
 typedef struct {
-    uint8_t layer;
-    uint16_t start;
-    uint8_t count;
-    uint16_t keycodes[PACKET_KEYMAP_ITEMS];
-} __PACKED PacketKeymap;
+    uint16_t active_profile;
+    uint32_t device_state_revision;
+} __PACKED AmpActivateProfileResponse;
 
 typedef struct {
-    uint8_t mode;
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t secondary_r;
-    uint8_t secondary_g;
-    uint8_t secondary_b;
-    uint16_t speed;
-    uint16_t direction;
-    uint8_t density;
-    uint8_t brightness;
-    uint8_t reserved[45];
-} __PACKED PacketRgbBaseConfig;
+    uint16_t profile_id;
+    uint32_t device_state_revision;
+    uint8_t reason;
+} __PACKED AmpActiveProfileChangedEvent;
 
 typedef struct {
-    uint8_t count;
-    struct {
-        uint16_t index;
-        uint8_t mode;
-        uint8_t r;
-        uint8_t g;
-        uint8_t b;
-        uint16_t speed;
-    } __PACKED  items[PACKET_RGB_ITEMS];
-    uint8_t reserved[1];
-} __PACKED PacketRgbItems;
+    uint16_t profile_id;
+    uint32_t profile_revision;
+} __PACKED AmpProfileChangedEvent;
 
 typedef struct {
-    uint8_t index;
-    uint8_t reserved[57];
-} __PACKED PacketProfileIndex;
+    uint16_t object_type;
+    uint16_t object_id;
+} __PACKED AmpObjectOpenReadRequest;
 
 typedef struct {
-    uint8_t count;
-    struct {
-        uint8_t index;
-        uint8_t value;
-    } __PACKED  items[PACKET_CONFIG_ITEMS];
-    uint8_t reserved[1];
-} __PACKED PacketConfig;
-
-typedef struct {
-    uint8_t count;
-    uint32_t tick;
-    struct {
-        uint16_t index;
-        uint8_t state;
-        uint8_t report_state;
-        uint16_t value;
-        uint16_t raw;
-        uint16_t filtered_raw;
-    } __PACKED items[PACKET_DEBUG_ITEMS];
-    uint8_t reserved[3];
-} __PACKED PacketDebug;
-
-typedef struct {
-    uint8_t macro_index;
-    uint8_t count;
-    struct {
-        uint32_t delay;
-        uint16_t index;
-        uint16_t key_id;
-        uint8_t is_virtual;
-        uint8_t event;
-        uint16_t keycode;
-    } __PACKED  items[PACKET_MACRO_ITEMS];
-    uint8_t reserved[8];
-} __PACKED PacketMacro;
-
-typedef struct {
-    uint16_t major;
-    uint16_t minor;
-    uint16_t patch;
-    uint8_t info_length;
-    uint8_t info[51];
-} __PACKED PacketVersion;
-
-typedef struct {
-    uint8_t length;
-    uint8_t data[PACKET_CONSOLE_DATA_SIZE];
-} __PACKED PacketConsole;
-
-typedef struct {
-    uint8_t sub_cmd;
+    uint16_t transaction_id;
+    uint32_t revision;
     uint32_t total_size;
-    uint8_t reserved[53];
-} __PACKED PacketLargeStart;
+    uint32_t crc32;
+} __PACKED AmpObjectOpenReadResponse;
 
 typedef struct {
-    uint8_t sub_cmd;
+    uint16_t transaction_id;
     uint32_t offset;
-    uint8_t chunk_length;
-    uint8_t data[PACKET_LARGE_CHUNK_SIZE];
-} __PACKED PacketLargePayload;
+    uint16_t requested_length;
+} __PACKED AmpObjectReadRequest;
 
 typedef struct {
-    uint8_t sub_cmd;
-    uint8_t reserved[57];
-} __PACKED PacketLargeControl;
+    uint32_t offset;
+    uint8_t data[AMP_FRAME_PAYLOAD_SIZE - sizeof(uint32_t)];
+} __PACKED AmpObjectReadResponse;
 
-typedef union {
-    uint8_t sub_cmd;
-    PacketLargeStart start;
-    PacketLargePayload payload;
-    PacketLargeControl control;
-    uint8_t raw[AMP_FRAME_BODY_SIZE];
-} __PACKED PacketLarge;
+typedef struct {
+    uint16_t transaction_id;
+} __PACKED AmpObjectTransactionRequest;
 
-#define AMP_PACKET_ASSERT(type) STATIC_ASSERT(sizeof(type) == AMP_FRAME_BODY_SIZE, #type " must be 58 bytes")
+typedef struct {
+    uint16_t object_type;
+    uint16_t object_id;
+    uint32_t expected_revision;
+    uint32_t total_size;
+    uint32_t crc32;
+} __PACKED AmpObjectOpenWriteRequest;
 
-AMP_PACKET_ASSERT(PacketEvent);
-AMP_PACKET_ASSERT(PacketAdvancedKeys);
-AMP_PACKET_ASSERT(PacketKeymap);
-AMP_PACKET_ASSERT(PacketRgbBaseConfig);
-AMP_PACKET_ASSERT(PacketRgbItems);
-AMP_PACKET_ASSERT(PacketProfileIndex);
-AMP_PACKET_ASSERT(PacketConfig);
-AMP_PACKET_ASSERT(PacketDebug);
-AMP_PACKET_ASSERT(PacketMacro);
-AMP_PACKET_ASSERT(PacketVersion);
-AMP_PACKET_ASSERT(PacketConsole);
-AMP_PACKET_ASSERT(PacketLargeStart);
-AMP_PACKET_ASSERT(PacketLargePayload);
-AMP_PACKET_ASSERT(PacketLargeControl);
-AMP_PACKET_ASSERT(PacketLarge);
+typedef struct {
+    uint16_t transaction_id;
+} __PACKED AmpObjectOpenWriteResponse;
 
-STATIC_ASSERT(PACKET_DYNAMIC_KEY_DATA_OFFSET + sizeof(DynamicKey) == AMP_FRAME_BODY_SIZE,
-               "DynamicKey must fill the remaining Amp packet body");
+typedef struct {
+    uint16_t transaction_id;
+    uint32_t offset;
+    uint8_t data[AMP_FRAME_PAYLOAD_SIZE - sizeof(uint16_t) - sizeof(uint32_t)];
+} __PACKED AmpObjectWriteRequest;
 
-#undef AMP_PACKET_ASSERT
+typedef struct {
+    uint32_t new_revision;
+} __PACKED AmpObjectCommitResponse;
+
+typedef struct {
+    uint16_t index;
+    uint8_t state;
+    uint8_t report_state;
+    uint16_t value;
+    uint16_t raw;
+    uint16_t filtered_raw;
+} __PACKED AmpDebugItem;
+
+typedef struct {
+    uint8_t count;
+    uint16_t indices[(AMP_FRAME_PAYLOAD_SIZE - 1) / sizeof(uint16_t)];
+} __PACKED AmpDebugRequest;
+
+typedef struct {
+    uint32_t sequence;
+    uint32_t tick;
+    uint8_t count;
+    AmpDebugItem items[(AMP_FRAME_PAYLOAD_SIZE - 9) / sizeof(AmpDebugItem)];
+} __PACKED AmpDebugData;
+
+STATIC_ASSERT(sizeof(AmpHelloResponse) <= AMP_FRAME_PAYLOAD_SIZE,
+              "HELLO response must fit in one AMP payload");
 
 void packet_process_frame(const AmpFrame *frame);
-bool packet_process_frame_to_report(const AmpFrame *frame, uint8_t channel,
-                                    uint8_t flags, uint8_t report[AMP_FRAME_REPORT_SIZE]);
-
+void packet_reset_session(void);
 void packet_send_version_packet(void);
 void packet_process_version_notifications(void);
 void packet_send_debug_packet(void);
+void packet_notify_profile_changed(uint16_t profile_id, uint32_t revision);
+bool packet_console_is_subscribed(void);
+uint32_t packet_next_console_sequence(void);
 
-AmpStatus packet_process_user(uint8_t code, uint8_t type,
-                              const uint8_t request[AMP_FRAME_BODY_SIZE],
-                              uint8_t response[AMP_FRAME_BODY_SIZE]);
-AmpStatus large_packet_process(const AmpFrame *request, AmpFrame *response);
+AmpStatus object_service_process(uint16_t opcode, const uint8_t *request,
+                                 uint16_t request_len, uint8_t *response,
+                                 uint16_t *response_len);
+void object_service_reset(void);
+
+AmpStatus packet_process_user(uint16_t opcode, const uint8_t *request,
+                              uint16_t request_len, uint8_t *response,
+                              uint16_t *response_len);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // PACKET_H
+#endif /* AMP_PACKET_H */

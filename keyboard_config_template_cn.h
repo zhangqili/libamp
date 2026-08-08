@@ -117,6 +117,8 @@
 // #define LFS_LOOKAHEAD_SIZE 16           /* littlefs 分配预读大小。 */
 // #define LFS_BLOCK_CYCLES 500            /* 磨损均衡迁移间隔。 */
 // #define STORAGE_PROFILE_FILE_NUM 4      /* 持久化配置文件数量。 */
+// #define AMP_OBJECT_CRC32_ENABLE 1       /* 使用 CRC32 校验完整的 Object 传输。 */
+// #define AMP_OBJECT_TEMP_FILE_ENABLE 1   /* 通过重命名临时文件原子提交 Object 写入。 */
 
 /********/
 /* RGB */

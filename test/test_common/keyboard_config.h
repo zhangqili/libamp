@@ -57,6 +57,12 @@
 #define LFS_LOOKAHEAD_SIZE  16
 #define LFS_BLOCK_CYCLES    500
 #define LFS_BUFFER_SIZE     16
+#ifndef AMP_OBJECT_CRC32_ENABLE
+#define AMP_OBJECT_CRC32_ENABLE       1
+#endif
+#ifndef AMP_OBJECT_TEMP_FILE_ENABLE
+#define AMP_OBJECT_TEMP_FILE_ENABLE   1
+#endif
 
 /*******/
 /* RGB */

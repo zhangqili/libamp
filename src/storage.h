@@ -8,6 +8,7 @@
 
 #include "keyboard.h"
 #include "dynamic_key.h"
+#include "stddef.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +29,9 @@ void storage_read_profile(void);
 void storage_save_profile(void);
 void storage_save_script(void);
 void storage_read_script(void);
+bool storage_profile_path(char *buffer, size_t buffer_size, uint16_t profile_id);
+uint32_t storage_get_profile_revision(uint16_t profile_id);
+uint32_t storage_bump_profile_revision(uint16_t profile_id);
 
 #ifdef __cplusplus
 }
