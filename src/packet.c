@@ -6,218 +6,17 @@
 #include "packet.h"
 #include "rgb.h"
 #include "layer.h"
-#include "amp_protocol.h"
-#ifdef NEXUS_ENABLE
-#include "nexus.h"
-#endif
 
 #include "stddef.h"
 #include "string.h"
 #ifdef MACRO_ENABLE
 #include "macro.h"
 #endif
+#include "packet_buffer.h"
 
-#define PACKET_DEBUG_MAX_KEYS 5
-
+#define DEBUG_BUFFER_MAX_LENGTH 5
 static uint8_t debug_length;
-static uint16_t debug_buffer[PACKET_DEBUG_MAX_KEYS];
-static volatile bool pending_version_notification;
-
-enum
-{
-    PACKET_ERROR_BAD_FRAME = 1,
-    PACKET_ERROR_TOO_LONG = 2,
-};
-
-static uint8_t packet_clamp_payload_len(uint16_t len)
-{
-    return len > AMP_FRAME_MAX_PAYLOAD ? AMP_FRAME_MAX_PAYLOAD : (uint8_t)len;
-}
-
-static bool packet_from_frame(const AmpFrame *frame, uint8_t *packet, uint16_t *packet_len)
-{
-    if (frame == NULL || packet == NULL || packet_len == NULL)
-    {
-        return false;
-    }
-
-    memset(packet, 0, AMP_FRAME_REPORT_SIZE);
-    if (frame->header.code == PACKET_CODE_EVENT)
-    {
-        if (frame->header.len > AMP_FRAME_REPORT_SIZE - 1)
-        {
-            return false;
-        }
-        packet[0] = frame->header.code;
-        memcpy(packet + 1, frame->payload, frame->header.len);
-        *packet_len = (uint16_t)(frame->header.len + 1);
-        return true;
-    }
-    if (frame->header.code == PACKET_CODE_LOG)
-    {
-        if (frame->header.len > AMP_FRAME_REPORT_SIZE - offsetof(PacketLog, data))
-        {
-            return false;
-        }
-        PacketLog *log = (PacketLog *)packet;
-        log->code = PACKET_CODE_LOG;
-        log->length = frame->header.len;
-        memcpy(log->data, frame->payload, frame->header.len);
-        *packet_len = (uint16_t)(offsetof(PacketLog, data) + frame->header.len);
-        return true;
-    }
-
-    if (frame->header.len > AMP_FRAME_REPORT_SIZE - 2)
-    {
-        return false;
-    }
-    packet[0] = frame->header.code;
-    packet[1] = frame->header.type;
-    memcpy(packet + 2, frame->payload, frame->header.len);
-    *packet_len = (uint16_t)(frame->header.len + 2);
-    return true;
-}
-
-static const uint8_t *packet_payload_ptr(const uint8_t *packet)
-{
-    switch (packet[0])
-    {
-    case PACKET_CODE_EVENT:
-        return packet + 1;
-    case PACKET_CODE_LOG:
-        return packet + offsetof(PacketLog, data);
-    default:
-        return packet + 2;
-    }
-}
-
-static uint8_t packet_payload_type(const uint8_t *packet)
-{
-    switch (packet[0])
-    {
-    case PACKET_CODE_EVENT:
-    case PACKET_CODE_LOG:
-        return 0;
-    default:
-        return packet[1];
-    }
-}
-
-static uint8_t packet_response_payload_len(const uint8_t *packet, uint16_t packet_len)
-{
-    uint16_t fallback = 0;
-    switch (packet[0])
-    {
-    case PACKET_CODE_EVENT:
-        fallback = packet_len > 1 ? (uint16_t)(packet_len - 1) : 0;
-        break;
-    case PACKET_CODE_LOG:
-        fallback = ((const PacketLog *)packet)->length;
-        break;
-    default:
-        fallback = packet_len > 2 ? (uint16_t)(packet_len - 2) : 0;
-        break;
-    }
-
-    switch (packet[0])
-    {
-    case PACKET_CODE_LARGE_SET:
-    case PACKET_CODE_LARGE_GET:
-    {
-        const PacketLargeData *large = (const PacketLargeData *)packet;
-        if (large->sub_cmd == 0)
-        {
-            return packet_clamp_payload_len(1 + sizeof(large->header));
-        }
-        if (large->sub_cmd == 1)
-        {
-            return packet_clamp_payload_len(1 + sizeof(large->payload.offset) + sizeof(large->payload.length) + large->payload.length);
-        }
-        return 1;
-    }
-    case PACKET_CODE_GET:
-    case PACKET_CODE_SET:
-        switch (((const PacketData *)packet)->type)
-        {
-        case PACKET_DATA_VERSION:
-        {
-            const PacketVersion *version = (const PacketVersion *)packet;
-            return packet_clamp_payload_len((uint16_t)(offsetof(PacketVersion, info) - 2 + version->info_length));
-        }
-        case PACKET_DATA_DEBUG:
-        {
-            const PacketDebug *debug = (const PacketDebug *)packet;
-            return packet_clamp_payload_len((uint16_t)(offsetof(PacketDebug, data) - 2 + debug->length * sizeof(debug->data[0])));
-        }
-        default:
-            break;
-        }
-        break;
-    default:
-        break;
-    }
-    return packet_clamp_payload_len(fallback);
-}
-
-static int packet_send_response(uint8_t *packet, uint16_t packet_len, uint8_t channel, uint8_t flags, uint8_t seq, bool stream)
-{
-    uint8_t payload_len = packet_response_payload_len(packet, packet_len);
-    return amp_send_frame(channel, flags, seq, packet[0], packet_payload_type(packet), packet_payload_ptr(packet), payload_len, stream);
-}
-
-bool packet_process_frame_to_report(const AmpFrame *frame, uint8_t channel, uint8_t flags, uint8_t *report)
-{
-    uint8_t packet[AMP_FRAME_REPORT_SIZE];
-    uint16_t packet_len = 0;
-    if (report == NULL || !packet_from_frame(frame, packet, &packet_len))
-    {
-        return false;
-    }
-
-    packet_process_buffer(packet, packet_len);
-    uint8_t payload_len = packet_response_payload_len(packet, packet_len);
-    return amp_frame_encode(report, channel, flags, frame->header.seq, packet[0], packet_payload_type(packet), packet_payload_ptr(packet), payload_len) == 0;
-}
-
-void packet_process_frame(const AmpFrame *frame)
-{
-    if (frame == NULL)
-    {
-        return;
-    }
-
-    const uint8_t channel = amp_frame_channel(&frame->header);
-    const uint8_t flags = amp_frame_flags(&frame->header);
-    if (frame->header.seq != 0 || (flags & AMP_FRAME_FLAG_REQ_ACK))
-    {
-        uint8_t packet[AMP_FRAME_REPORT_SIZE];
-        uint16_t packet_len = 0;
-        if (packet_from_frame(frame, packet, &packet_len))
-        {
-            packet_process_buffer(packet, packet_len);
-            if (packet_send_response(packet, packet_len, channel, AMP_FRAME_FLAG_RESP, frame->header.seq, false) != 0)
-            {
-                amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, PACKET_ERROR_TOO_LONG);
-            }
-        }
-        else
-        {
-            amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, PACKET_ERROR_BAD_FRAME);
-        }
-        return;
-    }
-
-    uint8_t packet[AMP_FRAME_REPORT_SIZE];
-    uint16_t packet_len = 0;
-    if (packet_from_frame(frame, packet, &packet_len))
-    {
-        packet_process_buffer(packet, packet_len);
-    }
-    else
-    {
-        amp_send_error(channel, frame->header.seq, frame->header.code, frame->header.type, PACKET_ERROR_BAD_FRAME);
-    }
-}
+static uint16_t debug_buffer[DEBUG_BUFFER_MAX_LENGTH];
 
 void packet_process_buffer(uint8_t *buf, uint16_t len)
 {
@@ -254,9 +53,6 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         case PACKET_DATA_CONFIG:
             packet_process_config(packet);
             break;
-        case PACKET_DATA_DEBUG:
-            packet_process_debug(packet);
-            break;
 #ifdef MACRO_ENABLE
         case PACKET_DATA_MACRO:
             packet_process_macro(packet);
@@ -268,8 +64,6 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         case PACKET_DATA_VERSION:
             if (packet->code == PACKET_CODE_GET)
             {
-                g_keyboard_config.console = false;
-                g_keyboard_config.debug = false;
                 PacketVersion* packet_version = (PacketVersion*)packet;
                 packet_version->info_length = sizeof(KEYBOARD_VERSION_INFO);
                 packet_version->major = KEYBOARD_VERSION_MAJOR;
@@ -282,6 +76,7 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
             packet_process_user(buf, len);
             break;
         }
+        packet_buffer_push(buf, len, PACKET_BUFFER_CODE_DATA);
         break;
     case PACKET_CODE_EVENT:
         {
@@ -321,6 +116,10 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
     case PACKET_CODE_LARGE_SET:
     case PACKET_CODE_LARGE_GET:
         large_packet_process((PacketLargeData*)buf);
+        packet_buffer_push(buf, len, PACKET_BUFFER_CODE_DATA);
+        break;
+    case PACKET_CODE_DEBUG:
+        packet_process_debug((PacketData*)buf);
         break;
     default:
         packet_process_user(buf, len);
@@ -330,8 +129,8 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
 
 void packet_process(uint8_t *buf, uint16_t len)
 {
+    UNUSED(len);
     packet_process_buffer(buf, len);
-    packet_send_response(buf, len, AMP_CHANNEL_CONTROL, AMP_FRAME_FLAG_RESP, 0, false);
 }
 
 void packet_process_advanced_key(PacketData*data)
@@ -339,10 +138,6 @@ void packet_process_advanced_key(PacketData*data)
     PacketAdvancedKey* packet = (PacketAdvancedKey*)data;
     uint16_t key_index = packet->index;
     AdvancedKeyConfiguration config_buffer;
-    if (key_index >= ADVANCED_KEY_NUM)
-    {
-        return;
-    }
     if (data->code == PACKET_CODE_SET)
     {
         memcpy(&config_buffer, &packet->data, sizeof(AdvancedKeyConfiguration));
@@ -412,19 +207,10 @@ void packet_process_rgb_base_config(PacketData*data)
 void packet_process_rgb_config(PacketData*data)
 {
     PacketRGBConfigs* packet = (PacketRGBConfigs*)data;
-    const uint8_t max_length = (uint8_t)((AMP_FRAME_REPORT_SIZE - offsetof(PacketRGBConfigs, data)) / sizeof(packet->data[0]));
-    if (packet->length > max_length)
-    {
-        packet->length = max_length;
-    }
     if (data->code == PACKET_CODE_SET)
     {
         for (uint8_t i = 0; i < packet->length; i++)
         {
-            if (packet->data[i].index >= TOTAL_KEY_NUM)
-            {
-                continue;
-            }
             uint16_t rgb_index = g_rgb_inverse_mapping[packet->data[i].index];
             if (rgb_index < RGB_NUM)
             {
@@ -463,20 +249,6 @@ void packet_process_rgb_config(PacketData*data)
 void packet_process_keymap(PacketData*data)
 {
     PacketKeymap* packet = (PacketKeymap*)data;
-    const uint8_t max_length = (uint8_t)((AMP_FRAME_REPORT_SIZE - offsetof(PacketKeymap, keymap)) / sizeof(packet->keymap[0]));
-    if (packet->length > max_length)
-    {
-        packet->length = max_length;
-    }
-    if (packet->layer >= LAYER_NUM || packet->start >= TOTAL_KEY_NUM)
-    {
-        packet->length = 0;
-        return;
-    }
-    if ((uint16_t)(packet->start + packet->length) > TOTAL_KEY_NUM)
-    {
-        packet->length = (uint8_t)(TOTAL_KEY_NUM - packet->start);
-    }
     if (data->code == PACKET_CODE_SET)
     {       
         for (uint16_t i = 0; i < packet->length; i++)
@@ -534,11 +306,6 @@ void packet_process_profile_index(PacketData*data)
 void packet_process_config(PacketData*data)
 {
     PacketConfig* packet = (PacketConfig*)data;
-    const uint8_t max_length = (uint8_t)((AMP_FRAME_REPORT_SIZE - offsetof(PacketConfig, data)) / sizeof(packet->data[0]));
-    if (packet->length > max_length)
-    {
-        packet->length = max_length;
-    }
     if (data->code == PACKET_CODE_SET)
     {       
         for (int i = 0; i < packet->length; i++)
@@ -572,18 +339,26 @@ void packet_process_config(PacketData*data)
 void packet_process_debug(PacketData*data)
 {
     PacketDebug* packet = (PacketDebug*)data;
-    if (data->code == PACKET_CODE_GET)
-    {
-        if (packet->length > PACKET_DEBUG_MAX_KEYS)
-        {
-            packet->length = PACKET_DEBUG_MAX_KEYS;
-        }
-        packet->tick = g_keyboard_tick;
+    if (data->code == PACKET_CODE_DEBUG)
+    {       
         debug_length = packet->length;
         for (uint8_t i = 0; i < packet->length; i++)
         {
-            uint8_t key_index =  packet->data[i].index;
+            uint16_t key_index =  packet->data[i].index;
             debug_buffer[i] = key_index;
+        }
+    }
+}
+
+void packet_fill_debug(PacketData*data)
+{
+    PacketDebug* packet = (PacketDebug*)data;
+    if (data->code == PACKET_CODE_DEBUG)
+    {       
+        packet->tick = g_keyboard_tick;
+        for (uint8_t i = 0; i < packet->length; i++)
+        {
+            uint16_t key_index =  packet->data[i].index;
             if (key_index < ADVANCED_KEY_NUM)
             {
                 packet->data[i].raw = g_keyboard_advanced_keys[key_index].raw;
@@ -660,31 +435,23 @@ void packet_process_feature(PacketData *data)
     }
 }
 
-static int packet_send_version_packet_now(void)
+void packet_send_version_packet(void)
 {
     uint8_t buf[64] = {0};
     PacketVersion* packet = (PacketVersion*)buf;
     packet->code = PACKET_CODE_GET;
     packet->type = PACKET_DATA_VERSION;
     packet_process_buffer((uint8_t*)packet, sizeof(buf));
-    return packet_send_response((uint8_t*)packet, sizeof(buf), AMP_CHANNEL_CONTROL, 0, 0, false);
+    packet_buffer_push((uint8_t*)packet, 63, PACKET_BUFFER_CODE_DATA);
 }
 
-void packet_send_version_packet(void)
+void packet_notify_event(uint8_t packet_event)
 {
-    pending_version_notification = true;
-}
-
-void packet_process_version_notifications(void)
-{
-    if (!pending_version_notification || !amp_transport_control_event_can_enqueue())
-    {
-        return;
-    }
-    if (packet_send_version_packet_now() == 0)
-    {
-        pending_version_notification = false;
-    }
+    uint8_t buf[64] = {0};
+    PacketEvent* packet = (PacketEvent*)buf;
+    packet->code = PACKET_CODE_EVENT;
+    packet->flag = packet_event;
+    packet_buffer_push((uint8_t*)packet, 63, PACKET_BUFFER_CODE_EVENT);
 }
 
 void packet_send_debug_packet(void)
@@ -700,15 +467,27 @@ void packet_send_debug_packet(void)
 #endif
     uint8_t buf[64];
     PacketDebug* packet = (PacketDebug*)buf;
-    packet->code = PACKET_CODE_GET;
-    packet->type = PACKET_DATA_DEBUG;
-    packet->length = debug_length;
-    for (uint8_t i = 0; i < debug_length; i++)
+    packet->code = PACKET_CODE_DEBUG;
+    if (debug_length)
     {
-        packet->data[i].index = debug_buffer[i];
+        packet->length = debug_length;
+        for (uint8_t i = 0; i < debug_length; i++)
+        {
+            packet->data[i].index = debug_buffer[i];
+        }
     }
-    packet_process_buffer((uint8_t*)packet, sizeof(PacketDebug) + debug_length * sizeof(packet->data[0]));
-    packet_send_response((uint8_t*)packet, sizeof(PacketDebug) + packet->length * sizeof(packet->data[0]), AMP_CHANNEL_DEBUG, 0, 0, true);
+    else
+    {
+        packet->length = DEBUG_BUFFER_MAX_LENGTH;
+        const uint16_t last_key_index = debug_buffer[DEBUG_BUFFER_MAX_LENGTH-1];
+        for (uint8_t i = 0; i < DEBUG_BUFFER_MAX_LENGTH; i++)
+        {
+            debug_buffer[i] = (last_key_index + 1 + i) % ADVANCED_KEY_NUM;
+            packet->data[i].index = debug_buffer[i];
+        }
+    }
+    packet_fill_debug((PacketData*)packet);
+    packet_buffer_push((uint8_t*)packet, 63, PACKET_BUFFER_CODE_DEBUG);
 }
 
 __WEAK void packet_process_user(uint8_t *buf, uint16_t len)

@@ -8,7 +8,7 @@
 #include "record.h"
 #include "driver.h"
 #include "packet.h"
-#include "amp_protocol.h"
+#include "packet_buffer.h"
 #include "analog.h"
 
 #include "stdio.h"
@@ -285,9 +285,7 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
                 break;
             case KEYBOARD_FACTORY_RESET:
                 keyboard_factory_reset();
-                g_keyboard_config.console = false;
-                g_keyboard_config.debug = false;
-                packet_send_version_packet();
+                packet_notify_event(PACKET_EVENT_CONFIG_CHANGED);
                 break;
             case KEYBOARD_SAVE:
                 keyboard_save();
@@ -297,9 +295,7 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
                 break;
             case KEYBOARD_RESET_TO_DEFAULT:
                 keyboard_reset_to_default();
-                g_keyboard_config.console = false;
-                g_keyboard_config.debug = false;
-                packet_send_version_packet();
+                packet_notify_event(PACKET_EVENT_CONFIG_CHANGED);
                 break;
             case KEYBOARD_RECOVERY:
                 keyboard_recovery();
@@ -331,9 +327,7 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
             case KEYBOARD_PROFILE2:
             case KEYBOARD_PROFILE3:
                 keyboard_set_profile_index((event.keycode >> 8) & 0x0F);
-                g_keyboard_config.console = false;
-                g_keyboard_config.debug = false;
-                packet_send_version_packet();
+                packet_notify_event(PACKET_EVENT_CONFIG_CHANGED);
                 break;
             default:
                 break;
@@ -513,13 +507,6 @@ void keyboard_init(void)
     {
         g_keyboard_keys[i].id = ADVANCED_KEY_NUM + i;
     }
-#ifdef STORAGE_ENABLE
-    storage_mount();
-    if (storage_check_version())
-    {
-        keyboard_factory_reset();
-    }
-#endif
 #ifdef RGB_ENABLE
     rgb_init();
 #endif
@@ -529,10 +516,17 @@ void keyboard_init(void)
 #if defined(MACRO_ENABLE) || defined(SCRIPT_ENABLE)
     event_cache_init();
 #endif
-    event_loop_queue_init(&event_buffer, event_buffers, EVENT_BUFFER_LENGTH);
 #ifdef MACRO_ENABLE
     macro_init();
 #endif
+#ifdef STORAGE_ENABLE
+    storage_mount();
+    if (storage_check_version())
+    {
+        keyboard_factory_reset();
+    }
+#endif
+    event_loop_queue_init(&event_buffer, event_buffers, EVENT_BUFFER_LENGTH);
     keyboard_recovery();
 #ifdef NEXUS_ENABLE
 #if NEXUS_IS_SLAVE
@@ -820,12 +814,12 @@ __WEAK void keyboard_task(void)
     {   
         packet_send_debug_packet();
     }
+    packet_buffer_flush();
 #endif
 }
 
 void keyboard_process(void)
 {
-    amp_transport_poll();
     event_loop_queue_foreach(&event_buffer, EventLoopQueueElm, event)
     {
         keyboard_event_poller(event->event, event->tick);
@@ -838,11 +832,8 @@ void keyboard_process(void)
     {
         target_calibration_tick = 0;
         analog_calibrate();
-        g_keyboard_config.console = false;
-        g_keyboard_config.debug = false;
-        packet_send_version_packet();
+        packet_notify_event(PACKET_EVENT_CONFIG_CHANGED);
     }
-    packet_process_version_notifications();
 #ifdef RGB_ENABLE
     rgb_process();
 #endif

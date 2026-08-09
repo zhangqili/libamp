@@ -15,7 +15,7 @@ enum {
     kLargeDataAbort = 3,
 };
 
-using LargePacketBuffer = std::array<uint8_t, AMP_FRAME_REPORT_SIZE>;
+using LargePacketBuffer = std::array<uint8_t, 64>;
 
 PacketLargeData *packet_from(LargePacketBuffer& buffer)
 {

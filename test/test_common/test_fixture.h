@@ -1,7 +1,6 @@
 #ifndef LIBAMP_TEST_FIXTURE_H_
 #define LIBAMP_TEST_FIXTURE_H_
 
-#include "amp_protocol.h"
 #include "midi.h"
 #include "rgb.h"
 
@@ -9,7 +8,7 @@
 extern "C" {
 #endif
 
-#define LIBAMP_TEST_REPORT_BUFFER_SIZE AMP_FRAME_REPORT_SIZE
+#define LIBAMP_TEST_REPORT_BUFFER_SIZE 64
 
 extern uint8_t shared_ep_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 extern uint8_t keyboard_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];

@@ -8,7 +8,6 @@
 
 #include "keyboard.h"
 #include "storage.h"
-#include "amp_protocol.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,9 +17,10 @@ enum {
   PACKET_CODE_EVENT = 0x00,
   PACKET_CODE_SET = 0x01,
   PACKET_CODE_GET = 0x02,
-  PACKET_CODE_LOG = 0x03,
+  PACKET_CODE_CONSOLE = 0x03,
   PACKET_CODE_LARGE_SET = 0x04,
   PACKET_CODE_LARGE_GET = 0x05,
+  PACKET_CODE_DEBUG = 0x06,
   PACKET_CODE_USER = 0xFF,
 };
 
@@ -33,8 +33,8 @@ enum {
   PACKET_DATA_DYNAMIC_KEY = 0x05,
   PACKET_DATA_PROFILE_INDEX = 0x06,
   PACKET_DATA_CONFIG = 0x07,
-  PACKET_DATA_DEBUG = 0x08,
-  PACKET_DATA_REPORT = 0x09,
+  //PACKET_DATA_DEBUG = 0x08,
+  //PACKET_DATA_REPORT = 0x09,
   PACKET_DATA_MACRO = 0x0A,
   PACKET_DATA_FEATURE = 0x0B,
   PACKET_DATA_SCRIPT_SCOURCE = 0x0C,
@@ -47,9 +47,15 @@ typedef struct __PacketBase
   uint8_t buf[];
 } __PACKED PacketBase;
 
+enum {
+  PACKET_EVENT_NO_EVENT = 0x00,
+  PACKET_EVENT_CONFIG_CHANGED = 0x01,
+};
+
 typedef struct __PacketEvent
 {
   uint8_t code;
+  uint8_t flag;
   uint8_t event;
   uint16_t keycode;
   uint16_t id;
@@ -60,20 +66,46 @@ typedef struct __PacketEvent
 typedef struct __PacketData
 {
   uint8_t code;
+  uint8_t id;
   uint8_t type;
 } __PACKED PacketData;
+
+typedef struct __PacketVersion
+{
+  uint8_t code;
+  uint8_t id;
+  uint8_t type;
+  uint16_t info_length;
+  uint32_t major;
+  uint32_t minor;
+  uint32_t patch;
+  uint8_t info[];
+} __PACKED PacketVersion;
 
 typedef struct __PacketAdvancedKey
 {
   uint8_t code;
+  uint8_t id;
   uint8_t type;
   uint16_t index;
   AdvancedKeyConfiguration data;
 } __PACKED PacketAdvancedKey;
 
+typedef struct __PacketKeymap
+{
+  uint8_t code;
+  uint8_t id;
+  uint8_t type;
+  uint8_t layer;
+  uint16_t start;
+  uint8_t length;
+  uint16_t keymap[];
+} __PACKED PacketKeymap;
+
 typedef struct __PacketRGBBaseConfig
 {
   uint8_t code;
+  uint8_t id;
   uint8_t type;
   uint8_t mode;
   uint8_t r;
@@ -88,21 +120,10 @@ typedef struct __PacketRGBBaseConfig
   uint8_t brightness;
 } __PACKED PacketRGBBaseConfig;
 
-typedef struct __PacketRGBConfig
-{
-  uint8_t code;
-  uint8_t type;
-  uint16_t index;
-  uint8_t mode;
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
-  uint16_t speed;
-} __PACKED PacketRGBConfig;
-
 typedef struct __PacketRGBConfigs
 {
   uint8_t code;
+  uint8_t id;
   uint8_t type;
   uint8_t length;
   struct
@@ -116,19 +137,10 @@ typedef struct __PacketRGBConfigs
   } __PACKED data[];
 } __PACKED PacketRGBConfigs;
 
-typedef struct __PacketKeymap
-{
-  uint8_t code;
-  uint8_t type;
-  uint8_t layer;
-  uint16_t start;
-  uint8_t length;
-  uint16_t keymap[];
-} __PACKED PacketKeymap;
-
 typedef struct __PacketDynamicKey
 {
   uint8_t code;
+  uint8_t id;
   uint8_t type;
   uint8_t index;
   uint8_t reserved;
@@ -138,6 +150,7 @@ typedef struct __PacketDynamicKey
 typedef struct __PacketProfileIndex
 {
   uint8_t code;
+  uint8_t id;
   uint8_t type;
   uint8_t index;
 } __PACKED PacketProfileIndex;
@@ -146,6 +159,7 @@ typedef struct __PacketProfileIndex
 typedef struct __PacketConfig
 {
   uint8_t code;
+  uint8_t id;
   uint8_t type;
   uint8_t length;
   uint8_t reserved;
@@ -156,46 +170,10 @@ typedef struct __PacketConfig
   } __PACKED data[];
 } __PACKED PacketConfig;
 
-typedef struct __PacketDebug
-{
-  uint8_t code;
-  uint8_t type;
-  uint8_t length;
-  uint32_t tick;
-  struct
-  {
-    uint16_t index;
-    uint8_t state;
-    uint8_t report_state;
-    uint16_t value;
-    uint16_t raw;
-    uint16_t filtered_raw;
-  } __PACKED data[];
-} __PACKED PacketDebug;
-
-typedef struct __PacketReport
-{
-  uint8_t code;
-  uint8_t type;
-  uint8_t report_type;
-  uint8_t length;
-  uint8_t data[];
-} __PACKED PacketReport;
-
-typedef struct __PacketVersion
-{
-  uint8_t code;
-  uint8_t type;
-  uint16_t info_length;
-  uint32_t major;
-  uint32_t minor;
-  uint32_t patch;
-  uint8_t info[];
-} __PACKED PacketVersion;
-
 typedef struct __PacketMacro
 {
   uint8_t code;
+  uint8_t id;
   uint8_t type;
   uint8_t macro_index;
   uint16_t length;
@@ -213,6 +191,7 @@ typedef struct __PacketMacro
 typedef struct __PacketFeature
 {
   uint8_t code;
+  uint8_t id;
   uint8_t type;
   uint32_t features;
   uint32_t rgb_features;
@@ -222,6 +201,7 @@ typedef struct __PacketFeature
 typedef struct __PacketLargeData
 {
     uint8_t code;
+    uint8_t id;
     uint8_t type;
     uint8_t sub_cmd;
 
@@ -241,6 +221,32 @@ typedef struct __PacketLargeData
     };
 } __PACKED PacketLargeData;
 
+typedef struct __PacketDebug
+{
+  uint8_t code;
+  uint8_t length;
+  uint32_t tick;
+  struct
+  {
+    uint16_t index;
+    uint8_t state;
+    uint8_t report_state;
+    uint16_t raw;
+    uint16_t filtered_raw;
+    uint16_t value;
+  } __PACKED data[];
+} __PACKED PacketDebug;
+
+typedef struct __PacketReport
+{
+  uint8_t code;
+  uint8_t type;
+  uint8_t report_type;
+  uint8_t length;
+  uint8_t data[];
+} __PACKED PacketReport;
+
+
 typedef struct __PacketLog
 {
   uint8_t code;
@@ -251,8 +257,6 @@ typedef struct __PacketLog
 
 void packet_process_buffer(uint8_t *buf, uint16_t len);
 void packet_process(uint8_t *buf, uint16_t len);
-void packet_process_frame(const AmpFrame *frame);
-bool packet_process_frame_to_report(const AmpFrame *frame, uint8_t channel, uint8_t flags, uint8_t *report);
 void packet_process_advanced_key(PacketData*data);
 void packet_process_rgb_base_config(PacketData*data);
 void packet_process_rgb_config(PacketData*data);
@@ -261,11 +265,12 @@ void packet_process_dynamic_key(PacketData*data);
 void packet_process_profile_index(PacketData*data);
 void packet_process_config(PacketData*data);
 void packet_process_debug(PacketData*data);
+void packet_fill_debug(PacketData*data);
 void packet_process_macro(PacketData*data);
 void packet_process_feature(PacketData*data);
 
 void packet_send_version_packet(void);
-void packet_process_version_notifications(void);
+void packet_notify_event(uint8_t packet_event);
 void packet_send_debug_packet(void);
 void packet_process_user(uint8_t *buf, uint16_t len);
 void large_packet_process(PacketLargeData *buf);

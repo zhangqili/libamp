@@ -3,7 +3,6 @@
 #include <cstring>
 
 extern "C" {
-#include "amp_protocol.h"
 #include "nexus.h"
 #include "packet.h"
 }
@@ -52,8 +51,8 @@ void set_test_config(uint16_t key_index)
 
 extern "C" int nexus_send(uint8_t slave_id, uint8_t *report, uint16_t len)
 {
-    AmpFrame frame;
-    if (!amp_frame_decode(report, len, &frame) || frame.header.len > sizeof(PacketAdvancedKey) - 2)
+    // v2 协议：板间直接传输原始 packet（code(0) id(1) type(2) body(3...)）
+    if (report == NULL || len == 0 || len > sizeof(PacketAdvancedKey))
     {
         captured_decode_ok = false;
         return 1;
@@ -64,15 +63,12 @@ extern "C" int nexus_send(uint8_t slave_id, uint8_t *report, uint16_t len)
         CapturedNexusPacket *captured = &captured_packets[captured_packet_count++];
         captured->slave_id = slave_id;
         std::memset(&captured->packet, 0, sizeof(captured->packet));
-        captured->packet.code = frame.header.code;
-        captured->packet.type = frame.header.type;
-        std::memcpy(((uint8_t *)&captured->packet) + 2, frame.payload, frame.header.len);
+        std::memcpy(&captured->packet, report, len);
     }
 
-    AmpFrameHeader *response = (AmpFrameHeader *)g_nexus_slave_buffer[slave_id];
-    response->proto = AMP_FRAME_PROTO;
-    response->channel_flags = (uint8_t)((AMP_CHANNEL_NEXUS_CTRL << 4) | AMP_FRAME_FLAG_RESP);
-    response->seq = frame.header.seq;
+    // 模拟从机回显：把请求（含事务 id）写回响应缓冲
+    std::memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_BUFFER_SIZE);
+    std::memcpy(g_nexus_slave_buffer[slave_id], report, NEXUS_BUFFER_SIZE);
     return 0;
 }
 

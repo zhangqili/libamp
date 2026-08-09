@@ -5,10 +5,11 @@
  */
 #include "console.h"
 #include "packet.h"
-#include "amp_protocol.h"
+#include "packet_buffer.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stddef.h>
 
 static ConsoleBuffer console_tx_buffer;
 //static ConsoleBuffer console_rx_buffer;
@@ -121,22 +122,25 @@ void console_flush(void)
 
     while (!console_buffer_is_empty(&console_tx_buffer))
     {
-        uint8_t temp_buf[AMP_FRAME_MAX_PAYLOAD] = {0};
+        uint8_t temp_buf[PACKET_BUFFER_LENGTH] = {0};
+        PacketLog *packet = (PacketLog *)temp_buf;
         uint8_t idx = 0;
 
         int16_t peek_front = console_tx_buffer.front;
         int16_t peek_len = console_tx_buffer.len;
 
-        while (idx < AMP_FRAME_MAX_PAYLOAD && peek_len > 0)
+        packet->code = PACKET_CODE_CONSOLE;
+
+        while (idx < (uint8_t)(PACKET_BUFFER_LENGTH - offsetof(PacketLog, data)) && peek_len > 0)
         {
-            temp_buf[idx++] = (uint8_t)console_tx_buffer.data[peek_front];
+            packet->data[idx++] = (uint8_t)console_tx_buffer.data[peek_front];
             peek_front = (peek_front + 1) % CONSOLE_BUFFER_LENGTH;
             peek_len--;
         }
 
-        uint8_t res = amp_send_console_log(temp_buf, idx);
+        packet->length = idx;
 
-        if (res == 0)
+        if (packet_buffer_push(temp_buf, (uint16_t)(offsetof(PacketLog, data) + idx), PACKET_BUFFER_CODE_CONSOLE) == 0)
         {
             console_tx_buffer.front = peek_front;
             console_tx_buffer.len = peek_len;

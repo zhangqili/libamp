@@ -5,7 +5,6 @@
  */
 #include "nexus.h"
 #include "packet.h"
-#include "amp_protocol.h"
 #include "driver.h"
 #include "stddef.h"
 #include "string.h"
@@ -171,26 +170,13 @@ void nexus_process(void)
 
 void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
 {
-#if NEXUS_IS_SLAVE
-    AmpFrame frame;
-    uint8_t response[AMP_FRAME_REPORT_SIZE];
-
-    if (!amp_frame_decode(buf, len, &frame))
-    {
-        return;
-    }
-    if (packet_process_frame_to_report(&frame, AMP_CHANNEL_NEXUS_CTRL, AMP_FRAME_FLAG_RESP, response))
-    {
-        nexus_report(response, sizeof(response));
-    }
-#else
     if (slave_id >= NEXUS_SLAVE_NUM || buf == NULL || len == 0)
     {
         return;
     }
     slave_flags[slave_id] = true;
 
-    if (amp_is_frame(buf, len))
+    if (!(buf[0] & 0x80))
     {
         uint16_t copy_len = len > NEXUS_BUFFER_SIZE ? NEXUS_BUFFER_SIZE : len;
         if (buf != g_nexus_slave_buffer[slave_id])
@@ -205,10 +191,6 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
         return;
     }
 
-    if (!(buf[0] & 0x80))
-    {
-        return;
-    }
 #if NEXUS_USE_RAW
     uint16_t* raw_values = (uint16_t*)buf;
     const uint16_t length = nexus_slave_config_length(slave_id);
@@ -254,7 +236,6 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
         advanced_key->value = packet->value * (1/65536.f) * ANALOG_VALUE_RANGE;
 #endif
     }
-#endif
 #endif
 }
 
@@ -314,20 +295,26 @@ int nexus_send_report(void)
 #endif
 }
 
-int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout, AmpFrame *out_response)
+int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout)
 {
     static uint8_t sequence;
-    uint8_t frame_report[AMP_FRAME_REPORT_SIZE];
-    uint8_t seq = ++sequence;
-    if (seq == 0)
-    {
-        seq = ++sequence;
-    }
-    if (slave_id >= NEXUS_SLAVE_NUM || report == NULL || len < 2 || len - 2 > AMP_FRAME_MAX_PAYLOAD ||
-        amp_frame_encode(frame_report, AMP_CHANNEL_NEXUS_CTRL, AMP_FRAME_FLAG_REQ_ACK, seq,
-                         report[0], report[1], report + 2, (uint8_t)(len - 2)) != 0)
+    uint8_t buffer[64];
+    if (slave_id >= NEXUS_SLAVE_NUM || report == NULL || len < 3 || len > sizeof(buffer))
     {
         return 1;
+    }
+
+    uint8_t id = ++sequence;
+    if (id == 0)
+    {
+        id = ++sequence;
+    }
+    memcpy(buffer, report, len);
+    buffer[1] = id;
+
+    if (report[0] == PACKET_CODE_EVENT)
+    {
+        return nexus_send(slave_id, buffer, len);
     }
 
     const uint32_t start = g_keyboard_tick;
@@ -336,26 +323,19 @@ int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len,
     retry:
     while (start + timeout > g_keyboard_tick)
     {
-        if (nexus_send(slave_id, frame_report, AMP_FRAME_REPORT_SIZE) == 0)
+        if (nexus_send(slave_id, buffer, len) == 0)
         {
             break;
         }
     }
     while (start + timeout > g_keyboard_tick)
     {
-        AmpFrameHeader *header = (AmpFrameHeader *)g_nexus_slave_buffer[slave_id];
-        if (header->proto == AMP_FRAME_PROTO &&
-            header->seq == seq &&
-            (amp_frame_flags(header) & AMP_FRAME_FLAG_RESP))
+        uint8_t *response = g_nexus_slave_buffer[slave_id];
+        if (response[0] == report[0] && response[1] == id)
         {
-            int rc = 0;
-            if (out_response != NULL && !amp_frame_decode(g_nexus_slave_buffer[slave_id], NEXUS_BUFFER_SIZE, out_response))
-            {
-                rc = 1;
-            }
             memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_BUFFER_SIZE);
             slave_flags[slave_id] = false;
-            return rc;
+            return 0;
         }
         count++;
         if (count > 10000)
@@ -374,5 +354,5 @@ int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len,
 
 int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout)
 {
-    return nexus_request_timeout(slave_id, report, len, timeout, NULL);
+    return nexus_request_timeout(slave_id, report, len, timeout);
 }

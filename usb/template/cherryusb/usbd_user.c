@@ -5,7 +5,6 @@
  */
 #include "usbd_user.h"
 #include "packet.h"
-#include "amp_protocol.h"
 #include "usb_descriptor.h"
 #include "lamp_array.h"
 
@@ -267,14 +266,13 @@ static void usbd_hid_raw_in_callback(uint8_t busid, uint8_t ep, uint32_t nbytes)
     UNUSED(ep);
     UNUSED(nbytes);
     raw_state = USB_STATE_IDLE;
-    amp_transport_raw_sent();
 }
 
 static void usbd_hid_raw_out_callback(uint8_t busid, uint8_t ep, uint32_t nbytes)
 {
     UNUSED(busid);
     UNUSED(ep);
-    amp_transport_receive_report(raw_out_buffer, (uint16_t)nbytes);
+    packet_process_buffer(raw_out_buffer, (uint16_t)nbytes);
     usbd_ep_start_read(0, RAW_EPOUT_ADDR, raw_out_buffer, 64);
 }
 

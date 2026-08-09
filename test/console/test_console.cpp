@@ -2,9 +2,9 @@
 
 #include <cstring>
 
-#include "amp_protocol.h"
 #include "console.h"
 #include "packet.h"
+#include "packet_buffer.h"
 #include "test_fixture.h"
 
 namespace {
@@ -13,6 +13,7 @@ void reset_console_output(void)
 {
     g_keyboard_config.console = true;
     console_flush();
+    packet_buffer_flush();
     std::memset(raw_send_buffer, 0, sizeof(raw_send_buffer));
 }
 
@@ -54,41 +55,43 @@ TEST(Console, DisabledConsoleDropsOutput)
     console_send_char('x');
     g_keyboard_config.console = true;
     console_flush();
+    packet_buffer_flush();
 
-    AmpFrame frame = {};
-    EXPECT_FALSE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &frame));
+    // 控制台未开启时不应产生任何输出
+    EXPECT_EQ(0, raw_send_buffer[0]);
 }
 
-TEST(Console, PrintfFlushesConsoleFrame)
+TEST(Console, PrintfFlushesConsolePacket)
 {
     reset_console_output();
 
     static constexpr const char kExpectedMessage[] = "hello 42";
     console_printf("hello %d", 42);
     console_flush();
+    packet_buffer_flush();
 
-    AmpFrame frame = {};
-    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &frame));
-    EXPECT_EQ(AMP_CHANNEL_CONSOLE, amp_frame_channel(&frame.header));
-    EXPECT_EQ(PACKET_CODE_LOG, frame.header.code);
-    ASSERT_EQ(sizeof(kExpectedMessage) - 1, frame.header.len);
-    EXPECT_EQ(0, std::memcmp(frame.payload, kExpectedMessage, sizeof(kExpectedMessage) - 1));
+    // v2 控制台包：code(0)=0x03, reserved(1), length(2-3), data(4+)
+    EXPECT_EQ(PACKET_CODE_CONSOLE, raw_send_buffer[0]);
+    const uint16_t length = raw_send_buffer[2] | (raw_send_buffer[3] << 8);
+    ASSERT_EQ(sizeof(kExpectedMessage) - 1, length);
+    EXPECT_EQ(0, std::memcmp(raw_send_buffer + 4, kExpectedMessage, length));
 }
 
-TEST(Console, FlushSplitsLargeOutputIntoPayloadSizedFrames)
+TEST(Console, FlushSplitsLargeOutputIntoPacketSizedChunks)
 {
     reset_console_output();
 
+    static constexpr uint8_t kChunkLength = PACKET_BUFFER_LENGTH - offsetof(PacketLog, data);
     static constexpr uint8_t kTailLength = 3;
-    for (uint8_t i = 0; i < (uint8_t)(AMP_FRAME_MAX_PAYLOAD * 2 + kTailLength); i++)
+    for (uint8_t i = 0; i < (uint8_t)(kChunkLength * 2 + kTailLength); i++)
     {
         console_send_char((char)('a' + (i % 26)));
     }
     console_flush();
+    packet_buffer_flush();
 
-    AmpFrame frame = {};
-    ASSERT_TRUE(amp_frame_decode(raw_send_buffer, sizeof(raw_send_buffer), &frame));
-    EXPECT_EQ(AMP_CHANNEL_CONSOLE, amp_frame_channel(&frame.header));
-    EXPECT_EQ(PACKET_CODE_LOG, frame.header.code);
-    EXPECT_EQ(kTailLength, frame.header.len);
+    // 单槽缓冲：一次 flush 只推出一包（整块），其余留在控制台队列
+    EXPECT_EQ(PACKET_CODE_CONSOLE, raw_send_buffer[0]);
+    const uint16_t length = raw_send_buffer[2] | (raw_send_buffer[3] << 8);
+    EXPECT_EQ(kChunkLength, length);
 }
