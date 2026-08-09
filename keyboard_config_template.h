@@ -42,11 +42,6 @@
 // #define EVENT_BUFFER_LENGTH 32        /* Queued keyboard-event capacity. */
 // #define EVENT_CACHE_LENGTH 16         /* Cached-event entry capacity. */
 // #define EVENT_CACHE_BUFFER_LENGTH 4   /* Cached-event queue capacity. */
-// #define AMP_RX_QUEUE_LENGTH 4         /* AMP receive-frame queue depth. */
-// #define AMP_TX_HIGH_QUEUE_LENGTH 4    /* High-priority AMP transmit queue depth. */
-// #define AMP_TX_STREAM_QUEUE_LENGTH 4  /* Stream AMP transmit queue depth. */
-// #define AMP_TX_POLICY AMP_TX_POLICY_CONTROL_PRIORITY /* AMP queue scheduling policy. */
-/* AMP_TX_POLICY_CONTROL_PRIORITY favors control frames; AMP_TX_POLICY_RELIABLE_FIFO is FIFO. */
 
 /****************/
 /* Advanced keys */

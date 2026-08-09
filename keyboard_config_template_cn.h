@@ -41,11 +41,6 @@
 // #define EVENT_BUFFER_LENGTH 32        /* 键盘事件队列容量。 */
 // #define EVENT_CACHE_LENGTH 16         /* 事件缓存条目容量。 */
 // #define EVENT_CACHE_BUFFER_LENGTH 4   /* 事件缓存队列容量。 */
-// #define AMP_RX_QUEUE_LENGTH 4         /* AMP 接收帧队列深度。 */
-// #define AMP_TX_HIGH_QUEUE_LENGTH 4    /* AMP 高优先级发送队列深度。 */
-// #define AMP_TX_STREAM_QUEUE_LENGTH 4  /* AMP 流式发送队列深度。 */
-// #define AMP_TX_POLICY AMP_TX_POLICY_CONTROL_PRIORITY /* AMP 队列调度策略。 */
-/* AMP_TX_POLICY_CONTROL_PRIORITY 优先处理控制帧；AMP_TX_POLICY_RELIABLE_FIFO 按 FIFO 发送。 */
 
 /************/
 /* 高级按键 */
