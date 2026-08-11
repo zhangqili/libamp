@@ -97,7 +97,7 @@
 /*****************/
 // #define ENCODER_ENABLE                 /* Enable rotary-encoder processing. */
 // #define ENCODER_NUM 1                  /* Number of rotary encoders. */
-// #define ENCODER_TAP_DElAY 8            /* Encoder key-state duration in ticks. */
+// #define ENCODER_TAP_DELAY 8            /* Encoder key-state duration in ticks. */
 
 /*************/
 /* Storage */
@@ -238,6 +238,7 @@
 // #define KEYBOARD_SHARED_EP              /* Put the keyboard report on the shared endpoint. */
 
 // #define NKRO_ENABLE                     /* Add the NKRO keyboard report. */
+// #define MIXED_KRO_ENABLE                /* Use 6KRO for up to six keys and NKRO above that; requires NKRO_ENABLE and SHARED_EP_ENABLE. */
 
 // #define EXTRAKEY_ENABLE                 /* Add consumer/system key reports. */
 

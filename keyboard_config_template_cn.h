@@ -96,7 +96,7 @@
 /************/
 // #define ENCODER_ENABLE                 /* 启用旋转编码器处理。 */
 // #define ENCODER_NUM 1                  /* 旋转编码器数量。 */
-// #define ENCODER_TAP_DElAY 8            /* 编码器按键状态保持 tick 数。 */
+// #define ENCODER_TAP_DELAY 8            /* 编码器按键状态保持 tick 数。 */
 
 /**********/
 /* 存储 */
@@ -232,6 +232,7 @@
 // #define KEYBOARD_SHARED_EP              /* 将键盘报告放入共享端点。 */
 
 // #define NKRO_ENABLE                     /* 添加 NKRO 键盘报告。 */
+// #define MIXED_KRO_ENABLE                /* 六键及以下使用 6KRO，超过六键使用 NKRO；需要 NKRO_ENABLE 和 SHARED_EP_ENABLE。 */
 
 // #define EXTRAKEY_ENABLE                 /* 添加多媒体/系统按键报告。 */
 

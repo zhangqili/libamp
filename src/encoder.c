@@ -14,7 +14,7 @@ void encoder_input_delta(uint16_t id, int16_t delta)
     {
         g_encoders[id].delta = delta;
         g_encoders[id].count += delta;
-        g_encoders[id].flag = ENCODER_TAP_DElAY;
+        g_encoders[id].flag = ENCODER_TAP_DELAY;
     }
 }
 
@@ -24,7 +24,7 @@ void encoder_input(uint16_t id, int32_t count)
     {
         g_encoders[id].delta = count - g_encoders[id].count;
         g_encoders[id].count = count;
-        g_encoders[id].flag = ENCODER_TAP_DElAY;
+        g_encoders[id].flag = ENCODER_TAP_DELAY;
     }
 }
 

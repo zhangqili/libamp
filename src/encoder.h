@@ -17,8 +17,8 @@ extern "C" {
 #define ENCODER_NUM 0
 #endif
 
-#ifndef ENCODER_TAP_DElAY
-#define ENCODER_TAP_DElAY 8
+#ifndef ENCODER_TAP_DELAY
+#define ENCODER_TAP_DELAY 8
 #endif
 
 typedef struct __Encoder

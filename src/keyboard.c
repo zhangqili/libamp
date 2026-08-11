@@ -59,8 +59,8 @@
 
 __WEAK AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
 __WEAK Key g_keyboard_keys[KEY_NUM];
-KeyboardLED g_keyboard_led_state;
-__WEAK KeyboardConfig g_keyboard_config;
+KeyboardLEDState g_keyboard_led_state;
+__WEAK volatile KeyboardConfig g_keyboard_config;
 Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
 __WEAK const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM];
@@ -70,9 +70,9 @@ volatile bool g_keyboard_is_suspend;
 __WEAK volatile KeyboardReportFlag g_keyboard_report_flags;
 
 #ifdef NKRO_ENABLE
-static Keyboard_NKROBuffer keyboard_nkro_buffer;
+static KeyboardNKROBuffer keyboard_nkro_buffer;
 #endif
-static Keyboard_6KROBuffer keyboard_6kro_buffer;
+static Keyboard6KROBuffer keyboard_6kro_buffer;
 
 volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 
@@ -214,16 +214,24 @@ void keyboard_add_buffer(KeyboardEvent event)
     const uint8_t keycode = KEYCODE_GET_MAIN(event.keycode);
     if (keycode <= KEY_EXSEL)
     {
-#ifdef NKRO_ENABLE
+#ifdef MIXED_KRO_ENABLE
+        if (keyboard_6KRObuffer_add(&keyboard_6kro_buffer, event.keycode) && g_keyboard_config.nkro)
+        {
+            event.keycode = KEYCODE_GET_MAIN(event.keycode);
+            keyboard_NKRObuffer_add(&keyboard_nkro_buffer, event.keycode);
+        }
+#elif defined(NKRO_ENABLE)
         if (g_keyboard_config.nkro)
         {
             keyboard_NKRObuffer_add(&keyboard_nkro_buffer, event.keycode);
         }
         else
-#endif
         {
             keyboard_6KRObuffer_add(&keyboard_6kro_buffer, event.keycode);
         }
+#else
+        keyboard_6KRObuffer_add(&keyboard_6kro_buffer, event.keycode);
+#endif
         return;
     }
     switch (KEYCODE_GET_MAIN(event.keycode))
@@ -403,7 +411,24 @@ __WEAK void keyboard_key_event_up_callback_user(Key*key)
 
 int keyboard_buffer_send(void)
 {
-#ifdef NKRO_ENABLE
+#ifdef MIXED_KRO_ENABLE
+    if (g_keyboard_config.winlock)
+    {
+        keyboard_6kro_buffer.modifier &= (~(KEY_LEFT_GUI | KEY_RIGHT_GUI)); 
+    }
+#ifdef KEYBOARD_SHARED_EP
+    keyboard_6kro_buffer.report_id = REPORT_ID_KEYBOARD;
+#endif
+    keyboard_nkro_buffer.report_id = REPORT_ID_NKRO;
+    if (g_keyboard_config.nkro)
+    {
+        return keyboard_6KRObuffer_send(&keyboard_6kro_buffer) || keyboard_NKRObuffer_send(&keyboard_nkro_buffer);
+    }
+    else
+    {
+        return keyboard_6KRObuffer_send(&keyboard_6kro_buffer);
+    }
+#elif defined(NKRO_ENABLE)
     if (g_keyboard_config.nkro)
     {
         keyboard_nkro_buffer.report_id = REPORT_ID_NKRO;
@@ -444,7 +469,7 @@ void keyboard_clear_buffer(void)
 #endif
 }
 
-int keyboard_6KRObuffer_add(Keyboard_6KROBuffer *buf, Keycode keycode)
+int keyboard_6KRObuffer_add(Keyboard6KROBuffer *buf, Keycode keycode)
 {
     buf->modifier |= KEYCODE_GET_SUB(keycode);
     if (KEYCODE_GET_MAIN(keycode) != KEY_NO_EVENT && buf->keynum < 6)
@@ -459,21 +484,17 @@ int keyboard_6KRObuffer_add(Keyboard_6KROBuffer *buf, Keycode keycode)
     }
 }
 
-int keyboard_6KRObuffer_send(Keyboard_6KROBuffer* buf)
+int keyboard_6KRObuffer_send(Keyboard6KROBuffer* buf)
 {
-#ifdef KEYBOARD_SHARED_EP
-    return hid_send_shared_ep((uint8_t*)buf, offsetof(Keyboard_6KROBuffer, keynum));
-#else
-    return hid_send_keyboard((uint8_t*)buf, offsetof(Keyboard_6KROBuffer, keynum));
-#endif
+    return hid_send_keyboard((uint8_t*)buf, offsetof(Keyboard6KROBuffer, keynum));
 }
 
-void keyboard_6KRObuffer_clear(Keyboard_6KROBuffer* buf)
+void keyboard_6KRObuffer_clear(Keyboard6KROBuffer* buf)
 {
-    memset(buf, 0, sizeof(Keyboard_6KROBuffer));
+    memset(buf, 0, sizeof(Keyboard6KROBuffer));
 }
 
-int keyboard_NKRObuffer_add(Keyboard_NKROBuffer*buf,Keycode keycode)
+int keyboard_NKRObuffer_add(KeyboardNKROBuffer*buf,Keycode keycode)
 {
     if (KEYCODE_GET_MAIN(keycode) > NKRO_REPORT_BITS*8 )
     {
@@ -485,14 +506,14 @@ int keyboard_NKRObuffer_add(Keyboard_NKROBuffer*buf,Keycode keycode)
     return 0;
 }
 
-int keyboard_NKRObuffer_send(Keyboard_NKROBuffer*buf)
+int keyboard_NKRObuffer_send(KeyboardNKROBuffer*buf)
 {
-    return hid_send_nkro((uint8_t*)buf, sizeof(Keyboard_NKROBuffer));
+    return hid_send_nkro((uint8_t*)buf, sizeof(KeyboardNKROBuffer));
 }
 
-void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf)
+void keyboard_NKRObuffer_clear(KeyboardNKROBuffer*buf)
 {
-    memset(buf, 0, sizeof(Keyboard_NKROBuffer));
+    memset(buf, 0, sizeof(KeyboardNKROBuffer));
 }
 
 void keyboard_init(void)
@@ -759,6 +780,7 @@ __WEAK void keyboard_task(void)
         AdvancedKey*advanced_key = &g_keyboard_advanced_keys[i];
         keyboard_advanced_key_update_raw(advanced_key, advanced_key_read_raw(advanced_key));
     }
+    packet_buffer_flush();
     if (g_keyboard_config.enable_report)
     {
         nexus_send_report();

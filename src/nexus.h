@@ -28,6 +28,16 @@ extern "C" {
 #define NEXUS_BUFFER_SIZE 8
 #endif
 
+#ifndef NEXUS_CONTROL_BUFFER_SIZE
+#define NEXUS_CONTROL_BUFFER_SIZE 64
+#endif
+
+#if NEXUS_BUFFER_SIZE > NEXUS_CONTROL_BUFFER_SIZE
+#define NEXUS_RX_BUFFER_SIZE NEXUS_BUFFER_SIZE
+#else
+#define NEXUS_RX_BUFFER_SIZE NEXUS_CONTROL_BUFFER_SIZE
+#endif
+
 #ifndef NEXUS_RETRY_COUNT
 #define NEXUS_RETRY_COUNT 100
 #endif
@@ -53,9 +63,9 @@ typedef struct __NexusSlaveConfig
 {
     uint16_t length;
     const uint16_t *map;
-} NexusSlaveConfig;
+} NexusSlaveKeymap;
 
-extern uint8_t g_nexus_slave_buffer[NEXUS_SLAVE_NUM][NEXUS_BUFFER_SIZE];
+extern uint8_t g_nexus_slave_buffer[NEXUS_SLAVE_NUM][NEXUS_RX_BUFFER_SIZE];
 
 void nexus_init(void);
 void nexus_process(void);
@@ -63,6 +73,9 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len);
 int nexus_sync_advanced_key_config(uint16_t key_index);
 void nexus_calibrate(void);
 int  nexus_send_report(void);
+int nexus_request_timeout(uint8_t slave_id, const uint8_t *request,
+                          uint16_t request_len, uint32_t timeout,
+                          uint8_t *response, uint16_t response_capacity);
 int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout);
 
 #ifdef __cplusplus

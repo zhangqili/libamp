@@ -6,6 +6,10 @@
 #include "packet_buffer.h"
 #include "driver.h"
 
+#ifdef NEXUS_ENABLE
+#include "nexus.h"
+#endif
+
 #include "string.h"
 
 static uint8_t packet_buffer[PACKET_BUFFER_CODE_NUM][PACKET_BUFFER_LENGTH];
@@ -38,7 +42,11 @@ int packet_buffer_flush(void)
     {
         if (BIT_GET(packet_buffer_flags,i))
         {
+#if defined(NEXUS_ENABLE) && NEXUS_IS_SLAVE
+            if (!nexus_report(packet_buffer[i], packet_buffer_lengths[i]))
+#else
             if (!hid_send_raw(packet_buffer[i], packet_buffer_lengths[i]))
+#endif
             {
                 BIT_RESET(packet_buffer_flags, i);
             }

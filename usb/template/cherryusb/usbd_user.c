@@ -454,7 +454,9 @@ static void usbd_event_handler(uint8_t busid, uint8_t event)
     switch (event)
     {
     case USBD_EVENT_RESET:
+#ifndef KEYBOARD_SHARED_EP
         keyboard_state = USB_STATE_IDLE;
+#endif
 #ifdef SHARED_EP_ENABLE
         shared_state = USB_STATE_IDLE;
 #endif
@@ -487,8 +489,10 @@ static void usbd_event_handler(uint8_t busid, uint8_t event)
         g_keyboard_is_suspend = usb_device_is_suspend(0);
         break;
     case USBD_EVENT_CONFIGURED:
+#ifdef RAW_ENABLE
         memset(raw_out_buffer, 0, sizeof(raw_out_buffer));
         usbd_ep_start_read(0, RAW_EPOUT_ADDR, raw_out_buffer, RAW_EPSIZE);
+#endif
 #ifdef MIDI_ENABLE
         memset(midi_out_buffer, 0, sizeof(midi_out_buffer));
         usbd_ep_start_read(0, MIDI_EPOUT_ADDR, midi_out_buffer, sizeof(midi_out_buffer));
@@ -519,9 +523,9 @@ void usb_init(uint8_t busid, uintptr_t reg_base)
     usbd_add_endpoint(0, &keyboard_in_ep);
 #endif
 
-#if defined(MOUSE_ENABLE) && !defined(MOUSE_SHARED_EP)
-    usbd_add_interface(0, usbd_hid_init_intf(0, &mouse_intf, MouseReport, sizeof(MouseReport)));
-    usbd_add_endpoint(0, &mouse_in_ep);
+#if defined(SHARED_EP_ENABLE) && defined(KEYBOARD_SHARED_EP)
+    usbd_add_interface(0, usbd_hid_init_intf(0, &shared_intf, SharedReport, sizeof(SharedReport)));
+    usbd_add_endpoint(0, &shared_in_ep);
 #endif
 
 #ifdef RAW_ENABLE
@@ -530,7 +534,12 @@ void usb_init(uint8_t busid, uintptr_t reg_base)
     usbd_add_endpoint(0, &raw_out_ep);
 #endif
 
-#ifdef SHARED_EP_ENABLE
+#if defined(MOUSE_ENABLE) && !defined(MOUSE_SHARED_EP)
+    usbd_add_interface(0, usbd_hid_init_intf(0, &mouse_intf, MouseReport, sizeof(MouseReport)));
+    usbd_add_endpoint(0, &mouse_in_ep);
+#endif
+
+#if defined(SHARED_EP_ENABLE) && !defined(KEYBOARD_SHARED_EP)
     usbd_add_interface(0, usbd_hid_init_intf(0, &shared_intf, SharedReport, sizeof(SharedReport)));
     usbd_add_endpoint(0, &shared_in_ep);
 #endif
@@ -605,7 +614,6 @@ int usb_send_shared_ep(uint8_t *buffer, uint8_t size)
 int usb_send_keyboard(uint8_t *buffer, uint8_t size)
 {
 #ifndef KEYBOARD_SHARED_EP
-    UNUSED(size);
     if (keyboard_state == USB_STATE_BUSY)
     {
         return 1;
@@ -627,22 +635,18 @@ int usb_send_keyboard(uint8_t *buffer, uint8_t size)
 int usb_send_raw(uint8_t *buffer, uint8_t size)
 {
 #ifdef RAW_ENABLE
-    UNUSED(size);
+    if (buffer == NULL || size == 0 || size > RAW_EPSIZE)
+    {
+        return 1;
+    }
     if (raw_state == USB_STATE_BUSY)
     {
         return 1;
     }
     raw_state = USB_STATE_BUSY;
-    if (size > 0 && size <= 64)
-    {
-        memset(raw_in_buffer, 0, 64);
-        memcpy(raw_in_buffer, buffer, size);
-    }
-    else
-    {
-        return 1;
-    }
-    int ret = usbd_ep_start_write(0, RAW_EPIN_ADDR, raw_in_buffer, 64);
+    memset(raw_in_buffer, 0, RAW_EPSIZE);
+    memcpy(raw_in_buffer, buffer, size);
+    int ret = usbd_ep_start_write(0, RAW_EPIN_ADDR, raw_in_buffer, RAW_EPSIZE);
     if (ret < 0)
     {
         raw_state = USB_STATE_IDLE;
@@ -691,8 +695,11 @@ int usb_send_mouse(uint8_t *buffer, uint8_t size)
 #else
     return usb_send_shared_ep(buffer, size);
 #endif
-#endif
     return 0;
+#else
+    UNUSED(buffer); UNUSED(size);
+    return 1;
+#endif
 }
 
 int usb_send_joystick(uint8_t *buffer, uint8_t size)
@@ -711,8 +718,11 @@ int usb_send_joystick(uint8_t *buffer, uint8_t size)
 #else
     return usb_send_shared_ep(buffer, size);
 #endif
-#endif
     return 0;
+#else
+    UNUSED(buffer); UNUSED(size);
+    return 1;
+#endif
 }
 
 int usb_send_digitizer(uint8_t *buffer, uint8_t size)
@@ -731,8 +741,11 @@ int usb_send_digitizer(uint8_t *buffer, uint8_t size)
 #else
     return usb_send_shared_ep(buffer, size);
 #endif
-#endif
     return 0;
+#else
+    UNUSED(buffer); UNUSED(size);
+    return 1;
+#endif
 }
 
 int usb_send_xinput(uint8_t *buffer, uint8_t size)
@@ -773,14 +786,14 @@ __WEAK void usbd_event_handler_user(uint8_t busid, uint8_t event)
 }
 
 #include "driver.h"
-int hid_send_shared_ep(uint8_t *report, uint16_t len)
-{
-    return usb_send_shared_ep(report, len);
-}
 
 int hid_send_keyboard(uint8_t *report, uint16_t len)
 {
+#ifdef KEYBOARD_SHARED_EP
+    return usb_send_shared_ep(report, len);
+#else
     return usb_send_keyboard(report, len);
+#endif
 }
 
 int hid_send_nkro(uint8_t *report, uint16_t len)
@@ -795,10 +808,20 @@ int hid_send_extra_key(uint8_t*report,uint16_t len)
 
 int hid_send_mouse(uint8_t*report,uint16_t len)
 {
-    return usb_send_shared_ep(report, len);
+    return usb_send_mouse(report, len);
 }
 
 int hid_send_joystick(uint8_t*report,uint16_t len)
+{
+    return usb_send_joystick(report, len);
+}
+
+int hid_send_digitizer(uint8_t *report, uint16_t len)
+{
+    return usb_send_digitizer(report, len);
+}
+
+int hid_send_programmable_button(uint8_t *report, uint16_t len)
 {
     return usb_send_shared_ep(report, len);
 }

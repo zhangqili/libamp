@@ -4,7 +4,7 @@
 
 TEST(Analog, RingBufferAverageUsesCurrentWindow)
 {
-    RingBuf ringbuf = {};
+    RingBuffer ringbuf = {};
 
     ringbuf_push(&ringbuf, 10);
     EXPECT_EQ(5, ringbuf_avg(&ringbuf));
@@ -18,7 +18,7 @@ TEST(Analog, RingBufferAverageUsesCurrentWindow)
 
 TEST(Analog, DirtyRingBufferFallsBackToDataScan)
 {
-    RingBuf ringbuf = {};
+    RingBuffer ringbuf = {};
     ringbuf.datas[0] = 100;
     ringbuf.datas[1] = 300;
 #ifdef OPTIMIZE_MOVING_AVERAGE_FOR_RINGBUF

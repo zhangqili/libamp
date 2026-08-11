@@ -22,8 +22,8 @@ typedef enum
     KEY_EVENT_DOWN,
     KEY_EVENT_UP,
     KEY_EVENT_NUM
-} KEY_EVENT;
-typedef void (*key_cb_t)(void *);
+} KeyEvent;
+typedef void (*KeyCallback)(void *);
 #endif
 
 typedef struct __Key
@@ -35,15 +35,15 @@ typedef struct __Key
     int8_t debounce;
 #endif
 #ifdef KEY_CALLBACK_ENABLE
-    key_cb_t key_cb[KEY_EVENT_NUM];
+    KeyCallback key_cb[KEY_EVENT_NUM];
 #endif
 } Key;
 
 static inline bool key_update(Key* key,bool state);
 
 #ifdef KEY_CALLBACK_ENABLE
-static inline void key_attach(Key* key, KEY_EVENT e, key_cb_t cb);
-static inline void key_emit(Key* key, KEY_EVENT e);
+static inline void key_attach(Key* key, KeyEvent e, KeyCallback cb);
+static inline void key_emit(Key* key, KeyEvent e);
 #endif
 
 static inline bool key_update(Key* key,bool state)
@@ -71,12 +71,12 @@ static inline bool key_update(Key* key,bool state)
 }
 
 #ifdef KEY_CALLBACK_ENABLE
-static inline void key_attach(Key* key, KEY_EVENT e, key_cb_t cb)
+static inline void key_attach(Key* key, KeyEvent e, KeyCallback cb)
 {
     key->key_cb[e] = cb;
 }
 
-static inline void key_emit(Key* key, KEY_EVENT e)
+static inline void key_emit(Key* key, KeyEvent e)
 {
     if (key->key_cb[e])
         key->key_cb[e](key);

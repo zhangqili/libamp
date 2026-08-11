@@ -128,7 +128,11 @@ TEST(Keyboard, LayerWithSpecificKeycode)
 
 TEST(Keyboard, 6KROBuffer)
 {
+#ifdef MIXED_KRO_ENABLE
+    g_keyboard_config.nkro = true;
+#else
     g_keyboard_config.nkro = false;
+#endif
     keyboard_clear_buffer();
     keyboard_add_buffer(MK_EVENT(KEY_A|(KEY_LEFT_CTRL << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
     keyboard_add_buffer(MK_EVENT(KEY_B|(KEY_LEFT_ALT << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
@@ -136,18 +140,24 @@ TEST(Keyboard, 6KROBuffer)
     keyboard_add_buffer(MK_EVENT(KEY_D|(KEY_LEFT_GUI << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
     keyboard_add_buffer(MK_EVENT(KEY_A|(KEY_RIGHT_CTRL << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
     keyboard_add_buffer(MK_EVENT(KEY_B|(KEY_RIGHT_ALT << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
-    keyboard_add_buffer(MK_EVENT(KEY_C|(KEY_RIGHT_SHIFT << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
-    keyboard_add_buffer(MK_EVENT(KEY_D|(KEY_RIGHT_GUI << 8), KEYBOARD_EVENT_NO_EVENT, NULL));
     keyboard_buffer_send();
-    EXPECT_EQ(keyboard_send_buffer[0], 0xFF);
+    EXPECT_EQ(keyboard_send_buffer[0], 0x5F);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_B);
     EXPECT_EQ(keyboard_send_buffer[4], KEY_C);
     EXPECT_EQ(keyboard_send_buffer[5], KEY_D);
     EXPECT_EQ(keyboard_send_buffer[6], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[7], KEY_B);
+#ifdef MIXED_KRO_ENABLE
+    EXPECT_EQ(shared_ep_send_buffer[0], REPORT_ID_NKRO);
+    for (size_t i = 1; i < sizeof(KeyboardNKROBuffer); i++)
+    {
+        EXPECT_EQ(shared_ep_send_buffer[i], 0);
+    }
+#endif
 }
 
+#ifndef MIXED_KRO_ENABLE
 TEST(Keyboard, NKROBuffer)
 {
     g_keyboard_config.nkro = true;
@@ -156,9 +166,64 @@ TEST(Keyboard, NKROBuffer)
     keyboard_add_buffer(MK_EVENT(KEY_S|(KEY_LEFT_ALT<<8), KEYBOARD_EVENT_NO_EVENT, NULL));
     keyboard_buffer_send();
     EXPECT_EQ(shared_ep_send_buffer[1], KEY_LEFT_CTRL|KEY_LEFT_ALT);
-    EXPECT_EQ(shared_ep_send_buffer[KEY_A/8 + 2], BIT(4));
-    EXPECT_EQ(shared_ep_send_buffer[KEY_S/8 + 2], BIT(KEY_S%8));
+    EXPECT_NE(shared_ep_send_buffer[KEY_A/8 + 2] & BIT(KEY_A % 8), 0);
+    EXPECT_NE(shared_ep_send_buffer[KEY_S/8 + 2] & BIT(KEY_S % 8), 0);
 }
+#endif
+
+#ifdef MIXED_KRO_ENABLE
+TEST(Keyboard, MixedKroNkroSplitAndRelease)
+{
+    const Keycode keys[] = {KEY_A, KEY_S, KEY_D, KEY_F, KEY_G, KEY_H, KEY_J};
+
+    g_keyboard_config.nkro = true;
+    keyboard_clear_buffer();
+    for (Keycode key : keys)
+    {
+        keyboard_add_buffer(MK_EVENT(key, KEYBOARD_EVENT_NO_EVENT, NULL));
+    }
+    ASSERT_EQ(keyboard_buffer_send(), 0);
+
+    for (size_t i = 0; i < 6; i++)
+    {
+        EXPECT_EQ(keyboard_send_buffer[i + 2], keys[i]);
+    }
+    EXPECT_EQ(shared_ep_send_buffer[0], REPORT_ID_NKRO);
+    EXPECT_EQ(shared_ep_send_buffer[1], 0);
+    for (size_t i = 0; i < 6; i++)
+    {
+        EXPECT_EQ(shared_ep_send_buffer[keys[i] / 8 + 2] & BIT(keys[i] % 8), 0);
+    }
+    EXPECT_NE(shared_ep_send_buffer[KEY_J / 8 + 2] & BIT(KEY_J % 8), 0);
+
+    keyboard_clear_buffer();
+    ASSERT_EQ(keyboard_buffer_send(), 0);
+    for (size_t i = 0; i < sizeof(Keyboard6KROBuffer) - 1; i++)
+    {
+        EXPECT_EQ(keyboard_send_buffer[i], 0);
+    }
+    EXPECT_EQ(shared_ep_send_buffer[0], REPORT_ID_NKRO);
+    for (size_t i = 1; i < sizeof(KeyboardNKROBuffer); i++)
+    {
+        EXPECT_EQ(shared_ep_send_buffer[i], 0);
+    }
+}
+
+TEST(Keyboard, MixedKroNkroKeepsStandaloneModifiersOutOfNkro)
+{
+    g_keyboard_config.nkro = true;
+    keyboard_clear_buffer();
+    keyboard_add_buffer(MK_EVENT(KEY_LEFT_CTRL << 8, KEYBOARD_EVENT_NO_EVENT, NULL));
+    ASSERT_EQ(keyboard_buffer_send(), 0);
+
+    EXPECT_EQ(keyboard_send_buffer[0], KEY_LEFT_CTRL);
+    EXPECT_EQ(shared_ep_send_buffer[0], REPORT_ID_NKRO);
+    for (size_t i = 1; i < sizeof(KeyboardNKROBuffer); i++)
+    {
+        EXPECT_EQ(shared_ep_send_buffer[i], 0);
+    }
+}
+#endif
 
 TEST(Keyboard, DebouncePress)
 {

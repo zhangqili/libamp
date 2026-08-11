@@ -10,7 +10,7 @@ Filter g_analog_filters[ADVANCED_KEY_NUM];
 HysteresisFilter g_analog_hysteresis_filters[ADVANCED_KEY_NUM];
 #endif
 
-RingBuf g_adc_ringbufs[ANALOG_BUFFER_LENGTH];
+RingBuffer g_adc_ringbufs[ANALOG_BUFFER_LENGTH];
 
 uint8_t g_analog_active_channel;
 
@@ -65,7 +65,7 @@ void analog_calibrate(void)
     analog_scan();
 }
 
-void ringbuf_push(RingBuf* ringbuf, AnalogRawValue data)
+void ringbuf_push(RingBuffer* ringbuf, AnalogRawValue data)
 {
     ringbuf->pointer++;
     if (ringbuf->pointer >= RING_BUF_LEN)
@@ -81,7 +81,7 @@ void ringbuf_push(RingBuf* ringbuf, AnalogRawValue data)
     ringbuf->datas[ringbuf->pointer] = data;
 }
 
-AnalogRawValue ringbuf_avg(RingBuf* ringbuf)
+AnalogRawValue ringbuf_avg(RingBuffer* ringbuf)
 {
 #ifdef OPTIMIZE_MOVING_AVERAGE_FOR_RINGBUF
     if (!ringbuf->dirty)

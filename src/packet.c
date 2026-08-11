@@ -7,6 +7,10 @@
 #include "rgb.h"
 #include "layer.h"
 
+#ifdef NEXUS_ENABLE
+#include "nexus.h"
+#endif
+
 #include "stddef.h"
 #include "string.h"
 #ifdef MACRO_ENABLE
@@ -76,7 +80,7 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
             packet_process_user(buf, len);
             break;
         }
-        packet_buffer_push(buf, len, PACKET_BUFFER_CODE_DATA);
+        packet_buffer_push(buf, len, PACKET_BUFFER_CODE_RESPONSE);
         break;
     case PACKET_CODE_EVENT:
         {
@@ -116,7 +120,7 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
     case PACKET_CODE_LARGE_SET:
     case PACKET_CODE_LARGE_GET:
         large_packet_process((PacketLargeData*)buf);
-        packet_buffer_push(buf, len, PACKET_BUFFER_CODE_DATA);
+        packet_buffer_push(buf, len, PACKET_BUFFER_CODE_RESPONSE);
         break;
     case PACKET_CODE_DEBUG:
         packet_process_debug((PacketData*)buf);
@@ -442,7 +446,7 @@ void packet_send_version_packet(void)
     packet->code = PACKET_CODE_GET;
     packet->type = PACKET_DATA_VERSION;
     packet_process_buffer((uint8_t*)packet, sizeof(buf));
-    packet_buffer_push((uint8_t*)packet, 63, PACKET_BUFFER_CODE_DATA);
+    packet_buffer_push((uint8_t*)packet, 63, PACKET_BUFFER_CODE_RESPONSE);
 }
 
 void packet_notify_event(uint8_t packet_event)

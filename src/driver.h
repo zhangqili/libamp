@@ -12,7 +12,6 @@
 extern "C" {
 #endif
 
-int hid_send_shared_ep(uint8_t *report, uint16_t len);
 int hid_send_keyboard(uint8_t *report, uint16_t len);
 int hid_send_nkro(uint8_t *report, uint16_t len);
 int hid_send_mouse(uint8_t *report, uint16_t len);

@@ -22,9 +22,9 @@ static uint32_t slave_bitmap[NEXUS_SLAVE_NUM][(NEXUS_SLICE_LENGTH_MAX+31)/32];
 #if NEXUS_USE_RAW
 static AnalogRawValue nexus_slave_raw_values[ADVANCED_KEY_NUM];
 #endif
-uint8_t g_nexus_slave_buffer[NEXUS_SLAVE_NUM][NEXUS_BUFFER_SIZE];
+uint8_t g_nexus_slave_buffer[NEXUS_SLAVE_NUM][NEXUS_RX_BUFFER_SIZE];
 
-__WEAK NexusSlaveConfig g_nexus_slave_configs[NEXUS_SLAVE_NUM];
+__WEAK NexusSlaveKeymap g_nexus_slave_configs[NEXUS_SLAVE_NUM];
 
 static uint16_t nexus_slave_config_length(uint8_t slave_id)
 {
@@ -115,16 +115,17 @@ int nexus_sync_advanced_key_config(uint16_t key_index)
 
 void nexus_calibrate(void)
 {
-    for (int i = 0; i < NEXUS_SLAVE_NUM; i++)
+    for (uint8_t i = 0; i < NEXUS_SLAVE_NUM; i++)
     {
-        PacketEvent packet;
-        packet.code = PACKET_CODE_SET;
-        packet.event = KEYBOARD_EVENT_KEY_DOWN;
+        PacketEvent packet = {0};
+        packet.code = PACKET_CODE_EVENT;
+        packet.flag = PACKET_EVENT_NO_EVENT;
+        packet.event = KEYBOARD_EVENT_KEY_UP;
         packet.keycode = KEYCODE(KEYBOARD_OPERATION, KEYBOARD_CALIBRATE);
-        packet.id = 0;
         packet.is_virtual = true;
         packet.use_keymap = false;
-        nexus_send_timeout(i, (const uint8_t *)&packet, sizeof(packet), NEXUS_TIMEOUT);
+
+        (void)nexus_send_timeout(i, (const uint8_t *)&packet, sizeof(packet), NEXUS_TIMEOUT);
     }
 }
 
@@ -170,6 +171,13 @@ void nexus_process(void)
 
 void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
 {
+#if defined(NEXUS_IS_SLAVE) && NEXUS_IS_SLAVE
+    UNUSED(slave_id);
+    if (buf != NULL && len != 0)
+    {
+        packet_process(buf, len);
+    }
+#else
     if (slave_id >= NEXUS_SLAVE_NUM || buf == NULL || len == 0)
     {
         return;
@@ -178,15 +186,15 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
 
     if (!(buf[0] & 0x80))
     {
-        uint16_t copy_len = len > NEXUS_BUFFER_SIZE ? NEXUS_BUFFER_SIZE : len;
+        uint16_t copy_len = len > NEXUS_RX_BUFFER_SIZE ? NEXUS_RX_BUFFER_SIZE : len;
         if (buf != g_nexus_slave_buffer[slave_id])
         {
-            memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_BUFFER_SIZE);
+            memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_RX_BUFFER_SIZE);
             memcpy(g_nexus_slave_buffer[slave_id], buf, copy_len);
         }
-        else if (copy_len < NEXUS_BUFFER_SIZE)
+        else if (copy_len < NEXUS_RX_BUFFER_SIZE)
         {
-            memset(g_nexus_slave_buffer[slave_id] + copy_len, 0, NEXUS_BUFFER_SIZE - copy_len);
+            memset(g_nexus_slave_buffer[slave_id] + copy_len, 0, NEXUS_RX_BUFFER_SIZE - copy_len);
         }
         return;
     }
@@ -236,6 +244,7 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
         advanced_key->value = packet->value * (1/65536.f) * ANALOG_VALUE_RANGE;
 #endif
     }
+#endif
 #endif
 }
 
@@ -295,13 +304,24 @@ int nexus_send_report(void)
 #endif
 }
 
-int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout)
+int nexus_request_timeout(uint8_t slave_id, const uint8_t *request,
+                          uint16_t request_len, uint32_t timeout,
+                          uint8_t *out_response, uint16_t response_capacity)
 {
     static uint8_t sequence;
     uint8_t buffer[64];
-    if (slave_id >= NEXUS_SLAVE_NUM || report == NULL || len < 3 || len > sizeof(buffer))
+    if (slave_id >= NEXUS_SLAVE_NUM || request == NULL ||
+        request_len < sizeof(PacketData) || request_len > sizeof(buffer))
     {
         return 1;
+    }
+
+    memset(buffer, 0, sizeof(buffer));
+    memcpy(buffer, request, request_len);
+
+    if (request[0] == PACKET_CODE_EVENT)
+    {
+        return nexus_send(slave_id, buffer, request_len);
     }
 
     uint8_t id = ++sequence;
@@ -309,44 +329,34 @@ int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len,
     {
         id = ++sequence;
     }
-    memcpy(buffer, report, len);
     buffer[1] = id;
 
-    if (report[0] == PACKET_CODE_EVENT)
-    {
-        return nexus_send(slave_id, buffer, len);
-    }
-
     const uint32_t start = g_keyboard_tick;
-    uint32_t retry_count = 0;
-    uint16_t count = 0;
-    retry:
-    while (start + timeout > g_keyboard_tick)
+    bool sent = false;
+    while ((uint32_t)(g_keyboard_tick - start) < timeout)
     {
-        if (nexus_send(slave_id, buffer, len) == 0)
+        if (!sent)
         {
-            break;
+            sent = nexus_send(slave_id, buffer, request_len) == 0;
+            if (!sent)
+            {
+                continue;
+            }
         }
-    }
-    while (start + timeout > g_keyboard_tick)
-    {
-        uint8_t *response = g_nexus_slave_buffer[slave_id];
-        if (response[0] == report[0] && response[1] == id)
+
+        volatile uint8_t *response = g_nexus_slave_buffer[slave_id];
+        if (response[0] == request[0] && response[1] == id)
         {
-            memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_BUFFER_SIZE);
+            if (out_response != NULL && response_capacity != 0)
+            {
+                const uint16_t copy_len = response_capacity < NEXUS_RX_BUFFER_SIZE
+                                              ? response_capacity
+                                              : NEXUS_RX_BUFFER_SIZE;
+                memcpy(out_response, (const void *)response, copy_len);
+            }
+            memset(g_nexus_slave_buffer[slave_id], 0, NEXUS_RX_BUFFER_SIZE);
             slave_flags[slave_id] = false;
             return 0;
-        }
-        count++;
-        if (count > 10000)
-        {
-            count = 0;
-            retry_count++;
-            if (retry_count > NEXUS_RETRY_COUNT)
-            {
-                break;
-            }
-            goto retry;
         }
     }
     return 1;
@@ -354,5 +364,5 @@ int nexus_request_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len,
 
 int nexus_send_timeout(uint8_t slave_id, const uint8_t *report, uint16_t len, uint32_t timeout)
 {
-    return nexus_request_timeout(slave_id, report, len, timeout);
+    return nexus_request_timeout(slave_id, report, len, timeout, NULL, 0);
 }

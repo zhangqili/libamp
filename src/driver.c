@@ -7,14 +7,6 @@
 #include "keyboard_def.h"
 #include "stdio.h"
 
-__WEAK int hid_send_shared_ep(uint8_t *report, uint16_t len)
-{
-    UNUSED(report);
-    UNUSED(len);
-    printf("hid_send_shared_ep needs to be implemented.\n");
-    return 0;
-}
-
 __WEAK int hid_send_keyboard(uint8_t *report, uint16_t len)
 {
     UNUSED(report);

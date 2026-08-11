@@ -36,13 +36,14 @@ typedef struct __RingBuf
     uint32_t sum;
     bool dirty;
 #endif
-} RingBuf;
+} RingBuffer;
+typedef RingBuffer RingBuf;
 
 extern Filter g_analog_filters[ADVANCED_KEY_NUM];
 
 extern HysteresisFilter g_analog_hysteresis_filters[ADVANCED_KEY_NUM];
 
-extern RingBuf g_adc_ringbufs[ANALOG_BUFFER_LENGTH];
+extern RingBuffer g_adc_ringbufs[ANALOG_BUFFER_LENGTH];
 
 extern uint8_t g_analog_active_channel;
 
@@ -55,8 +56,8 @@ void analog_check(void);
 void analog_reset_range(void);
 void analog_calibrate(void);
 
-void ringbuf_push(RingBuf *ringbuf, AnalogRawValue data);
-AnalogRawValue ringbuf_avg(RingBuf *ringbuf);
+void ringbuf_push(RingBuffer *ringbuf, AnalogRawValue data);
+AnalogRawValue ringbuf_avg(RingBuffer *ringbuf);
 
 static inline AnalogRawValue analog_filter(Filter *filter, AnalogRawValue value)
 {

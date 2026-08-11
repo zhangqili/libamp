@@ -358,8 +358,8 @@ TEST(Packet, SetAndGetKeyboardConfigBits)
 
     packet_process(buffer.data(), config_packet_size(packet->length));
 
-    EXPECT_TRUE(g_keyboard_config.nkro);
-    EXPECT_TRUE(g_keyboard_config.winlock);
+    EXPECT_TRUE(static_cast<bool>(g_keyboard_config.nkro));
+    EXPECT_TRUE(static_cast<bool>(g_keyboard_config.winlock));
 
     packet->code = PACKET_CODE_GET;
     packet->data[0].value = 0;

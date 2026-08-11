@@ -14,6 +14,14 @@
 #include "event.h"
 #include "keycode.h"
 
+#if defined(MIXED_KRO_ENABLE) && !defined(NKRO_ENABLE)
+#error "MIXED_KRO_ENABLE requires NKRO_ENABLE"
+#endif
+
+#if defined(MIXED_KRO_ENABLE) && !defined(SHARED_EP_ENABLE)
+#error "MIXED_KRO_ENABLE requires SHARED_EP_ENABLE"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -66,14 +74,14 @@ typedef struct
     uint8_t reserved;
     uint8_t buffer[6];
     uint8_t keynum;
-} __PACKED Keyboard_6KROBuffer;
+} __PACKED Keyboard6KROBuffer;
 
 typedef struct
 {
     uint8_t report_id;
     uint8_t modifier;
     uint8_t buffer[NKRO_REPORT_BITS];
-} __PACKED Keyboard_NKROBuffer;
+} __PACKED KeyboardNKROBuffer;
 
 typedef enum
 {
@@ -126,7 +134,7 @@ typedef union
         bool    kana : 1;
         uint8_t reserved : 3;
     };
-} KeyboardLED;
+} KeyboardLEDState;
 
 typedef union
 {
@@ -173,8 +181,8 @@ enum ReportID {
 
 extern AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
 extern Key g_keyboard_keys[KEY_NUM];
-extern KeyboardLED g_keyboard_led_state;
-extern KeyboardConfig g_keyboard_config;
+extern KeyboardLEDState g_keyboard_led_state;
+extern volatile KeyboardConfig g_keyboard_config;
 extern Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
 
@@ -201,13 +209,13 @@ void keyboard_add_buffer(KeyboardEvent event);
 int keyboard_buffer_send(void);
 void keyboard_clear_buffer(void);
 
-int keyboard_6KRObuffer_add(Keyboard_6KROBuffer *buf, Keycode keycode);
-int keyboard_6KRObuffer_send(Keyboard_6KROBuffer *buf);
-void keyboard_6KRObuffer_clear(Keyboard_6KROBuffer *buf);
+int keyboard_6KRObuffer_add(Keyboard6KROBuffer *buf, Keycode keycode);
+int keyboard_6KRObuffer_send(Keyboard6KROBuffer *buf);
+void keyboard_6KRObuffer_clear(Keyboard6KROBuffer *buf);
 
-int keyboard_NKRObuffer_add(Keyboard_NKROBuffer*buf,Keycode keycode);
-int keyboard_NKRObuffer_send(Keyboard_NKROBuffer*buf);
-void keyboard_NKRObuffer_clear(Keyboard_NKROBuffer*buf);
+int keyboard_NKRObuffer_add(KeyboardNKROBuffer*buf,Keycode keycode);
+int keyboard_NKRObuffer_send(KeyboardNKROBuffer*buf);
+void keyboard_NKRObuffer_clear(KeyboardNKROBuffer*buf);
 
 bool keyboard_key_update(Key *key, bool state);
 bool keyboard_advanced_key_update(AdvancedKey *advanced_key, AnalogValue value);

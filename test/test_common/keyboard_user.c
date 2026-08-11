@@ -956,12 +956,6 @@ void keyboard_user_event_handler(KeyboardEvent event)
     }
 }
 
-int hid_send_shared_ep(uint8_t *report, uint16_t len)
-{
-    memcpy(shared_ep_send_buffer,report,len);
-    return 0;
-}
-
 int hid_send_keyboard(uint8_t *report, uint16_t len)
 {
     memcpy(keyboard_send_buffer,report,len);
