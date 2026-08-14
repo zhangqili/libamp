@@ -571,7 +571,7 @@ enum usb_endpoints {
 #endif
 #endif
 
-#define XINPUT_EPSIZE 64
+#define XINPUT_EPSIZE 32
 
 #if defined(MIDI_STREAM_EPSIZE) && MIDI_STREAM_EPSIZE != 512 && defined(CONFIG_USB_HS)
 #warning MIDI_STREAM_EPSIZE is not 512 for high-speed USB
