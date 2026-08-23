@@ -98,7 +98,7 @@
 #endif
 
 #ifndef WEBUSB_URL
-#define WEBUSB_URL "emi-keyboard-configurator.vercel.app"
+#define WEBUSB_URL "emiconfig.pages.dev"
 #endif
 
 #define WEBUSB_URL_DESCRIPTOR_LENGTH (sizeof(USB_Descriptor_Header_t) + sizeof(uint8_t) + sizeof(WEBUSB_URL) - 1)

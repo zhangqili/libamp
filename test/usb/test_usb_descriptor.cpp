@@ -142,7 +142,7 @@ TEST(UsbDescriptor, BackendNeutralExtraDescriptors)
     EXPECT_EQ(FIXED_NUM_CONFIGURATIONS, DeviceQualifierDescriptor.NumberOfConfigurations);
     EXPECT_EQ(0, DeviceQualifierDescriptor.Reserved);
 
-    static constexpr const char kDefaultWebUSBURL[] = "emi-keyboard-configurator.vercel.app";
+    static constexpr const char kDefaultWebUSBURL[] = "emiconfig.pages.dev";
     EXPECT_EQ(WEBUSB_URL_DESCRIPTOR_LENGTH, WebUSBURLDescriptor.Header.Size);
     EXPECT_EQ(WEBUSB_URL_TYPE, WebUSBURLDescriptor.Header.Type);
     EXPECT_EQ(WEBUSB_URL_SCHEME_HTTPS, WebUSBURLDescriptor.Scheme);
