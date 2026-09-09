@@ -299,7 +299,7 @@ void packet_process_profile_index(PacketData*data)
     PacketProfileIndex* packet = (PacketProfileIndex*)data;
     if (data->code == PACKET_CODE_SET)
     {       
-        keyboard_set_profile_index(packet->index);
+        keyboard_profile_select(packet->index);
     }
     else if (data->code == PACKET_CODE_GET)
     {

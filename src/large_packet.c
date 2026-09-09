@@ -24,7 +24,7 @@ enum
 
 uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t val, uint8_t *data, uint16_t len)
 {
-#if defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
+#if (FILE_SYSTEM_TYPE != FILE_SYSTEM_RAW) && defined(STORAGE_ENABLE)
     static const char *SCRIPT_FILENAME = "scripts/main.js";
     static File script_file;
     static bool script_file_open = false;
@@ -146,7 +146,7 @@ uint32_t script_source_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t
 
 uint32_t script_bytecode_handle_large_data(uint8_t code, uint8_t sub_cmd, uint32_t val, uint8_t *data, uint16_t len)
 {
-#if defined(LFS_ENABLE) && defined(STORAGE_ENABLE)
+#if (FILE_SYSTEM_TYPE != FILE_SYSTEM_RAW) && defined(STORAGE_ENABLE)
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
     static const char *SCRIPT_FILENAME = "scripts/main.bin";
     static File script_file;

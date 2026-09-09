@@ -7,7 +7,7 @@
 #include "string.h"
 #include "driver.h"
 
-static Joystick joystick;
+static JoystickReport joystick;
 
 void joystick_event_handler(KeyboardEvent event)
 {
@@ -37,12 +37,12 @@ void joystick_event_handler(KeyboardEvent event)
     }
 }
 
-void joystick_buffer_clear(void)
+void joystick_report_clear(void)
 {
-    memset(&joystick, 0, sizeof(Joystick));
+    memset(&joystick, 0, sizeof(JoystickReport));
 }
 
-void joystick_add_buffer(KeyboardEvent event)
+void joystick_report_add(KeyboardEvent event)
 {
     if (JOYSTICK_KEYCODE_IS_AXIS(event.keycode))
     {
@@ -87,10 +87,10 @@ void joystick_set_axis(Keycode keycode, AnalogValue value)
 
 }
 
-int joystick_buffer_send(void)
+int joystick_report_send(void)
 {
 #ifdef JOYSTICK_SHARED_EP
     joystick.report_id = REPORT_ID_JOYSTICK;
 #endif
-    return hid_send_joystick((uint8_t*)&joystick, sizeof(Joystick));
+    return hid_send_joystick((uint8_t*)&joystick, sizeof(JoystickReport));
 }

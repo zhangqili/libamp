@@ -7,3 +7,9 @@
 [submodule "lib/mquickjs"]
 	path = lib/mquickjs
 	url = https://github.com/bellard/mquickjs.git
+[submodule "lib/levelx"]
+	path = lib/levelx
+	url = https://github.com/eclipse-threadx/levelx.git
+[submodule "lib/filex"]
+	path = lib/filex
+	url = https://github.com/eclipse-threadx/filex.git

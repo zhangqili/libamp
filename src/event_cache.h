@@ -43,7 +43,7 @@ typedef struct __EventCacheList
 extern EventCacheList g_event_buffer_list;
 
 void event_cache_init(void);
-void event_cache_add_buffer(void);
+void event_cache_add_to_report(void);
 
 void event_forward_list_init(EventCacheList* list, EventCacheListNode* data, uint16_t len);
 void event_forward_list_erase_after(EventCacheList* list, EventCacheListNode* data);

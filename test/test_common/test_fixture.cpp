@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "keyboard.h"
+#include "record.h"
 
 extern "C" {
 
@@ -30,6 +31,12 @@ void libamp_test_clear_output_buffers(void)
 void libamp_test_reset_environment(void)
 {
     std::memset(flash_buffer, 0xFF, LFS_BLOCK_SIZE * LFS_BLOCK_COUNT);
+#ifdef RECORD_PERSIST_ENABLE
+    g_runtime = 0;
+#endif
+#ifdef COUNTER_ENABLE
+    std::memset(g_key_counts, 0, sizeof(g_key_counts));
+#endif
     keyboard_init();
     g_keyboard_config.nkro = false;
     g_keyboard_config.enable_report = true;

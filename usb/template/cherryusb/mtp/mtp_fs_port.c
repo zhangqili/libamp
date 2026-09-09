@@ -79,7 +79,7 @@ int usbd_mtp_closedir(MTP_DIR *d) {
 }
 
 struct mtp_dirent *usbd_mtp_readdir(MTP_DIR *d) {
-#ifdef LFS_ENABLE
+#if (FILE_SYSTEM_TYPE != FILE_SYSTEM_RAW) && defined(STORAGE_ENABLE)
     if (!d) return NULL;
     Directory *dir = (Directory *)d;
     FileStat info;
@@ -96,7 +96,7 @@ struct mtp_dirent *usbd_mtp_readdir(MTP_DIR *d) {
 }
 
 int usbd_mtp_stat(const char *file, mtp_stat_t *buf) {
-#ifdef LFS_ENABLE
+#if (FILE_SYSTEM_TYPE != FILE_SYSTEM_RAW) && defined(STORAGE_ENABLE)
     FileStat info;
     int res = fs_stat(file, &info);
     
@@ -110,8 +110,8 @@ int usbd_mtp_stat(const char *file, mtp_stat_t *buf) {
 }
 
 int usbd_mtp_statfs(const char *path, struct mtp_statfs *buf) {
-#ifdef LFS_ENABLE
-    FileSystemStat fs_info;
+#if (FILE_SYSTEM_TYPE != FILE_SYSTEM_RAW) && defined(STORAGE_ENABLE)
+    //FileSystemStat fs_info;
     VolumeStat vol_info;
     if (fs_statvfs(path, &vol_info) >= 0) {
         buf->f_bsize  = vol_info.f_bsize;

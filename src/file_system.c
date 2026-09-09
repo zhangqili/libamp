@@ -8,8 +8,169 @@
 #include "keyboard_config.h"
 #include "driver.h"
 
-#ifdef LFS_ENABLE
-#include "lfs.h"
+#if FILE_SYSTEM_TYPE == FILE_SYSTEM_RAW
+void fs_init_dir(void)
+{
+
+}
+
+int fs_init(void)
+{
+    return -1;
+}
+
+int fs_open(File * file, const char * name, size_t flags)
+{
+    UNUSED(file);
+    UNUSED(name);
+    UNUSED(flags);
+    return -1;
+}
+
+int fs_close(File * file)
+{
+    UNUSED(file);
+    return -1;
+}
+
+int fs_unlink(const char * name)
+{
+    UNUSED(name);
+    return -1;
+}
+
+int fs_rename(const char * old, const char * new)
+{
+    UNUSED(old);
+    UNUSED(new);
+    return -1;
+}
+
+size_t fs_read(File *file, void *ptr, size_t size)
+{
+    UNUSED(ptr);
+    UNUSED(size);
+    UNUSED(file);
+    return 0;
+}
+
+size_t fs_write(File *file, void *ptr, size_t size)
+{
+    UNUSED(ptr);
+    UNUSED(size);
+    UNUSED(file);
+    return 0;
+}
+
+int fs_seek(File *file,  FilePosition offset, int whence)
+{
+    UNUSED(file);
+    UNUSED(offset);
+    UNUSED(whence);
+    return -1;
+}
+
+FilePosition fs_tell(File * file)
+{
+    UNUSED(file);
+    return -1L;
+}
+
+FilePosition fs_size(File * file)
+{
+    UNUSED(file);
+    return -1L;
+}
+
+int fs_truncate(File * file, FilePosition size)
+{
+    UNUSED(file);
+    UNUSED(size);
+    return -1;
+}
+
+int fs_sync(File *file)
+{
+    UNUSED(file);
+    return -1;
+}
+
+int fs_stat(const char * file, FileStat*buf)
+{
+    UNUSED(file);
+    UNUSED(buf);
+    return -1;
+}
+
+int fs_statfs(const char * path, FileSystemStat*buf)
+{
+    UNUSED(path);
+    UNUSED(buf);
+    return -1;
+}
+
+int fs_statvfs(const char * file, VolumeStat*buf)
+{
+    UNUSED(file);
+    UNUSED(buf);
+    return -1;
+}
+
+int fs_mkdir(const char * path, size_t mode)
+{
+    UNUSED(path);
+    UNUSED(mode);
+    return -1;
+}
+
+int fs_rmdir(const char * path)
+{
+    UNUSED(path);
+    return -1;
+}
+
+int fs_opendir(Directory *dir, const char *name)
+{
+    UNUSED(dir);
+    UNUSED(name);
+    return -1;
+}
+
+int fs_readdir(Directory *dir, FileStat *buf)
+{
+    UNUSED(dir);
+    UNUSED(buf);
+    return -1;
+}
+
+int fs_telldir(Directory *dir)
+{
+    UNUSED(dir);
+    return -1;
+}
+
+int fs_seekdir(Directory *dir, FilePosition pos)
+{
+    UNUSED(dir);
+    UNUSED(pos);
+    return -1;
+}
+
+int fs_rewinddir(Directory *dir)
+{
+    UNUSED(dir);
+    return -1;
+}
+
+int fs_closedir(Directory *dir)
+{
+    UNUSED(dir);
+    return -1;
+}
+
+#endif
+
+#if FILE_SYSTEM_TYPE == FILE_SYSTEM_LFS
 
 #ifndef LFS_READ_SIZE
 #error "LFS_READ_SIZE is not defined."
@@ -80,20 +241,16 @@ const struct lfs_config _lfs_config =
     .prog_buffer = prog_buffer,
     .lookahead_buffer = lookahead_buffer,
 };
-#endif
 
 void fs_init_dir(void)
 {
-#ifdef LFS_ENABLE
     lfs_mkdir(&_lfs, "profiles");
     lfs_mkdir(&_lfs, "system");
     lfs_mkdir(&_lfs, "scripts");
-#endif
 }
 
 int fs_init(void)
 {
-#ifdef LFS_ENABLE
     // mount the filesystem
     int err = lfs_mount(&_lfs, &_lfs_config);
     // reformat if we can't mount the filesystem
@@ -105,72 +262,46 @@ int fs_init(void)
     }
     fs_init_dir();
     return err;
-#endif
 }
-
 
 int fs_open(File * file, const char * name, size_t flags)
 {
-#ifdef LFS_ENABLE
     if (file == NULL || name == NULL)
         return -1;
 
     int err = lfs_file_open(&_lfs, file, name, (int)flags);
 
     return err;
-#else
-    UNUSED(file);
-    UNUSED(name);
-    UNUSED(flags);
-    return -1;
-#endif
 }
 
 int fs_close(File * file)
 {
-#ifdef LFS_ENABLE
     if (file == NULL)
         return -1;
 
     int err = lfs_file_close(&_lfs, file);
 
     return err;
-#else
-    UNUSED(file);
-    return -1;
-#endif
 }
 
 int fs_unlink(const char * name)
 {
-#ifdef LFS_ENABLE
     if (name == NULL)
         return -1;
 
     return lfs_remove(&_lfs, name);
-#else
-    UNUSED(name);
-    return -1;
-#endif
 }
 
 int fs_rename(const char * old, const char * new)
 {
-#ifdef LFS_ENABLE
     if (old == NULL || new == NULL)
         return -1;
 
     return lfs_rename(&_lfs, old, new);
-#else
-    UNUSED(old);
-    UNUSED(new);
-    return -1;
-#endif
 }
 
 size_t fs_read(File *file, void *ptr, size_t size)
 {
-#ifdef LFS_ENABLE
     if (ptr == NULL || file == NULL)
         return -1;
     lfs_ssize_t res = lfs_file_read(&_lfs, file, ptr, size);
@@ -181,17 +312,10 @@ size_t fs_read(File *file, void *ptr, size_t size)
     }
 
     return (size_t)(res);
-#else
-    UNUSED(ptr);
-    UNUSED(size);
-    UNUSED(file);
-    return 0;
-#endif
 }
 
 size_t fs_write(File *file, void *ptr, size_t size)
 {
-#ifdef LFS_ENABLE
     if (ptr == NULL || file == NULL)
         return 0;
 
@@ -203,17 +327,10 @@ size_t fs_write(File *file, void *ptr, size_t size)
     }
 
     return (size_t)(res);
-#else
-    UNUSED(ptr);
-    UNUSED(size);
-    UNUSED(file);
-    return 0;
-#endif
 }
 
 int fs_seek(File *file,  FilePosition offset, int whence)
 {
-#ifdef LFS_ENABLE
     if (file == NULL)
         return -1;
 
@@ -225,17 +342,10 @@ int fs_seek(File *file,  FilePosition offset, int whence)
     }
 
     return 0;
-#else
-    UNUSED(file);
-    UNUSED(offset);
-    UNUSED(whence);
-    return -1;
-#endif
 }
 
 FilePosition fs_tell(File * file)
 {
-#ifdef LFS_ENABLE
     if (file == NULL)
         return -1L;
 
@@ -246,15 +356,10 @@ FilePosition fs_tell(File * file)
         return -1L;
     }
     return (FilePosition)res;
-#else
-    UNUSED(file);
-    return -1L;
-#endif
 }
 
 FilePosition fs_size(File * file)
 {
-#ifdef LFS_ENABLE
     if (file == NULL)
         return -1L;
 
@@ -265,62 +370,40 @@ FilePosition fs_size(File * file)
         return -1L;
     }
     return (long)res;
-#else
-    UNUSED(file);
-    return -1L;
-#endif
 }
 
 int fs_truncate(File * file, FilePosition size)
 {
-#ifdef LFS_ENABLE
     if (file == NULL)
         return -1;
 
     int res = lfs_file_truncate(&_lfs, file, (lfs_soff_t)size);
 
     return res;
-#else
-    UNUSED(file);
-    UNUSED(size);
-    return -1;
-#endif
 }
 
 int fs_sync(File *file)
 {
-#ifdef LFS_ENABLE
     if (file == NULL)
         return -1;
 
     int res = lfs_file_sync(&_lfs, file);
 
     return res;
-#else
-    UNUSED(file);
-    return -1;
-#endif
 }
 
 int fs_stat(const char * file, FileStat*buf)
 {
-#ifdef LFS_ENABLE
     if (file == NULL || buf == NULL)
         return -1;
 
     int res = lfs_stat(&_lfs, file, buf);
 
     return res;
-#else
-    UNUSED(file);
-    UNUSED(buf);
-    return -1;
-#endif
 }
 
 int fs_statfs(const char * path, FileSystemStat*buf)
 {
-#ifdef LFS_ENABLE
     UNUSED(path);
     if (path == NULL || buf == NULL)
         return -1;
@@ -328,16 +411,10 @@ int fs_statfs(const char * path, FileSystemStat*buf)
     int res = lfs_fs_stat(&_lfs, buf);
 
     return res;
-#else
-    UNUSED(path);
-    UNUSED(buf);
-    return -1;
-#endif
 }
 
 int fs_statvfs(const char * file, VolumeStat*buf)
 {
-#ifdef LFS_ENABLE
     if (file == NULL || buf == NULL)
         return -1;
 
@@ -359,134 +436,85 @@ int fs_statvfs(const char * file, VolumeStat*buf)
         buf->f_bfree = 0;
     }
     return 0;
-#else
-    UNUSED(file);
-    UNUSED(buf);
-    return -1;
-#endif
 }
 
 int fs_mkdir(const char * path, size_t mode)
 {
-#ifdef LFS_ENABLE
     if (path == NULL)
         return -1;
     UNUSED(mode);
     int res = lfs_mkdir(&_lfs, path);
 
     return res;
-#else
-    UNUSED(path);
-    UNUSED(mode);
-    return -1;
-#endif
 }
 
 int fs_rmdir(const char * path)
 {
-#ifdef LFS_ENABLE
     if (path == NULL)
         return -1;
 
     int res = lfs_remove(&_lfs, path);
 
     return res;
-#else
-    UNUSED(path);
-    return -1;
-#endif
 }
 
 int fs_opendir(Directory *dir, const char *name)
 {
-#ifdef LFS_ENABLE
     if (dir == NULL || name == NULL)
         return -1;
 
     int res = lfs_dir_open(&_lfs, dir, name);
 
     return res;
-#else
-    UNUSED(dir);
-    UNUSED(name);
-    return -1;
-#endif
 }
 
 int fs_readdir(Directory *dir, FileStat *buf)
 {
-#ifdef LFS_ENABLE
     if (dir == NULL || buf == NULL)
         return -1;
 
     int res = lfs_dir_read(&_lfs, dir, buf);
 
     return res;
-#else
-    UNUSED(dir);
-    UNUSED(buf);
-    return -1;
-#endif
 }
 
 int fs_telldir(Directory *dir)
 {
-#ifdef LFS_ENABLE
     if (dir == NULL)
         return -1;
 
     int res = lfs_dir_tell(&_lfs, dir);
 
     return res;
-#else
-    UNUSED(dir);
-    return -1;
-#endif
 }
 
 int fs_seekdir(Directory *dir, FilePosition pos)
 {
-#ifdef LFS_ENABLE
     if (dir == NULL)
         return -1;
 
     int res = lfs_dir_seek(&_lfs, dir, pos);
 
     return res;
-#else
-    UNUSED(dir);
-    UNUSED(pos);
-    return -1;
-#endif
-
 }
 
 int fs_rewinddir(Directory *dir)
 {
-#ifdef LFS_ENABLE
     if (dir == NULL)
         return -1;
 
     int res = lfs_dir_rewind(&_lfs, dir);
 
     return res;
-#else
-    UNUSED(dir);
-    return -1;
-#endif
 }
 
 int fs_closedir(Directory *dir)
 {
-#ifdef LFS_ENABLE
     if (dir == NULL)
         return -1;
 
     int res = lfs_dir_close(&_lfs, dir);
 
     return res;
-#else
-    UNUSED(dir);
-    return -1;
-#endif
 }
+#endif

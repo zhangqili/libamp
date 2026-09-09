@@ -28,6 +28,8 @@ void storage_read_profile(void);
 void storage_save_profile(void);
 void storage_save_script(void);
 void storage_read_script(void);
+void storage_save_statistics(void);
+void storage_read_statistics(void);
 
 #ifdef __cplusplus
 }

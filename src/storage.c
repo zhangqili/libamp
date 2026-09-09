@@ -12,11 +12,12 @@
 #ifdef SCRIPT_ENABLE
 #include"script.h"
 #endif
+#include "record.h"
 #include "file_system.h"
 #include "string.h"
 
-#if defined(STORAGE_ENABLE) && (!defined(LFS_ENABLE))
-#error "STORAGE_ENABLE requires LFS_ENABLE"
+#if defined(STORAGE_ENABLE) && (!(FILE_SYSTEM_TYPE != FILE_SYSTEM_RAW))
+#error "FILE_SYSTEM_RAW is not supported. Please use FILE_SYSTEM_LFS or FILE_SYSTEM_FILEX instead."
 #endif
 
 #ifndef STORAGE_FLASH_BASE_ADDRESS
@@ -240,5 +241,38 @@ void storage_read_script(void)
         }
     }
 #endif
+#endif
+}
+
+void storage_save_statistics(void)
+{
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+    File file;
+    int res = fs_open(&file, "system/stat", FS_O_RDWR | FS_O_CREAT);
+    if (res >= 0)
+    {
+        uint64_t runtime = g_runtime + KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+        fs_write(&file, &runtime, sizeof(runtime));
+#ifdef COUNTER_ENABLE
+        fs_write(&file, &g_key_counts, sizeof(g_key_counts));
+#endif
+        fs_close(&file);
+    }
+#endif
+}
+
+void storage_read_statistics(void)
+{
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+    File file;
+    int res = fs_open(&file, "system/stat", FS_O_RDWR | FS_O_CREAT);
+    if (res >= 0)
+    {
+        fs_read(&file, &g_runtime, sizeof(g_runtime));
+#ifdef COUNTER_ENABLE
+        fs_read(&file, &g_key_counts, sizeof(g_key_counts));
+#endif
+        fs_close(&file);
+    }
 #endif
 }

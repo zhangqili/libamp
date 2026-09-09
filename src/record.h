@@ -31,6 +31,14 @@ extern "C" {
 #define KPS_REFRESH_RATE      144
 #endif
 
+#ifndef RECORD_SAVE_INTERVAL
+#define RECORD_SAVE_INTERVAL  1000
+#endif
+
+#ifndef RECORD_STATISTICS_SAVE_INTERVAL_MS
+#define RECORD_STATISTICS_SAVE_INTERVAL_MS (30UL * 60UL * 1000UL)
+#endif
+
 #define BIT_DATA_LENGTH ((BIT_STREAM_LENGTH - 1) / (sizeof(size_t) * 8) + 1)
 
 typedef uint16_t LoopArrayElement;
@@ -41,6 +49,10 @@ typedef struct __LoopArray
     int16_t index;
     int16_t len;
 } LoopArray;
+
+#ifdef RECORD_PERSIST_ENABLE
+extern uint64_t g_runtime;
+#endif
 
 #ifdef COUNTER_ENABLE
 extern uint32_t g_key_counts[TOTAL_KEY_NUM];
@@ -70,6 +82,7 @@ LoopArrayElement loop_array_max(LoopArray *arr);
 //void record_bit_stream_register(Key*k);
 //void record_analog_register(AdvancedKey*k);
 void record_init(void);
+void record_process(void);
 void record_bit_stream_timer(void);
 void record_analog_timer(void);
 uint16_t record_get_kps(void);

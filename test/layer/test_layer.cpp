@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include "layer.h"
-#include "keyboard.h"
 
 class LayerTest : public ::testing::Test {
 protected:

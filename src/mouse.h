@@ -30,7 +30,7 @@ typedef int8_t MouseInt;
 
 #define MOUSE_KEYCODE_IS_MOVE(keycode) (KEYCODE_GET_SUB((keycode)) >= MOUSE_MOVE_UP)
 
-typedef struct __Mouse {
+typedef struct __MouseReport {
 #ifdef MOUSE_SHARED_EP
     uint8_t report_id;
 #endif
@@ -43,16 +43,15 @@ typedef struct __Mouse {
     MouseInt y;
     MouseInt v;
     MouseInt h;
-} __PACKED Mouse;
+} __PACKED MouseReport;
 
-//void mouse_buffer_clear(Mouse*mouse);
 void mouse_event_handler(KeyboardEvent event);
-void mouse_buffer_clear(void);
-void mouse_add_buffer(KeyboardEvent event);
+void mouse_report_clear(void);
+void mouse_report_add(KeyboardEvent event);
 void mouse_set_axis(Keycode keycode, AnalogValue value);
-int mouse_buffer_send(void);
+int mouse_report_send(void);
 
-static inline bool mouse_should_send(Mouse * restrict mouse, Mouse * restrict prev_mouse)
+static inline bool mouse_should_send(MouseReport * restrict mouse, MouseReport * restrict prev_mouse)
 {
     bool changed = ((mouse->buttons != prev_mouse->buttons) ||
 #ifdef MOUSE_EXTENDED_REPORT

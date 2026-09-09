@@ -11,16 +11,16 @@
 extern "C" {
 #endif
 
-typedef struct __ExtraKey
+typedef struct __ExtraKeyReport
 {
     uint8_t  report_id;
     uint16_t usage;
-} __PACKED ExtraKey;
+} __PACKED ExtraKeyReport;
 
 void extra_key_event_handler(KeyboardEvent event);
-void extra_key_add_buffer(KeyboardEvent event);
-int consumer_key_buffer_send(void);
-int system_key_buffer_send(void);
+void extra_key_report_add(KeyboardEvent event);
+int consumer_key_report_send(void);
+int system_key_report_send(void);
 
 #ifdef __cplusplus
 }

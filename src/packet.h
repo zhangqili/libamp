@@ -39,6 +39,7 @@ enum {
   PACKET_DATA_FEATURE = 0x0B,
   PACKET_DATA_SCRIPT_SCOURCE = 0x0C,
   PACKET_DATA_SCRIPT_BYTECODE = 0x0D,
+  PACKET_DATA_RECORD = 0x0E,
 };
 
 typedef struct __PacketBase
@@ -220,6 +221,26 @@ typedef struct __PacketLargeData
         } __PACKED payload;
     };
 } __PACKED PacketLargeData;
+
+
+typedef struct __PacketRecord
+{
+  uint8_t code;
+  uint8_t id;
+  uint8_t type;
+  uint8_t sub_cmd;
+  union
+  {
+    uint64_t runtime;
+    struct
+    {
+      uint16_t start;
+      uint8_t length;
+      uint32_t count[];
+    } __PACKED items;
+  } data;
+} __PACKED PacketRecord;
+
 
 typedef struct __PacketDebug
 {

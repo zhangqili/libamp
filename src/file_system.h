@@ -5,8 +5,8 @@
  */
 
 
-#ifndef FILE_STREAM_H_
-#define FILE_STREAM_H_
+#ifndef FILE_SYSTEM_H_
+#define FILE_SYSTEM_H_
 
 #include "stddef.h"
 #include "stdbool.h"
@@ -14,10 +14,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifdef LFS_ENABLE
-#include "lfs.h"
 #endif
 
 enum FileOpenFlags {
@@ -43,18 +39,30 @@ enum FileWhenceFlags {
     FS_SEEK_END = 2,   // Seek relative to the end of the file
 };
 
-#ifdef LFS_ENABLE
-typedef lfs_file_t File;
-typedef struct lfs_info FileStat;
-typedef struct lfs_fsinfo FileSystemStat;
-typedef lfs_dir_t Directory;
-typedef lfs_soff_t FilePosition;
-#else
+#define FILE_SYSTEM_RAW   0
+#define FILE_SYSTEM_LFS   1
+#define FILE_SYSTEM_FILEX 2
+
+#ifndef FILE_SYSTEM_TYPE
+#define FILE_SYSTEM_TYPE FILE_SYSTEM_LFS
+#endif
+
+#if FILE_SYSTEM_TYPE == FILE_SYSTEM_RAW
 typedef int File;
 typedef int FileStat;
 typedef int FileSystemStat;
 typedef int Directory;
 typedef long FilePosition;
+#endif
+
+#if FILE_SYSTEM_TYPE == FILE_SYSTEM_LFS
+#include "lfs.h"
+
+typedef lfs_file_t File;
+typedef struct lfs_info FileStat;
+typedef struct lfs_fsinfo FileSystemStat;
+typedef lfs_dir_t Directory;
+typedef lfs_soff_t FilePosition;
 #endif
 
 typedef struct __VolumeStat {
@@ -96,4 +104,4 @@ int fs_closedir(Directory *dir);
 }
 #endif
 
-#endif /* FILE_STREAM_H_ */
+#endif /* FILE_SYSTEM_H_ */

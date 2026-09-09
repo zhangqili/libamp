@@ -6,10 +6,10 @@
 #include "extra_key.h"
 #include "driver.h"
 
-static ExtraKey consumer_buffer = {
+static ExtraKeyReport consumer_buffer = {
     .report_id = REPORT_ID_CONSUMER,
 };
-static ExtraKey system_buffer = {
+static ExtraKeyReport system_buffer = {
     .report_id = REPORT_ID_SYSTEM,
 };
 
@@ -56,7 +56,7 @@ void extra_key_event_handler(KeyboardEvent event)
     }
 }
 
-void extra_key_add_buffer(KeyboardEvent event)
+void extra_key_report_add(KeyboardEvent event)
 {
     switch (KEYCODE_GET_MAIN(event.keycode))
     {
@@ -77,12 +77,12 @@ void extra_key_add_buffer(KeyboardEvent event)
 
 }
 
-int consumer_key_buffer_send(void)
+int consumer_key_report_send(void)
 {
-    return hid_send_extra_key((uint8_t*)&consumer_buffer, sizeof(ExtraKey));
+    return hid_send_extra_key((uint8_t*)&consumer_buffer, sizeof(ExtraKeyReport));
 }
 
-int system_key_buffer_send(void)
+int system_key_report_send(void)
 {
-    return hid_send_extra_key((uint8_t*)&system_buffer, sizeof(ExtraKey));
+    return hid_send_extra_key((uint8_t*)&system_buffer, sizeof(ExtraKeyReport));
 }

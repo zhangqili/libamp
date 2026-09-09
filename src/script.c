@@ -42,8 +42,8 @@ void script_log_func(void *opaque, const void *buf, size_t buf_len) {
 }
 extern const JSSTDLibraryDef js_stdlib;
 
-#if defined(SCRIPT_ENABLE) && (!defined(LFS_ENABLE) || !defined(STORAGE_ENABLE))
-#error "SCRIPT_ENABLE requires storage support with LFS_ENABLE"
+#if defined(SCRIPT_ENABLE) && ((FILE_SYSTEM_TYPE == FILE_SYSTEM_RAW) || !defined(STORAGE_ENABLE))
+#error "SCRIPT_ENABLE requires STORAGE_ENABLE and FILE_SYSTEM_TYPE != FILE_SYSTEM_RAW"
 #endif
 
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT

@@ -5,6 +5,7 @@
 
 #include "dynamic_key.h"
 #include "file_system.h"
+#include "record.h"
 #include "rgb.h"
 #include "script.h"
 #include "storage.h"
@@ -244,6 +245,91 @@ TEST(Storage, VersionCheckDifferentiatesPatchAndBreakingVersions)
     ASSERT_EQ(sizeof(breaking_update), fs_write(&file, breaking_update, sizeof(breaking_update)));
     fs_close(&file);
     EXPECT_TRUE(storage_check_version());
+}
+
+TEST(Storage, StatisticsRoundTrip)
+{
+    g_runtime = 123456789ULL;
+    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
+        g_key_counts[i] = i * 17U + 3U;
+    }
+
+    storage_save_statistics();
+    g_runtime = 0;
+    std::memset(g_key_counts, 0, sizeof(g_key_counts));
+
+    storage_read_statistics();
+
+    EXPECT_EQ(123456789ULL, g_runtime);
+    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
+        EXPECT_EQ(i * 17U + 3U, g_key_counts[i]);
+    }
+}
+
+TEST(Storage, StatisticsRestoreDuringLibampInit)
+{
+    g_runtime = 987654321ULL;
+    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
+        g_key_counts[i] = i * 23U + 5U;
+    }
+    storage_save_statistics();
+
+    g_runtime = 0;
+    std::memset(g_key_counts, 0, sizeof(g_key_counts));
+    keyboard_init();
+
+    EXPECT_EQ(987654321ULL, g_runtime);
+    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
+        EXPECT_EQ(i * 23U + 5U, g_key_counts[i]);
+    }
+}
+
+TEST(Storage, StatisticsSaveAtConfiguredInterval)
+{
+    const uint32_t interval_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_SAVE_INTERVAL_MS);
+
+    g_runtime = 17;
+    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
+        g_key_counts[i] = i + 1U;
+    }
+    g_keyboard_tick = interval_ticks - 1U;
+    keyboard_process();
+
+    g_runtime = 0;
+    std::memset(g_key_counts, 0, sizeof(g_key_counts));
+    storage_read_statistics();
+    EXPECT_EQ(0ULL, g_runtime);
+    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
+        EXPECT_EQ(0U, g_key_counts[i]);
+    }
+
+    g_runtime = 17;
+    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
+        g_key_counts[i] = i + 1U;
+    }
+    g_keyboard_tick = interval_ticks;
+    keyboard_process();
+
+    g_runtime = 0;
+    std::memset(g_key_counts, 0, sizeof(g_key_counts));
+    storage_read_statistics();
+    EXPECT_EQ(17ULL + KEYBOARD_TICK_TO_TIME(interval_ticks), g_runtime);
+    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
+        EXPECT_EQ(i + 1U, g_key_counts[i]);
+    }
+
+    g_runtime = 99;
+    std::memset(g_key_counts, 0x5A, sizeof(g_key_counts));
+    g_keyboard_tick = interval_ticks + 1U;
+    keyboard_process();
+
+    g_runtime = 0;
+    std::memset(g_key_counts, 0, sizeof(g_key_counts));
+    storage_read_statistics();
+    EXPECT_EQ(17ULL + KEYBOARD_TICK_TO_TIME(interval_ticks), g_runtime);
+    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
+        EXPECT_EQ(i + 1U, g_key_counts[i]);
+    }
 }
 
 TEST(Storage, ScriptBytecodeRoundTrip)

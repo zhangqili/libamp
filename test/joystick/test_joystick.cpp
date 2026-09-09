@@ -7,11 +7,11 @@
 
 TEST(Joystick, Buffer)
 {
-    joystick_buffer_clear();
-    joystick_add_buffer(MK_EVENT(JOYSTICK_COLLECTION|(0<<8), KEYBOARD_EVENT_NO_EVENT, NULL));
-    joystick_add_buffer(MK_EVENT(JOYSTICK_COLLECTION|(9<<8), KEYBOARD_EVENT_NO_EVENT, NULL));
-    joystick_buffer_send();
-    Joystick* joystick = (Joystick*)shared_ep_send_buffer;
+    joystick_report_clear();
+    joystick_report_add(MK_EVENT(JOYSTICK_COLLECTION|(0<<8), KEYBOARD_EVENT_NO_EVENT, NULL));
+    joystick_report_add(MK_EVENT(JOYSTICK_COLLECTION|(9<<8), KEYBOARD_EVENT_NO_EVENT, NULL));
+    joystick_report_send();
+    JoystickReport* joystick = (JoystickReport*)shared_ep_send_buffer;
     EXPECT_EQ(joystick->buttons[0], BIT(0));
     EXPECT_EQ(joystick->buttons[1], BIT(1));
 }
@@ -29,18 +29,18 @@ TEST(Joystick, Axis)
     advanced_key_update(&g_keyboard_advanced_keys[44], A_ANTI_NORM(0.8));
     advanced_key_update(&g_keyboard_advanced_keys[45], A_ANTI_NORM(0.9));
 
-    joystick_buffer_clear();
-    joystick_add_buffer(
+    joystick_report_clear();
+    joystick_report_add(
         MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[42].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard_advanced_keys[42]));
-    joystick_add_buffer(
+    joystick_report_add(
         MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[43].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard_advanced_keys[43]));
-    joystick_add_buffer(
+    joystick_report_add(
         MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[44].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard_advanced_keys[44]));
-    joystick_add_buffer(
+    joystick_report_add(
         MK_EVENT(layer_cache_get_keycode(g_keyboard_advanced_keys[45].key.id), KEYBOARD_EVENT_NO_EVENT, &g_keyboard_advanced_keys[45]));
-    joystick_buffer_send();
+    joystick_report_send();
 
-    Joystick* joystick = (Joystick*)shared_ep_send_buffer;
+    JoystickReport* joystick = (JoystickReport*)shared_ep_send_buffer;
     EXPECT_NEAR(joystick->axes[0], (int8_t)((A_ANTI_NORM(0.6) - ANALOG_VALUE_MIN) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE), 1);
     EXPECT_NEAR(joystick->axes[1], (int8_t)((ANALOG_VALUE_MIN - A_ANTI_NORM(0.7)) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE), 1);
     EXPECT_NEAR(joystick->axes[2], (int8_t)(((A_ANTI_NORM(0.8) - ANALOG_VALUE_MIN) / (float)ANALOG_VALUE_RANGE * JOYSTICK_MAX_VALUE)*2 - JOYSTICK_MAX_VALUE), 1);

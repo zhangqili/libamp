@@ -60,7 +60,7 @@ typedef int16_t JoystickAxis;
 typedef int8_t JoystickAxis;
 #endif
 
-typedef struct __Joystick {
+typedef struct __JoystickReport {
 #ifdef JOYSTICK_SHARED_EP
     uint8_t report_id;
 #endif
@@ -76,7 +76,7 @@ typedef struct __Joystick {
 #if JOYSTICK_BUTTON_COUNT > 0
     uint8_t buttons[(JOYSTICK_BUTTON_COUNT - 1) / 8 + 1];
 #endif
-} __PACKED Joystick;
+} __PACKED JoystickReport;
 
 #define JOYSTICK_KEYCODE_GET_AXIS_MAP(keycode) (KEYCODE_GET_SUB((keycode) >> 5) & 0x03)
 #define JOYSTICK_KEYCODE_IS_AXIS_INVERT(keycode) (KEYCODE_GET_SUB((keycode)) & 0x80)
@@ -84,10 +84,10 @@ typedef struct __Joystick {
 #define JOYSTICK_KEYCODE_GET_AXIS_INDEX(keycode) (KEYCODE_GET_SUB((keycode)) & 0x1F)
 
 void joystick_event_handler(KeyboardEvent event);
-void joystick_buffer_clear(void);
-void joystick_add_buffer(KeyboardEvent event);
+void joystick_report_clear(void);
+void joystick_report_add(KeyboardEvent event);
 void joystick_set_axis(Keycode keycode, AnalogValue value);
-int joystick_buffer_send(void);
+int joystick_report_send(void);
 
 #ifdef __cplusplus
 }

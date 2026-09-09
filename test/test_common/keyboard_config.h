@@ -116,12 +116,13 @@
 /**********/
 /* Record */
 /**********/
+#define RECORD_PERSIST_ENABLE
 //#define STATIC_RECORD
 //#define ANALOG_HISTORY_ENABLE
 //#define KPS_ENABLE
 //#define KPS_HISTORY_ENABLE
 //#define BIT_STREAM_ENABLE
-//#define COUNTER_ENABLE
+#define COUNTER_ENABLE
 
 #define KPS_HISTORY_LENGTH      65
 #define BIT_STREAM_LENGTH       128

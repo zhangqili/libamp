@@ -89,7 +89,7 @@ TEST(EventCache, BufferKeepsFullWidthOwnerPointer)
     int owner;
 
     event_cache_buffer_push(event_with_keycode(KEY_C), &owner);
-    event_cache_add_buffer();
+    event_cache_add_to_report();
 
     EXPECT_TRUE(event_forward_list_exists_keycode(&g_event_buffer_list, &owner, KEY_C));
 }

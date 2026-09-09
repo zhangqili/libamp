@@ -105,14 +105,14 @@ bool tu_edpt_stream_init(tu_edpt_stream_t *s, bool is_host, bool is_tx, bool ove
 // Deinit an endpoint stream
 TU_ATTR_ALWAYS_INLINE static inline void tu_edpt_stream_deinit(tu_edpt_stream_t *s) {
   (void)s;
-#if OSAL_MUTEX_REQUIRED
-  if (s->ff.mutex_wr) {
-    osal_mutex_delete(s->ff.mutex_wr);
-  }
-  if (s->ff.mutex_rd) {
-    osal_mutex_delete(s->ff.mutex_rd);
-  }
-#endif
+//#if OSAL_MUTEX_REQUIRED
+//  if (s->ff.mutex_wr) {
+//    osal_mutex_delete(s->ff.mutex_wr);
+//  }
+//  if (s->ff.mutex_rd) {
+//    osal_mutex_delete(s->ff.mutex_rd);
+//  }
+//#endif
 }
 
 // Open an endpoint stream
