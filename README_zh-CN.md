@@ -19,7 +19,7 @@
 
 完成最小移植后，模拟按键在校准范围内移动时会产生正常的键盘按下和释放报告。最小移植包含：
 
-- `libamp_config.h` 配置头文件；
+- `keyboard_config.h` 配置头文件；
 - 模拟量采样流程和默认键位表；
 - USB HID 键盘传输层；
 - 周期性递增 `g_keyboard_tick` 并调用 `keyboard_task()`，以及在前台调用
@@ -27,7 +27,7 @@
 
 ### 1.2 移植模型
 
-在 `libamp_config.h` 中配置 libamp。建议自行创建 `keyboard_user.c`，在其中统一放置键位表、进一步的平台配置和适配函数的实现。
+在 `keyboard_config.h` 中配置 libamp。建议自行创建 `keyboard_user.c`，在其中统一放置键位表、进一步的平台配置和适配函数的实现。
 
 ## 2. 构建最小模拟键盘
 
@@ -44,7 +44,7 @@ git submodule update --init --recursive
 
 ### 2.2 在构建系统中加入 libamp
 
-在添加库之前，先指定包含 `libamp_config.h` 的目录。将应用源码加入固件目标，然后链接 libamp 和数学库。USB 后端源码在 2.6 节中加入。
+在添加库之前，先指定包含 `keyboard_config.h` 的目录。将应用源码加入固件目标，然后链接 libamp 和数学库。USB 后端源码在 2.6 节中加入。
 
 ```cmake
 set(LIBAMP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/config")
@@ -63,7 +63,7 @@ target_link_libraries(keyboard_firmware PRIVATE
 
 除上述最小目标外，还需加入选用的 USB 协议栈、控制器端口和后端源码。如果目标需要架构相关的编译选项，应同时应用到 `libamp` 和应用目标。不要把主机生成器改为使用交叉编译器：`libamp/CMakeLists.txt` 会特意使用主机 `gcc` 配置该工具。
 
-### 2.3 创建 `libamp_config.h`
+### 2.3 创建 `keyboard_config.h`
 
 下面是一个最小的纯模拟按键配置：一层、一个高级（模拟）按键，以及默认的 6KRO 键盘接口。发布硬件前请替换为自己的 USB 标识符。
 
@@ -200,7 +200,7 @@ python3 lut_generator.py > analog_lut.c
 
 **1. 使用随库提供的后端。** 按照[设备移植指南](https://cherryusb.readthedocs.io/en/latest/quick_start/transplant.html)加入核心和控制器驱动，实现底层时钟/引脚/中断初始化，连接 USB 中断，并在必要时配置对缓存安全的 USB 内存。
 
-设备移植成功后，将 `libamp/usb/template/cherryusb/` 下的全部源码加入固件目标。该模板根据 `libamp_config.h` 构建描述符，并提供 libamp 所需的 HID 传输回调；无需自行实现 `hid_send_keyboard()`。
+设备移植成功后，将 `libamp/usb/template/cherryusb/` 下的全部源码加入固件目标。该模板根据 `keyboard_config.h` 构建描述符，并提供 libamp 所需的 HID 传输回调；无需自行实现 `hid_send_keyboard()`。
 
 使用 CMake 时，可按下例加入模板源码和头文件目录：
 
@@ -352,7 +352,7 @@ void keyboard_user_event_handler(KeyboardEvent event);
 
 ## 4. 添加持久化存储
 
-同时启用 `STORAGE_ENABLE` 和 `LFS_ENABLE`。存储使用 `driver.h` 中声明的回调：
+启用 `STORAGE_ENABLE` 并配置选定的文件系统（默认为 LittleFS）。存储使用 `driver.h` 中声明的回调：
 
 ```c
 int flash_read(uint32_t address, uint32_t size, uint8_t *data);
@@ -360,9 +360,16 @@ int flash_write(uint32_t address, uint32_t size, const uint8_t *data);
 int flash_erase(uint32_t address, uint32_t size);
 ```
 
-应为这些回调实现专门保留的可擦写区域。`LFS_READ_SIZE`、`LFS_PROG_SIZE`、`LFS_BLOCK_SIZE`、`LFS_BLOCK_COUNT`、`LFS_CACHE_SIZE`、`LFS_LOOKAHEAD_SIZE` 和 `LFS_BLOCK_CYCLES` 必须与闪存器件和保留区域相匹配。回调实现尤其要遵守编程和擦除对齐要求。
+应为这些回调实现专门保留的可擦写区域。`FS_READ_SIZE`、`FS_PROG_SIZE`、`FS_BLOCK_SIZE`、`FS_BLOCK_COUNT`、`FS_CACHE_SIZE`、`FS_LOOKAHEAD_SIZE` 和 `LFS_BLOCK_CYCLES` 必须与闪存器件和保留区域相匹配。回调实现尤其要遵守编程和擦除对齐要求。
 
 启动时，`keyboard_init()` 会挂载存储、检查保存的版本并恢复选中的配置文件。因此必须在调用 `keyboard_init()` 之前使存储可用。不要将文件系统放在固件、Bootloader 或其他应用数据上。
+文件系统挂载失败时会自动格式化分区。
+
+### 4.1 FileX FAT 存储与 flash 层
+
+`FILE_SYSTEM_TYPE` 默认为 `FILE_SYSTEM_LFS`；在 `keyboard_config.h` 中定义为 `FILE_SYSTEM_FILEX`，即可使用 FileX FAT。
+
+定义 `FLASH_LAYER` 可选择文件系统访问闪存的方式：`FLASH_LAYER_DIRECT` 直接调用 `driver.h` 中声明的 `flash_*` 回调，不做磨损均衡；`FLASH_LAYER_LEVELX` 增加 LevelX NOR 磨损均衡，但可用容量变小、RAM 占用增加、挂载变慢。
 
 ## 5. 添加灯光
 
@@ -389,7 +396,7 @@ RGB 的三张表使用以下相互关联的索引空间：
 
 ## 6. 扩展 USB 设备
 
-随库提供的后端会根据 `libamp_config.h` 启用接口。设置对应的宏后重新编译，并验证枚举出的描述符：`NKRO_ENABLE`、`EXTRAKEY_ENABLE`、`MOUSE_ENABLE`、`RAW_ENABLE`、`MIDI_ENABLE`、`JOYSTICK_ENABLE`、`DIGITIZER_ENABLE` 和 `GAMEPAD_ENABLE` 分别加入对应的键盘功能或 USB 接口。使用随库提供的 CherryUSB 模板时，启用这些宏无需额外的 USB 端配置。
+随库提供的后端会根据 `keyboard_config.h` 启用接口。设置对应的宏后重新编译，并验证枚举出的描述符：`NKRO_ENABLE`、`EXTRAKEY_ENABLE`、`MOUSE_ENABLE`、`RAW_ENABLE`、`MIDI_ENABLE`、`JOYSTICK_ENABLE`、`DIGITIZER_ENABLE` 和 `GAMEPAD_ENABLE` 分别加入对应的键盘功能或 USB 接口。使用随库提供的 CherryUSB 模板时，启用这些宏无需额外的 USB 端配置。
 
 `SHARED_EP_ENABLE` 通过一个中断 IN 端点传输多个 HID 报告 ID，从而减少端点占用。应先使用独立报告，只有在控制器资源不足时再引入共享端点。将 `MAX_ENDPOINTS` 设为控制器可用端点数量。若控制器支持 IN 和 OUT 端点共用同一端点号，应启用 `USB_ENDPOINTS_ARE_REORDERABLE`；描述符生成器会让每组 IN/OUT 端点共用端点号，从而节省端点数量。
 
@@ -401,7 +408,7 @@ RGB 的三张表使用以下相互关联的索引空间：
 
 `DYNAMICKEY_ENABLE` 提供可配置的高级按键行为，例如 Mod-Tap、切换键、动态击键和 Mutex 键。`MACRO_ENABLE` 启用宏录制/播放。两者都使用与普通物理按键相同的事件路径，因此应在基础输入和报告路径稳定后再验证。
 
-`SCRIPT_ENABLE` 同时依赖 `STORAGE_ENABLE` 和 `LFS_ENABLE`。选择 `SCRIPT_RUNTIME_STRATEGY` 后，根据可用 RAM 设置 `SCRIPT_MEMORY_SIZE` 以及对应的源码或字节码缓冲区大小。即使禁用了脚本，libamp 的构建仍包含主机 mquickjs 头文件生成步骤。
+`SCRIPT_ENABLE` 依赖 `STORAGE_ENABLE` 和已配置的文件系统。选择 `SCRIPT_RUNTIME_STRATEGY` 后，根据可用 RAM 设置 `SCRIPT_MEMORY_SIZE` 以及对应的源码或字节码缓冲区大小。即使禁用了脚本，libamp 的构建仍包含主机 mquickjs 头文件生成步骤。
 
 `MTP_ENABLE` 通过 USB 暴露文件访问。它需要 MTP 后端源码、对应 USB 端点，以及一个能在键盘运行时安全暴露给主机的文件系统。在发布固件前，应测试文件传输、拔插和断电行为。
 
@@ -419,11 +426,20 @@ ctest --test-dir build/libamp-tests --output-on-failure
 
 如果 libamp 本身就是仓库根目录而不是子目录，将 `third_party/libamp` 替换为 `.`。
 
+`levelx` 组合的主机测试需使用 32 位工具链及 C/C++ 运行库（LevelX 磁盘字长必须与
+32 位固件一致）；`FILE_SYSTEM_TYPE` 中 2 表示 FileX、1 表示 LittleFS：
+
+```bash
+cmake -S . -B b-fx-lx -DLIBAMP_BUILD_TESTS=ON '-DCMAKE_C_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2 -DFLASH_LAYER=FLASH_LAYER_LEVELX' '-DCMAKE_CXX_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2 -DFLASH_LAYER=FLASH_LAYER_LEVELX' && cmake --build b-fx-lx --parallel && ctest --test-dir b-fx-lx --output-on-failure   # FileX + LevelX
+cmake -S . -B b-fx -DLIBAMP_BUILD_TESTS=ON '-DCMAKE_C_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2' '-DCMAKE_CXX_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2' && cmake --build b-fx --parallel && ctest --test-dir b-fx --output-on-failure                                   # FileX + 直连 flash
+cmake -S . -B b-lfs-lx -DLIBAMP_BUILD_TESTS=ON '-DCMAKE_C_FLAGS=-m32 -DFILE_SYSTEM_TYPE=1 -DFLASH_LAYER=FLASH_LAYER_LEVELX' '-DCMAKE_CXX_FLAGS=-m32 -DFILE_SYSTEM_TYPE=1 -DFLASH_LAYER=FLASH_LAYER_LEVELX' && cmake --build b-lfs-lx --parallel && ctest --test-dir b-lfs-lx --output-on-failure   # LittleFS + LevelX
+```
+
 ### 8.2 固件构建检查表
 
 构建目标固件前，确认：
 
-- `LIBAMP_INCLUDE_DIR` 包含正确的 `libamp_config.h`；
+- `LIBAMP_INCLUDE_DIR` 包含正确的 `keyboard_config.h`；
 - 平台适配层、选用的 USB 协议栈和 libamp 后端源码已经加入固件目标；
 - 已链接 libamp 和数学库；
 - 目标编译选项同时应用到应用和 libamp；
@@ -434,7 +450,7 @@ ctest --test-dir build/libamp-tests --output-on-failure
 
 | 现象 | 检查项 |
 | --- | --- |
-| 找不到 `libamp_config.h` | 在 `add_subdirectory(libamp)` 前设置 `LIBAMP_INCLUDE_DIR`。 |
+| 找不到 `keyboard_config.h` | 在 `add_subdirectory(libamp)` 前设置 `LIBAMP_INCLUDE_DIR`。 |
 | mquickjs 头文件生成失败 | 安装主机 `gcc`，不能只安装交叉编译器。 |
 | 设备已枚举但没有按键输出 | 确认 `g_keyboard_tick` 和 `keyboard_task()` 都按 `POLLING_RATE` 运行、`keyboard_process()` 在前台运行、后端源码已加入，并且在 USB 初始化后调用了 `usb_init()`。 |
 | 模拟按键状态不变化 | 检查原始采样、`g_analog_map`、缓冲区索引、校准范围和归一化方向。 |

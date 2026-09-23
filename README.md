@@ -455,7 +455,7 @@ dispatch application-defined actions.
 
 ## 4. Add Persistent Storage
 
-Enable `STORAGE_ENABLE` and `LFS_ENABLE` together. Storage uses the callbacks
+Enable `STORAGE_ENABLE` and configure the selected filesystem (LittleFS by default). Storage uses the callbacks
 declared in `driver.h`:
 
 ```c
@@ -465,8 +465,8 @@ int flash_erase(uint32_t address, uint32_t size);
 ```
 
 Implement them for an erasable region that is reserved exclusively for libamp.
-The `LFS_READ_SIZE`, `LFS_PROG_SIZE`, `LFS_BLOCK_SIZE`,
-`LFS_BLOCK_COUNT`, `LFS_CACHE_SIZE`, `LFS_LOOKAHEAD_SIZE`, and
+The `FS_READ_SIZE`, `FS_PROG_SIZE`, `FS_BLOCK_SIZE`,
+`FS_BLOCK_COUNT`, `FS_CACHE_SIZE`, `FS_LOOKAHEAD_SIZE`, and
 `LFS_BLOCK_CYCLES` values must match the flash device and the reserved region.
 In particular, programming and erase alignment must be honored by the callback
 implementation.
@@ -475,6 +475,17 @@ On startup, `keyboard_init()` mounts storage, verifies the stored version, and
 recovers the selected profile. Storage therefore must be usable before calling
 `keyboard_init()`. Never place the filesystem over firmware, bootloader, or
 other application data.
+A mount failure formats the partition automatically.
+
+### 4.1 FileX FAT Storage and the Flash Layer
+
+`FILE_SYSTEM_TYPE` defaults to `FILE_SYSTEM_LFS`; define it as
+`FILE_SYSTEM_FILEX` in `keyboard_config.h` to use FileX FAT.
+
+Define `FLASH_LAYER` to select how the filesystem accesses flash:
+`FLASH_LAYER_DIRECT` calls the `flash_*` callbacks declared in `driver.h`
+directly and does no wear leveling, while `FLASH_LAYER_LEVELX` adds LevelX NOR
+wear leveling but reduces usable capacity, uses more RAM and mounts more slowly.
 
 ## 5. Add Lighting
 
@@ -544,7 +555,7 @@ toggle, dynamic keystroke, and mutex keys. `MACRO_ENABLE` enables macro
 recording/playback. Both use the same event path as normal physical keys, so
 verify them after the basic input and report path is stable.
 
-`SCRIPT_ENABLE` requires both `STORAGE_ENABLE` and `LFS_ENABLE`. Choose
+`SCRIPT_ENABLE` requires `STORAGE_ENABLE` and a configured filesystem. Choose
 `SCRIPT_RUNTIME_STRATEGY`, then size `SCRIPT_MEMORY_SIZE` and the matching
 source or bytecode buffer for the available RAM. The host mquickjs header
 generation step remains part of the libamp build even if scripts are disabled.
@@ -568,6 +579,16 @@ ctest --test-dir build/libamp-tests --output-on-failure
 
 When libamp is the repository root rather than a subdirectory, replace
 `third_party/libamp` with `.`.
+
+The `levelx` combinations need 32-bit host C/C++ libraries (LevelX on-flash words
+must match the 32-bit firmware); `FILE_SYSTEM_TYPE` is 2 for FileX and 1 for
+LittleFS:
+
+```bash
+cmake -S . -B b-fx-lx -DLIBAMP_BUILD_TESTS=ON '-DCMAKE_C_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2 -DFLASH_LAYER=FLASH_LAYER_LEVELX' '-DCMAKE_CXX_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2 -DFLASH_LAYER=FLASH_LAYER_LEVELX' && cmake --build b-fx-lx --parallel && ctest --test-dir b-fx-lx --output-on-failure   # FileX + LevelX
+cmake -S . -B b-fx -DLIBAMP_BUILD_TESTS=ON '-DCMAKE_C_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2' '-DCMAKE_CXX_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2' && cmake --build b-fx --parallel && ctest --test-dir b-fx --output-on-failure                                   # FileX + direct flash
+cmake -S . -B b-lfs-lx -DLIBAMP_BUILD_TESTS=ON '-DCMAKE_C_FLAGS=-m32 -DFILE_SYSTEM_TYPE=1 -DFLASH_LAYER=FLASH_LAYER_LEVELX' '-DCMAKE_CXX_FLAGS=-m32 -DFILE_SYSTEM_TYPE=1 -DFLASH_LAYER=FLASH_LAYER_LEVELX' && cmake --build b-lfs-lx --parallel && ctest --test-dir b-lfs-lx --output-on-failure   # LittleFS + LevelX
+```
 
 ### 8.2 Firmware Build Checklist
 

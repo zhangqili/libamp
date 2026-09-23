@@ -49,12 +49,12 @@
 /***********/
 #define STORAGE_ENABLE
 #define LFS_ENABLE
-#define LFS_READ_SIZE       16
-#define LFS_PROG_SIZE       16
-#define LFS_BLOCK_SIZE      4096
-#define LFS_BLOCK_COUNT     4096
-#define LFS_CACHE_SIZE      16
-#define LFS_LOOKAHEAD_SIZE  16
+#define FS_READ_SIZE       16
+#define FS_PROG_SIZE       16
+#define FS_BLOCK_SIZE      4096
+#define FS_BLOCK_COUNT     4096
+#define FS_CACHE_SIZE      16
+#define FS_LOOKAHEAD_SIZE  16
 #define LFS_BLOCK_CYCLES    500
 #define LFS_BUFFER_SIZE     16
 

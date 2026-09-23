@@ -278,10 +278,10 @@ static void midi_audio_receive(const MIDIMessage* message)
         switch (message->status & MIDI_STATUS_GROUP_MASK)
         {
         case MIDI_STATUS_NOTE_ON:
-            midi_play_note(440.0f * powf(2.0f, ((message->bytes[1] & MIDI_DATA_LIMIT) - 57) / 12.0f), (message->bytes[2] & MIDI_DATA_LIMIT) / 8);
+            midi_play_note(440.0f * powf(2.0f, ((message->bytes[1] & MIDI_DATA_LIMIT) - 69) / 12.0f), (message->bytes[2] & MIDI_DATA_LIMIT) / 8);
             break;
         case MIDI_STATUS_NOTE_OFF:
-            midi_stop_note(440.0f * powf(2.0f, ((message->bytes[1] & MIDI_DATA_LIMIT) - 57) / 12.0f));
+            midi_stop_note(440.0f * powf(2.0f, ((message->bytes[1] & MIDI_DATA_LIMIT) - 69) / 12.0f));
             break;
         default:
             break;

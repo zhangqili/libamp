@@ -90,8 +90,19 @@ file(GLOB MQJS_SRCS
     ${PROJECT_SOURCE_DIR}/lib/mquickjs/libm.c
     ${PROJECT_SOURCE_DIR}/lib/mquickjs/mquickjs.c
 )
+file(GLOB FILEX_SRCS CONFIGURE_DEPENDS
+    ${PROJECT_SOURCE_DIR}/lib/filex/common/src/*.c
+)
+# Both flash layers are always compiled. Which one runs is chosen by FLASH_LAYER
+# in keyboard_config.h, and the linker drops the unused implementation - the
+# firmware is byte-identical either way - so keeping the LevelX sources costs
+# build time rather than flash or RAM.
+file(GLOB LEVELX_SRCS CONFIGURE_DEPENDS
+    ${PROJECT_SOURCE_DIR}/lib/levelx/common/src/lx_nor_flash_*.c
+)
+list(FILTER LEVELX_SRCS EXCLUDE REGEX "_simulator\\.c$")
 # Add a library with the above sources
-add_library(${PROJECT_NAME} ${COMPONENT_SRCS} ${MQJS_SRCS})
+add_library(${PROJECT_NAME} ${COMPONENT_SRCS} ${MQJS_SRCS} ${FILEX_SRCS} ${LEVELX_SRCS})
 add_dependencies(${PROJECT_NAME} generate_mqjs_headers_task)
 
 if(LIBAMP_RUN_TESTS_BEFORE_BUILD AND NOT LIBAMP_BUILD_TESTS)
@@ -120,6 +131,18 @@ target_compile_definitions( ${PROJECT_NAME} PRIVATE
     LFS_NO_ERROR
     LFS_NO_WARN
 )
+# LittleFS has no user-define header hook, and some of its options change struct
+# layouts, so its defines stay on the command line. FileX and LevelX do have one
+# (fx_user.h / lx_user.h), so the switches below are all they need here: they are
+# what makes those headers visible, and everything else - standalone mode,
+# caches, name limits and the flash layer itself - is configured from
+# keyboard_config.h. Both are defined unconditionally: without the matching
+# header the switch is inert, so guarding it would only add a condition without
+# changing anything.
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+    FX_INCLUDE_USER_DEFINE_FILE
+    LX_INCLUDE_USER_DEFINE_FILE
+)
 
 target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src
@@ -128,6 +151,9 @@ target_include_directories( ${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src/log
     ${PROJECT_SOURCE_DIR}/lib/littlefs
     ${PROJECT_SOURCE_DIR}/lib/mquickjs
+    ${PROJECT_SOURCE_DIR}/lib/filex/common/inc
+    ${PROJECT_SOURCE_DIR}/lib/filex/ports/generic/inc
+    ${PROJECT_SOURCE_DIR}/lib/levelx/common/inc
     ${LIBAMP_INCLUDE_DIR}
     ${MQJS_GEN_DIR}
 )

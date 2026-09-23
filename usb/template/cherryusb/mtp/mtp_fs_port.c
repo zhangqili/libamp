@@ -88,7 +88,7 @@ struct mtp_dirent *usbd_mtp_readdir(MTP_DIR *d) {
         strncpy(current_dirent.d_name, info.name, sizeof(current_dirent.d_name) - 1);
         current_dirent.d_name[sizeof(current_dirent.d_name) - 1] = '\0';
         
-        current_dirent.d_type = (info.type == LFS_TYPE_DIR) ? 4 : 8; 
+        current_dirent.d_type = (info.type == FS_TYPE_DIR) ? 4 : 8;
         return &current_dirent;
     }
 #endif
@@ -102,7 +102,7 @@ int usbd_mtp_stat(const char *file, mtp_stat_t *buf) {
     
     if (res >= 0) {
         buf->size = info.size;
-        buf->is_dir = (info.type == LFS_TYPE_DIR);
+        buf->is_dir = (info.type == FS_TYPE_DIR);
         return 0;
     }
 #endif
