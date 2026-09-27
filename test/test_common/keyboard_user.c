@@ -946,8 +946,15 @@ void analog_channel_select(uint8_t x)
 
 void keyboard_user_event_handler(KeyboardEvent event)
 {
-    if (event.event != KEYBOARD_EVENT_KEY_DOWN)
+    switch (event.event)
     {
+    case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_event_down_dispatch(event);
+        break;
+    case KEYBOARD_EVENT_KEY_UP:
+        keyboard_key_event_up_dispatch(event);
+        // fall through
+    default:
         return;
     }
     switch (KEYCODE_GET_SUB(event.keycode))

@@ -378,7 +378,7 @@ static void dispatch_js_key_event(JSContext *ctx, JSValue *func_ptr, KeyboardEve
 
 static void script_event_handler_(KeyboardEvent event)
 {
-    if (event.event == KEYBOARD_EVENT_KEY_DOWN && KEYCODE_GET_MAIN(event.keycode) == SCRIPT_COLLECTION)
+    if (event.event == KEYBOARD_EVENT_KEY_DOWN)
     {
         switch (KEYCODE_GET_SUB(event.keycode))
         {
@@ -436,14 +436,20 @@ static void script_event_handler_(KeyboardEvent event)
             break;
         }
     }
-    if (!g_keyboard_enable_script)
+}
+
+static void script_key_event_handler_(KeyboardEvent event)
+{
+    if (!g_keyboard_enable_script || event.key == NULL)
     {
         return;
     }
     JSGCRef func_ref;
     JSValue *pfunc;
     const uint16_t id = ((Key*)event.key)->id;
-    if (!(BIT_GET(g_script_watcher_mask[id / 32], id % 32) || KEYCODE_GET_MAIN(event.keycode) == MACRO_COLLECTION))
+    if (!(BIT_GET(g_script_watcher_mask[id / 32], id % 32) ||
+        (KEYCODE_GET_MAIN(event.keycode) == SCRIPT_COLLECTION) && 
+        KEYCODE_GET_SUB(event.keycode) == SCRIPT_WATCH))
     {
         return;
     }
@@ -483,6 +489,14 @@ void script_event_handler(KeyboardEvent event)
 #ifndef SCRIPT_POLLING
     script_event_handler_(event);
 #endif
+    if (event.event == KEYBOARD_EVENT_KEY_DOWN)
+    {
+        keyboard_key_event_down_dispatch(event);
+    }
+    else if (event.event == KEYBOARD_EVENT_KEY_UP)
+    {
+        keyboard_key_event_up_dispatch(event);
+    }
 }
 
 void script_event_poller(KeyboardEvent event, uint32_t tick)
@@ -490,6 +504,21 @@ void script_event_poller(KeyboardEvent event, uint32_t tick)
     UNUSED(tick);
 #ifdef SCRIPT_POLLING
     script_event_handler_(event);
+#endif
+}
+
+void script_key_event_handler(KeyboardEvent event)
+{
+#ifndef SCRIPT_POLLING
+    script_key_event_handler_(event);
+#endif
+}
+
+void script_key_event_poller(KeyboardEvent event, uint32_t tick)
+{
+    UNUSED(tick);
+#ifdef SCRIPT_POLLING
+    script_key_event_handler_(event);
 #endif
 }
 

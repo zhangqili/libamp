@@ -18,6 +18,7 @@ void layer_event_handler(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_event_down_dispatch(event);
         switch ((event.keycode >> 12) & 0x0F)
         {
         case LAYER_MOMENTARY:
@@ -38,6 +39,7 @@ void layer_event_handler(KeyboardEvent event)
         layer_cache_refresh();
         break;
     case KEYBOARD_EVENT_KEY_UP:
+        keyboard_key_event_up_dispatch(event);
         switch ((event.keycode >> 12) & 0x0F)
         {
         case LAYER_MOMENTARY:

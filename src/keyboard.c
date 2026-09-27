@@ -86,9 +86,9 @@ static int keyboard_6kro_report_add(Keyboard6KROReport *buf, Keycode keycode);
 static int keyboard_6kro_report_send(Keyboard6KROReport *buf);
 static void keyboard_6kro_report_clear(Keyboard6KROReport *buf);
 
-static int keyboard_6keyboard_nkro_report_addkro_report_(KeyboardNKROReport*buf,Keycode keycode);
-static int keyboard_NKROreport_send(KeyboardNKROReport*buf);
-static void keyboard_NKROreport_clear(KeyboardNKROReport*buf);
+static int keyboard_nkro_report_add(KeyboardNKROReport*buf,Keycode keycode);
+static int keyboard_nkro_report_send(KeyboardNKROReport*buf);
+static void keyboard_nkro_report_clear(KeyboardNKROReport*buf);
 
 
 static int keyboard_6kro_report_add(Keyboard6KROReport *buf, Keycode keycode)
@@ -116,7 +116,7 @@ static void keyboard_6kro_report_clear(Keyboard6KROReport* buf)
     memset(buf, 0, sizeof(Keyboard6KROReport));
 }
 
-static int keyboard_6keyboard_nkro_report_addkro_report_(KeyboardNKROReport*buf,Keycode keycode)
+static int keyboard_nkro_report_add(KeyboardNKROReport*buf,Keycode keycode)
 {
     if (KEYCODE_GET_MAIN(keycode) > NKRO_REPORT_BITS*8 )
     {
@@ -128,12 +128,12 @@ static int keyboard_6keyboard_nkro_report_addkro_report_(KeyboardNKROReport*buf,
     return 0;
 }
 
-static int keyboard_NKROreport_send(KeyboardNKROReport*buf)
+static int keyboard_nkro_report_send(KeyboardNKROReport*buf)
 {
     return hid_send_nkro((uint8_t*)buf, sizeof(KeyboardNKROReport));
 }
 
-static void keyboard_NKROreport_clear(KeyboardNKROReport*buf)
+static void keyboard_nkro_report_clear(KeyboardNKROReport*buf)
 {
     memset(buf, 0, sizeof(KeyboardNKROReport));
 }
@@ -143,7 +143,7 @@ void keyboard_report_clear(void)
 #ifdef NKRO_ENABLE
     if (g_keyboard_config.nkro)
     {
-        keyboard_NKROreport_clear(&keyboard_nkro_buffer);
+        keyboard_nkro_report_clear(&keyboard_nkro_buffer);
     }
 #endif
     keyboard_6kro_report_clear(&keyboard_6kro_buffer);
@@ -163,7 +163,7 @@ int keyboard_report_send(void)
     keyboard_nkro_buffer.report_id = REPORT_ID_NKRO;
     if (g_keyboard_config.nkro)
     {
-        return keyboard_6kro_report_send(&keyboard_6kro_buffer) || keyboard_NKROreport_send(&keyboard_nkro_buffer);
+        return keyboard_6kro_report_send(&keyboard_6kro_buffer) || keyboard_nkro_report_send(&keyboard_nkro_buffer);
     }
     else
     {
@@ -177,7 +177,7 @@ int keyboard_report_send(void)
         {
             keyboard_nkro_buffer.modifier &= (~(KEY_LEFT_GUI | KEY_RIGHT_GUI)); 
         }
-        return keyboard_NKROreport_send(&keyboard_nkro_buffer);
+        return keyboard_nkro_report_send(&keyboard_nkro_buffer);
     }
 #endif
     if (g_keyboard_config.winlock)
@@ -196,12 +196,12 @@ void keyboard_report_add(KeyboardEvent event)
         if (keyboard_6kro_report_add(&keyboard_6kro_buffer, event.keycode) && g_keyboard_config.nkro)
         {
             event.keycode = KEYCODE_GET_MAIN(event.keycode);
-            keyboard_6keyboard_nkro_report_addkro_report_(&keyboard_nkro_buffer, event.keycode);
+            keyboard_nkro_report_add(&keyboard_nkro_buffer, event.keycode);
         }
 #elif defined(NKRO_ENABLE)
         if (g_keyboard_config.nkro)
         {
-            keyboard_6keyboard_nkro_report_addkro_report_(&keyboard_nkro_buffer, event.keycode);
+            keyboard_nkro_report_add(&keyboard_nkro_buffer, event.keycode);
         }
         else
         {
@@ -219,11 +219,13 @@ void keyboard_keycode_event_handler(KeyboardEvent event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
         g_keyboard_report_flags.keyboard = true;
+        keyboard_key_event_down_dispatch(event);
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
         break;
     case KEYBOARD_EVENT_KEY_UP:
         g_keyboard_report_flags.keyboard = true;
+        keyboard_key_event_up_dispatch(event);
         break;
     case KEYBOARD_EVENT_KEY_FALSE:
         break;
@@ -232,45 +234,55 @@ void keyboard_keycode_event_handler(KeyboardEvent event)
     }
 }
 
-void keyboard_event_handler(KeyboardEvent event)
+void keyboard_key_event_down_dispatch(KeyboardEvent event)
 {
-    const uint8_t keycode = KEYCODE_GET_MAIN(event.keycode);
-#ifdef DYNAMICKEY_ENABLE
-    if (keycode == DYNAMIC_KEY)
-    {
-        return;
-    }
-#endif
-    if (EVENT_CHANGED(event.event))
-    {
-        event_loop_queue_push(&event_buffer, (EventLoopQueueElm){event, g_keyboard_tick});
-    }
+    event_loop_queue_push(&event_buffer, (EventLoopQueueElm){event, g_keyboard_tick});
 #ifdef SCRIPT_ENABLE
-    script_event_handler(event);
+    script_key_event_handler(event);
 #endif
 #ifdef MACRO_ENABLE
     macro_record_handler(event);
 #endif
     if (!event.is_virtual)
     {
-        layer_lock_handler(event);
+        keyboard_key_event_down_callback((Key*)event.key);
     }
+}
+
+void keyboard_key_event_up_dispatch(KeyboardEvent event)
+{
+    event_loop_queue_push(&event_buffer, (EventLoopQueueElm){event, g_keyboard_tick});
+#ifdef SCRIPT_ENABLE
+    script_key_event_handler(event);
+#endif
+#ifdef MACRO_ENABLE
+    macro_record_handler(event);
+#endif
     if (!event.is_virtual)
     {
-        if (event.event == KEYBOARD_EVENT_KEY_DOWN)
-        {
-            keyboard_key_event_down_callback((Key*)event.key);
-        }
-        else if (event.event == KEYBOARD_EVENT_KEY_UP)
-        {
-            keyboard_key_event_up_callback((Key*)event.key);
-        }
+        keyboard_key_event_up_callback((Key*)event.key);
+    }
+}
+
+void keyboard_event_handler(KeyboardEvent event)
+{
+    const uint8_t keycode = KEYCODE_GET_MAIN(event.keycode);
+    if (!event.is_virtual)
+    {
+        layer_lock_handler(event);
     }
     switch (keycode)
     {
 #ifdef MOUSE_ENABLE
     case MOUSE_COLLECTION:
         mouse_event_handler(event);
+        break;
+#endif
+    case LAYER_CONTROL:
+        layer_event_handler(event);
+        break;
+#ifdef DYNAMICKEY_ENABLE
+    case DYNAMIC_KEY:
         break;
 #endif
 #ifdef EXTRAKEY_ENABLE
@@ -290,6 +302,11 @@ void keyboard_event_handler(KeyboardEvent event)
         midi_event_handler(event);
         break;
 #endif
+#ifdef SCRIPT_ENABLE
+    case SCRIPT_COLLECTION:
+        script_event_handler(event);
+        break;
+#endif
 #ifdef MACRO_ENABLE
     case MACRO_COLLECTION:
         macro_event_handler(event);
@@ -300,9 +317,6 @@ void keyboard_event_handler(KeyboardEvent event)
         gamepad_event_handler(event);
         break;
 #endif
-    case LAYER_CONTROL:
-        layer_event_handler(event);
-        break;
     case KEYBOARD_OPERATION:
         keyboard_operation_event_handler(event);
         break;
@@ -318,7 +332,11 @@ void keyboard_event_handler(KeyboardEvent event)
 void keyboard_event_poller(KeyboardEvent event, uint32_t tick)
 {
 #ifdef SCRIPT_ENABLE
-    script_event_poller(event, tick);
+    if (KEYCODE_GET_MAIN(event.keycode) == SCRIPT_COLLECTION)
+    {
+        script_event_poller(event, tick);
+    }
+    script_key_event_poller(event, tick);
 #endif
     if (!event.is_virtual && event.event == KEYBOARD_EVENT_KEY_DOWN)
     {    
@@ -330,6 +348,8 @@ void keyboard_event_poller(KeyboardEvent event, uint32_t tick)
     }
     switch (KEYCODE_GET_MAIN(event.keycode))
     {
+    case SCRIPT_COLLECTION:
+        break;
     case KEYBOARD_OPERATION:
         keyboard_operation_event_poller(event, tick);
         break;
@@ -389,6 +409,7 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_UP:
+        keyboard_key_event_up_dispatch(event);
         if (modifier == KEYBOARD_CALIBRATE)
         {
 #if defined(NEXUS_ENABLE) && !NEXUS_IS_SLAVE
@@ -399,6 +420,7 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
         }
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_event_down_dispatch(event);
         if ((modifier & 0x3F) < KEYBOARD_CONFIG_BASE)
         {
             switch (modifier & 0x3F)
@@ -638,7 +660,17 @@ __WEAK void keyboard_jump_to_bootloader(void)
 
 __WEAK void keyboard_user_event_handler(KeyboardEvent event)
 {
-    UNUSED(event);
+    switch (event.event)
+    {
+    case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_event_down_dispatch(event);
+        break;
+    case KEYBOARD_EVENT_KEY_UP:
+        keyboard_key_event_up_dispatch(event);
+        break;
+    default:
+        break;
+    }
 }
 
 __WEAK void keyboard_user_event_poller(KeyboardEvent event, uint32_t tick)

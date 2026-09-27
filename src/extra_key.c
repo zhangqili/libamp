@@ -18,6 +18,7 @@ void extra_key_event_handler(KeyboardEvent event)
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_UP:
+        keyboard_key_event_up_dispatch(event);
         switch (KEYCODE_GET_MAIN(event.keycode))
         {
         case CONSUMER_COLLECTION:
@@ -35,6 +36,7 @@ void extra_key_event_handler(KeyboardEvent event)
     case KEYBOARD_EVENT_KEY_FALSE:
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_event_down_dispatch(event);
         switch (KEYCODE_GET_MAIN(event.keycode))
         {
         case CONSUMER_COLLECTION:

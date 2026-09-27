@@ -558,9 +558,11 @@ void midi_event_handler(KeyboardEvent event)
         {
         case KEYBOARD_EVENT_KEY_DOWN:
             (void)midi_send_note_on(channel, keycode, velocity);
+            keyboard_key_event_down_dispatch(event);
             break;
         case KEYBOARD_EVENT_KEY_UP:
             (void)midi_send_note_off(channel, keycode, velocity);
+            keyboard_key_event_up_dispatch(event);
             break;
         default:
             break;

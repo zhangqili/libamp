@@ -5,7 +5,7 @@
 
 TEST(ExtraKey, Buffer)
 {
-    AdvancedKey key;
+    AdvancedKey key = {};
 
     extra_key_event_handler({CONSUMER_COLLECTION|(CONSUMER_AUDIO_VOL_DOWN<<8), KEYBOARD_EVENT_KEY_DOWN,false,&key});
     consumer_key_report_send();

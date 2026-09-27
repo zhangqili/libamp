@@ -216,6 +216,8 @@ bool keyboard_key_update(Key *key, bool state);
 bool keyboard_advanced_key_update(AdvancedKey *advanced_key, AnalogValue value);
 bool keyboard_advanced_key_update_raw(AdvancedKey *advanced_key, AnalogRawValue raw);
 
+void keyboard_key_event_down_dispatch(KeyboardEvent event);
+void keyboard_key_event_up_dispatch(KeyboardEvent event);
 void keyboard_key_event_down_callback(Key*key);
 void keyboard_key_event_up_callback(Key*key);
 void keyboard_key_event_down_callback_user(Key*key);
