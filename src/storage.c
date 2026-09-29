@@ -251,7 +251,7 @@ void storage_save_statistics(void)
     int res = fs_open(&file, "system/stat", FS_O_RDWR | FS_O_CREAT);
     if (res >= 0)
     {
-        uint64_t runtime = g_runtime + KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+        uint64_t runtime = record_get_runtime();
         fs_write(&file, &runtime, sizeof(runtime));
 #ifdef COUNTER_ENABLE
         fs_write(&file, &g_key_counts, sizeof(g_key_counts));
@@ -275,4 +275,30 @@ void storage_read_statistics(void)
         fs_close(&file);
     }
 #endif
+}
+
+int storage_write_file(const char *filename, const void *data, size_t size)
+{
+    File file;
+    int res = fs_open(&file, filename, FS_O_RDWR | FS_O_CREAT);
+    if (res >= 0)
+    {
+        int write_size = fs_write(&file, data, size);
+        fs_close(&file);
+        return write_size;
+    }
+    return res;
+}
+
+int storage_read_file(const char *filename, void *data, size_t size)
+{
+    File file;
+    int res = fs_open(&file, filename, FS_O_RDWR | FS_O_CREAT);
+    if (res >= 0)
+    {
+        int read_size = fs_read(&file, data, size);
+        fs_close(&file);
+        return read_size;
+    }
+    return res;
 }

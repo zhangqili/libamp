@@ -90,6 +90,15 @@ void record_kps_tick(void);
 void record_kps_timer(void);
 void record_kps_history_timer(void);
 
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+void record_reset_save_timer(void);
+#endif
+
+#ifdef RECORD_PERSIST_ENABLE
+uint64_t record_get_runtime(void);
+void record_set_runtime(uint64_t runtime);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

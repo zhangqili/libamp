@@ -288,7 +288,7 @@ static uint8_t large_rx_type = 0;
 static void process_large_set(PacketLargeData *pkt)
 {
     uint8_t sub_cmd = pkt->sub_cmd;
-    uint8_t type = pkt->type;
+    uint8_t type = pkt->data_header.type;
 
     if (sub_cmd == LARGE_DATA_CMD_START)
     {
@@ -330,7 +330,7 @@ static void process_large_set(PacketLargeData *pkt)
 static void process_large_get(PacketLargeData *pkt)
 {
     uint8_t sub_cmd = pkt->sub_cmd;
-    uint8_t type = pkt->type;
+    uint8_t type = pkt->data_header.type;
 
     if (sub_cmd == LARGE_DATA_CMD_START)
     {
@@ -360,11 +360,11 @@ static void process_large_get(PacketLargeData *pkt)
 
 void large_packet_process(PacketLargeData *buf)
 {
-    if (buf->code == PACKET_CODE_LARGE_SET)
+    if (buf->data_header.code == PACKET_CODE_LARGE_SET)
     {
         process_large_set(buf);
     }
-    else if (buf->code == PACKET_CODE_LARGE_GET)
+    else if (buf->data_header.code == PACKET_CODE_LARGE_GET)
     {
         process_large_get(buf);
     }

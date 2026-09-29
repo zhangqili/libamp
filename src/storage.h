@@ -30,6 +30,8 @@ void storage_save_script(void);
 void storage_read_script(void);
 void storage_save_statistics(void);
 void storage_read_statistics(void);
+int storage_write_file(const char *filename, const void *data, size_t size);
+int storage_read_file(const char *filename, void *data, size_t size);
 
 #ifdef __cplusplus
 }

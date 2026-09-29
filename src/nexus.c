@@ -40,8 +40,8 @@ static int nexus_send_advanced_key_config(uint8_t slave_id, uint16_t local_index
 {
     PacketAdvancedKey packet;
     memset(&packet, 0, sizeof(packet));
-    packet.code = PACKET_CODE_SET;
-    packet.type = PACKET_DATA_ADVANCED_KEY;
+    packet.header.code = PACKET_CODE_SET;
+    packet.header.type = PACKET_DATA_ADVANCED_KEY;
     packet.index = local_index;
     memcpy(&packet.data, &g_keyboard_advanced_keys[key_index].config, sizeof(AdvancedKeyConfiguration));
     return nexus_send_timeout(slave_id, (const uint8_t *)&packet, sizeof(packet), NEXUS_TIMEOUT);
@@ -311,7 +311,7 @@ int nexus_request_timeout(uint8_t slave_id, const uint8_t *request,
     static uint8_t sequence;
     uint8_t buffer[64];
     if (slave_id >= NEXUS_SLAVE_NUM || request == NULL ||
-        request_len < sizeof(PacketData) || request_len > sizeof(buffer))
+        request_len < sizeof(PacketDataHeader) || request_len > sizeof(buffer))
     {
         return 1;
     }

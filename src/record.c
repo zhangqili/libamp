@@ -107,11 +107,18 @@ void record_process(void)
     const uint32_t interval_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_SAVE_INTERVAL_MS);
     if ((uint32_t)(g_keyboard_tick - statistics_last_save_tick) >= interval_ticks)
     {
+        record_reset_save_timer();
         storage_save_statistics();
-        statistics_last_save_tick = g_keyboard_tick;
     }
 #endif
 }
+
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+void record_reset_save_timer(void)
+{
+    statistics_last_save_tick = g_keyboard_tick;
+}
+#endif
 
 /*
 void record_kps_register(Key*k)
@@ -210,5 +217,17 @@ uint16_t record_get_kps()
         kps += g_kps_data.data[i];
     }
     return kps;
+}
+#endif
+
+#ifdef RECORD_PERSIST_ENABLE
+uint64_t record_get_runtime(void)
+{
+    return g_runtime + KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+}
+
+void record_set_runtime(uint64_t runtime)
+{
+    g_runtime = runtime - KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
 }
 #endif

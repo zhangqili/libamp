@@ -6,6 +6,8 @@
 #include "packet.h"
 #include "rgb.h"
 #include "layer.h"
+#include "record.h"
+#include "storage.h"
 
 #ifdef NEXUS_ENABLE
 #include "nexus.h"
@@ -25,12 +27,12 @@ static uint16_t debug_buffer[DEBUG_BUFFER_MAX_LENGTH];
 void packet_process_buffer(uint8_t *buf, uint16_t len)
 {
     UNUSED(len);
-    PacketData *packet = (PacketData *)buf;
+    PacketDataHeader *packet = (PacketDataHeader *)buf;
     switch (packet->code)
     {
     case PACKET_CODE_SET:
     case PACKET_CODE_GET:
-        switch (((PacketData*)packet)->type)
+        switch (((PacketDataHeader*)packet)->type)
         {
         case PACKET_DATA_ADVANCED_KEY:
             packet_process_advanced_key(packet);
@@ -64,6 +66,12 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
 #endif
         case PACKET_DATA_FEATURE:
             packet_process_feature(packet);
+            break;
+        case PACKET_DATA_RECORD:
+            packet_process_record(packet);
+            break;
+        case PACKET_DATA_LAYOUT_OPTIONS:
+            packet_process_layout_options(packet);
             break;
         case PACKET_DATA_VERSION:
             if (packet->code == PACKET_CODE_GET)
@@ -123,7 +131,7 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         packet_buffer_push(buf, len, PACKET_BUFFER_CODE_RESPONSE);
         break;
     case PACKET_CODE_DEBUG:
-        packet_process_debug((PacketData*)buf);
+        packet_process_debug((PacketDataHeader*)buf);
         break;
     default:
         packet_process_user(buf, len);
@@ -137,7 +145,7 @@ void packet_process(uint8_t *buf, uint16_t len)
     packet_process_buffer(buf, len);
 }
 
-void packet_process_advanced_key(PacketData*data)
+void packet_process_advanced_key(PacketDataHeader*data)
 {   
     PacketAdvancedKey* packet = (PacketAdvancedKey*)data;
     uint16_t key_index = packet->index;
@@ -172,7 +180,7 @@ void packet_process_advanced_key(PacketData*data)
     }
 }
 
-void packet_process_rgb_base_config(PacketData*data)
+void packet_process_rgb_base_config(PacketDataHeader*data)
 {
     PacketRGBBaseConfig* packet = (PacketRGBBaseConfig*)data;
     if (data->code == PACKET_CODE_SET)
@@ -193,7 +201,7 @@ void packet_process_rgb_base_config(PacketData*data)
     }
     else if (data->code == PACKET_CODE_GET)
     {
-        packet->type = PACKET_DATA_RGB_BASE_CONFIG;
+        packet->header.type = PACKET_DATA_RGB_BASE_CONFIG;
         packet->mode = g_rgb_base_config.mode;
         packet->r = g_rgb_base_config.rgb.r;
         packet->g = g_rgb_base_config.rgb.g;
@@ -208,7 +216,7 @@ void packet_process_rgb_base_config(PacketData*data)
     }
 }
 
-void packet_process_rgb_config(PacketData*data)
+void packet_process_rgb_config(PacketDataHeader*data)
 {
     PacketRGBConfigs* packet = (PacketRGBConfigs*)data;
     if (data->code == PACKET_CODE_SET)
@@ -250,7 +258,7 @@ void packet_process_rgb_config(PacketData*data)
     }
 }
 
-void packet_process_keymap(PacketData*data)
+void packet_process_keymap(PacketDataHeader*data)
 {
     PacketKeymap* packet = (PacketKeymap*)data;
     if (data->code == PACKET_CODE_SET)
@@ -273,7 +281,7 @@ void packet_process_keymap(PacketData*data)
     }
 }
 
-void packet_process_dynamic_key(PacketData*data)
+void packet_process_dynamic_key(PacketDataHeader*data)
 {
     PacketDynamicKey* packet = (PacketDynamicKey*)data;
     if (data->code == PACKET_CODE_SET)
@@ -285,7 +293,7 @@ void packet_process_dynamic_key(PacketData*data)
     }
     else if (data->code == PACKET_CODE_GET)
     {
-        packet->type = PACKET_DATA_DYNAMIC_KEY;
+        packet->header.type = PACKET_DATA_DYNAMIC_KEY;
         uint8_t dk_index = packet->index;
         if (dk_index < DYNAMIC_KEY_NUM)
         {
@@ -294,7 +302,7 @@ void packet_process_dynamic_key(PacketData*data)
     }
 }
 
-void packet_process_profile_index(PacketData*data)
+void packet_process_profile_index(PacketDataHeader*data)
 {
     PacketProfileIndex* packet = (PacketProfileIndex*)data;
     if (data->code == PACKET_CODE_SET)
@@ -307,7 +315,7 @@ void packet_process_profile_index(PacketData*data)
     }
 }
 
-void packet_process_config(PacketData*data)
+void packet_process_config(PacketDataHeader*data)
 {
     PacketConfig* packet = (PacketConfig*)data;
     if (data->code == PACKET_CODE_SET)
@@ -340,7 +348,7 @@ void packet_process_config(PacketData*data)
     }
 }
 
-void packet_process_debug(PacketData*data)
+void packet_process_debug(PacketDataHeader*data)
 {
     PacketDebug* packet = (PacketDebug*)data;
     if (data->code == PACKET_CODE_DEBUG)
@@ -354,7 +362,7 @@ void packet_process_debug(PacketData*data)
     }
 }
 
-void packet_fill_debug(PacketData*data)
+void packet_fill_debug(PacketDataHeader*data)
 {
     PacketDebug* packet = (PacketDebug*)data;
     if (data->code == PACKET_CODE_DEBUG)
@@ -375,7 +383,7 @@ void packet_fill_debug(PacketData*data)
     }
 }
 
-void packet_process_macro(PacketData*data)
+void packet_process_macro(PacketDataHeader*data)
 {
 #ifdef MACRO_ENABLE
     PacketMacro* packet = (PacketMacro*)data;
@@ -429,13 +437,100 @@ void packet_process_macro(PacketData*data)
 #endif
 }
 
-void packet_process_feature(PacketData *data)
+void packet_process_feature(PacketDataHeader *data)
 {
     PacketFeature *packet = (PacketFeature *)data;
     UNUSED(packet);
     if (data->code == PACKET_CODE_GET)
     {
         //todo
+    }
+}
+
+void packet_process_record(PacketDataHeader *data)
+{
+    PacketRecord *packet = (PacketRecord *)data;
+
+    if (data->code == PACKET_CODE_SET)
+    {
+        switch (packet->sub_cmd)
+        {
+        case PACKET_DATA_RECORD_RUNTIME:
+            {
+#ifdef RECORD_PERSIST_ENABLE
+                record_set_runtime(((PacketRecordRuntime *)data)->runtime);
+#endif
+            }
+            break;
+        case PACKET_DATA_RECORD_KEYCOUNT:
+            {
+#ifdef COUNTER_ENABLE
+                PacketRecordKeyCount *record = (PacketRecordKeyCount *)data;
+                for (uint16_t i = 0; i < record->length; i++)
+                {
+                    const uint16_t key_index = record->data[i].key_index;
+                    if (key_index < TOTAL_KEY_NUM)
+                    {
+                        g_key_counts[key_index] = record->data[i].count;
+                    }
+                }
+#endif
+            }
+            break;
+        default:
+            break;
+        }
+        record_reset_save_timer();
+        storage_save_statistics();
+        return;
+    }
+    else if (data->code == PACKET_CODE_GET)
+    {
+        switch (packet->sub_cmd)
+        {
+        case PACKET_DATA_RECORD_RUNTIME:
+            {
+#ifdef RECORD_PERSIST_ENABLE
+                ((PacketRecordRuntime *)data)->runtime = record_get_runtime();
+#else
+                ((PacketRecordRuntime *)data)->runtime = KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+#endif
+            }
+            break;
+        case PACKET_DATA_RECORD_KEYCOUNT:
+            {
+                PacketRecordKeyCount *record = (PacketRecordKeyCount *)data;
+                for (uint16_t i = 0; i < record->length; i++)
+                {
+                    const uint16_t key_index = record->data[i].key_index;
+#ifdef COUNTER_ENABLE
+                    record->data[i].count = g_key_counts[key_index];
+#else
+                    record->data[i].count = 0;
+#endif
+                }
+            }
+            break;
+        default:
+            memset(packet->data, 0, sizeof(PacketRecordRuntime) - sizeof(PacketRecord));
+            break;
+        }
+    }
+}
+
+void packet_process_layout_options(PacketDataHeader*data)
+{
+    PacketLayoutOptions *packet = (PacketLayoutOptions *)data;
+
+    if (data->code == PACKET_CODE_SET)
+    {
+#ifdef STORAGE_ENABLE
+        storage_write_file("system/layout_options", &packet->layout_options, sizeof(packet->layout_options));
+#endif
+    }
+    else if (data->code == PACKET_CODE_GET)
+    {
+        storage_read_file("system/layout_options", &packet->layout_options, sizeof(packet->layout_options));
     }
 }
 
@@ -490,7 +585,7 @@ void packet_send_debug_packet(void)
             packet->data[i].index = debug_buffer[i];
         }
     }
-    packet_fill_debug((PacketData*)packet);
+    packet_fill_debug((PacketDataHeader*)packet);
     packet_buffer_push((uint8_t*)packet, 63, PACKET_BUFFER_CODE_DEBUG);
 }
 
