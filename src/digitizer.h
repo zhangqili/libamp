@@ -13,7 +13,7 @@
 extern "C" {
 #endif
  
-typedef struct __Digitizer
+typedef struct __DigitizerReport
 {
 #ifdef DIGITIZER_SHARED_EP
     uint8_t report_id;
@@ -24,7 +24,7 @@ typedef struct __Digitizer
     uint8_t  reserved : 5;
     uint16_t x;
     uint16_t y;
-} __PACKED Digitizer;
+} __PACKED DigitizerReport;
 
 #ifdef __cplusplus
 }

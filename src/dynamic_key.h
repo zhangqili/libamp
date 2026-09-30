@@ -117,7 +117,7 @@ typedef union __DynamicKey
 extern DynamicKey g_dynamic_keys[DYNAMIC_KEY_NUM];
 
 void dynamic_key_process(void);
-void dynamic_key_add_buffer(void);
+void dynamic_key_add_to_report(void);
 void dynamic_key_s_process (DynamicKeyStroke4x4*dynamic_key);
 void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key);
 void dynamic_key_tk_process(DynamicKeyToggleKey*dynamic_key);

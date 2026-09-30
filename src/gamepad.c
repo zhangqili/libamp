@@ -7,7 +7,7 @@
 #include "string.h"
 #include "driver.h"
 
-static Gamepad gamepad;
+static GamepadReport gamepad;
 
 void gamepad_event_handler(KeyboardEvent event)
 {
@@ -24,11 +24,13 @@ void gamepad_event_handler(KeyboardEvent event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
         g_keyboard_report_flags.gamepad = true;
+        keyboard_key_event_down_dispatch(event);
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
         break;
     case KEYBOARD_EVENT_KEY_UP:
         g_keyboard_report_flags.gamepad = true;
+        keyboard_key_event_up_dispatch(event);
         break;
     case KEYBOARD_EVENT_KEY_FALSE:
         break;
@@ -37,12 +39,12 @@ void gamepad_event_handler(KeyboardEvent event)
     }
 }
 
-void gamepad_buffer_clear(void)
+void gamepad_report_clear(void)
 {
-    memset(&gamepad, 0, sizeof(Gamepad));
+    memset(&gamepad, 0, sizeof(GamepadReport));
 }
 
-void gamepad_add_buffer(KeyboardEvent event)
+void gamepad_report_add(KeyboardEvent event)
 {
     if (GAMEPAD_KEYCODE_IS_AXIS(event.keycode))
     {
@@ -106,11 +108,11 @@ void gamepad_set_axis(Keycode keycode, AnalogValue value)
     }
 }
 
-int gamepad_buffer_send(void)
+int gamepad_report_send(void)
 {
     gamepad.report_id = 0;
     gamepad.report_size = 0x14;
-    return hid_send_gamepad((uint8_t*)&gamepad, sizeof(Gamepad));
+    return hid_send_gamepad((uint8_t*)&gamepad, sizeof(GamepadReport));
 }
 
 __WEAK void gamepad_out_callback(GamepadOutReport* report)

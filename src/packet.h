@@ -39,6 +39,8 @@ enum {
   PACKET_DATA_FEATURE = 0x0B,
   PACKET_DATA_SCRIPT_SCOURCE = 0x0C,
   PACKET_DATA_SCRIPT_BYTECODE = 0x0D,
+  PACKET_DATA_RECORD = 0x0E,
+  PACKET_DATA_LAYOUT_OPTIONS = 0x0F,
 };
 
 typedef struct __PacketBase
@@ -63,12 +65,12 @@ typedef struct __PacketEvent
   uint8_t use_keymap;
 } __PACKED PacketEvent;
 
-typedef struct __PacketData
+typedef struct __PacketDataHeader
 {
   uint8_t code;
   uint8_t id;
   uint8_t type;
-} __PACKED PacketData;
+} __PACKED PacketDataHeader;
 
 typedef struct __PacketVersion
 {
@@ -84,18 +86,14 @@ typedef struct __PacketVersion
 
 typedef struct __PacketAdvancedKey
 {
-  uint8_t code;
-  uint8_t id;
-  uint8_t type;
+  PacketDataHeader header;
   uint16_t index;
   AdvancedKeyConfiguration data;
 } __PACKED PacketAdvancedKey;
 
 typedef struct __PacketKeymap
 {
-  uint8_t code;
-  uint8_t id;
-  uint8_t type;
+  PacketDataHeader header;
   uint8_t layer;
   uint16_t start;
   uint8_t length;
@@ -104,9 +102,7 @@ typedef struct __PacketKeymap
 
 typedef struct __PacketRGBBaseConfig
 {
-  uint8_t code;
-  uint8_t id;
-  uint8_t type;
+  PacketDataHeader header;
   uint8_t mode;
   uint8_t r;
   uint8_t g;
@@ -122,9 +118,7 @@ typedef struct __PacketRGBBaseConfig
 
 typedef struct __PacketRGBConfigs
 {
-  uint8_t code;
-  uint8_t id;
-  uint8_t type;
+  PacketDataHeader header;
   uint8_t length;
   struct
   {
@@ -139,9 +133,7 @@ typedef struct __PacketRGBConfigs
 
 typedef struct __PacketDynamicKey
 {
-  uint8_t code;
-  uint8_t id;
-  uint8_t type;
+  PacketDataHeader header;
   uint8_t index;
   uint8_t reserved;
   uint8_t dynamic_key[];
@@ -149,18 +141,14 @@ typedef struct __PacketDynamicKey
 
 typedef struct __PacketProfileIndex
 {
-  uint8_t code;
-  uint8_t id;
-  uint8_t type;
+  PacketDataHeader header;
   uint8_t index;
 } __PACKED PacketProfileIndex;
 
 
 typedef struct __PacketConfig
 {
-  uint8_t code;
-  uint8_t id;
-  uint8_t type;
+  PacketDataHeader header;
   uint8_t length;
   uint8_t reserved;
   struct
@@ -172,9 +160,7 @@ typedef struct __PacketConfig
 
 typedef struct __PacketMacro
 {
-  uint8_t code;
-  uint8_t id;
-  uint8_t type;
+  PacketDataHeader header;
   uint8_t macro_index;
   uint16_t length;
   struct
@@ -190,9 +176,7 @@ typedef struct __PacketMacro
 
 typedef struct __PacketFeature
 {
-  uint8_t code;
-  uint8_t id;
-  uint8_t type;
+  PacketDataHeader header;
   uint32_t features;
   uint32_t rgb_features;
   uint8_t script_support;
@@ -200,9 +184,7 @@ typedef struct __PacketFeature
 
 typedef struct __PacketLargeData
 {
-    uint8_t code;
-    uint8_t id;
-    uint8_t type;
+    PacketDataHeader data_header;
     uint8_t sub_cmd;
 
     union
@@ -220,6 +202,37 @@ typedef struct __PacketLargeData
         } __PACKED payload;
     };
 } __PACKED PacketLargeData;
+
+
+enum {
+  PACKET_DATA_RECORD_RUNTIME = 0x00,
+  PACKET_DATA_RECORD_KEYCOUNT = 0x01,
+};
+typedef struct __PacketRecord
+{
+  PacketDataHeader header;
+  uint8_t sub_cmd;
+  uint8_t data[];
+} __PACKED PacketRecord;
+
+typedef struct __PacketRecordRuntime
+{
+  PacketDataHeader header;
+  uint8_t sub_cmd;
+  uint64_t runtime;
+} __PACKED PacketRecordRuntime;
+
+typedef struct __PacketRecordKeyCount
+{
+  PacketDataHeader header;
+  uint8_t sub_cmd;
+  uint16_t length;
+  struct
+  {
+    uint16_t key_index;
+    uint32_t count;
+  } __PACKED data[];
+} __PACKED PacketRecordKeyCount;
 
 typedef struct __PacketDebug
 {
@@ -246,7 +259,6 @@ typedef struct __PacketReport
   uint8_t data[];
 } __PACKED PacketReport;
 
-
 typedef struct __PacketLog
 {
   uint8_t code;
@@ -255,19 +267,27 @@ typedef struct __PacketLog
   uint8_t data[];
 } __PACKED PacketLog;
 
+typedef struct __PacketLayoutOptions
+{
+  PacketDataHeader header;
+  uint64_t layout_options;
+} __PACKED PacketLayoutOptions;
+
 void packet_process_buffer(uint8_t *buf, uint16_t len);
 void packet_process(uint8_t *buf, uint16_t len);
-void packet_process_advanced_key(PacketData*data);
-void packet_process_rgb_base_config(PacketData*data);
-void packet_process_rgb_config(PacketData*data);
-void packet_process_keymap(PacketData*data);
-void packet_process_dynamic_key(PacketData*data);
-void packet_process_profile_index(PacketData*data);
-void packet_process_config(PacketData*data);
-void packet_process_debug(PacketData*data);
-void packet_fill_debug(PacketData*data);
-void packet_process_macro(PacketData*data);
-void packet_process_feature(PacketData*data);
+void packet_process_advanced_key(PacketDataHeader*data);
+void packet_process_rgb_base_config(PacketDataHeader*data);
+void packet_process_rgb_config(PacketDataHeader*data);
+void packet_process_keymap(PacketDataHeader*data);
+void packet_process_dynamic_key(PacketDataHeader*data);
+void packet_process_profile_index(PacketDataHeader*data);
+void packet_process_config(PacketDataHeader*data);
+void packet_process_debug(PacketDebug*data);
+void packet_fill_debug(PacketDebug*data);
+void packet_process_macro(PacketDataHeader*data);
+void packet_process_feature(PacketDataHeader*data);
+void packet_process_record(PacketDataHeader*data);
+void packet_process_layout_options(PacketDataHeader*data);
 
 void packet_send_version_packet(void);
 void packet_notify_event(uint8_t packet_event);

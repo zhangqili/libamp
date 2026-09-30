@@ -101,16 +101,45 @@
 /**********/
 /* 存储 */
 /**********/
-/* STORAGE_ENABLE 和 LFS_ENABLE 必须同时启用。 */
+/* 启用 STORAGE_ENABLE 并选择文件系统；默认使用 LittleFS。 */
 // #define STORAGE_ENABLE                  /* 启用配置文件和持久化设置。 */
 // #define LFS_ENABLE                      /* 启用 littlefs 存储。 */
-// #define LFS_READ_SIZE 16                /* 最小闪存读取粒度。 */
-// #define LFS_PROG_SIZE 16                /* 最小闪存编程粒度。 */
-// #define LFS_BLOCK_SIZE 4096             /* 闪存擦除块大小。 */
-// #define LFS_BLOCK_COUNT 16              /* 保留擦除块数量。 */
-// #define LFS_CACHE_SIZE 16               /* littlefs 缓存大小。 */
-// #define LFS_LOOKAHEAD_SIZE 16           /* littlefs 分配预读大小。 */
+// #define FS_READ_SIZE 16                /* 最小闪存读取粒度。 */
+// #define FS_PROG_SIZE 16                /* 最小闪存编程粒度。 */
+// #define FS_BLOCK_SIZE 4096             /* 闪存擦除块大小。 */
+// #define FS_BLOCK_COUNT 16              /* 保留擦除块数量。 */
+// #define FS_CACHE_SIZE 16               /* littlefs 缓存大小。 */
+// #define FS_LOOKAHEAD_SIZE 16           /* littlefs 分配预读大小。 */
 // #define LFS_BLOCK_CYCLES 500            /* 磨损均衡迁移间隔。 */
+
+/* 可选 FileX FAT；挂载失败会擦除并重建整个分区。 */
+// #define FILE_SYSTEM_TYPE FILE_SYSTEM_FILEX
+
+/* 文件系统与 flash_read/flash_write/flash_erase 之间的中间层。
+ * 两层始终都会编译，这里只决定运行时使用哪一层。 */
+// #define FLASH_LAYER FLASH_LAYER_DIRECT         /* 直连 flash，无磨损均衡。 */
+// #define FLASH_LAYER FLASH_LAYER_LEVELX         /* LevelX NOR 磨损均衡。 */
+
+// #define FS_FLASH_OFFSET 0              /* 分区字节偏移，按擦除块对齐。 */
+// #define FS_BLOCK_SIZE 4096             /* 擦除块大小。 */
+// #define FS_BLOCK_COUNT 4096            /* 保留擦除块数量。 */
+// #define FS_PROG_SIZE 256               /* 编程页大小。 */
+
+/* FileX 选项。src/fx_user.h 会包含本文件，因此每个 FileX 编译单元都能看到这些宏，
+ * 只需在此配置，不必再写到编译命令行上。它们会改变 FX_MEDIA 等结构体布局，
+ * 必须保持一致。 */
+// #define FX_MAXIMUM_PATH 256            /* FX_MEDIA 内 FX_PATH 字符串字节数。 */
+// #define FX_MAX_LONG_NAME_LEN 256       /* FX_MEDIA 与 FileStat 的名字缓冲字节数。 */
+// #define FX_MAX_FAT_CACHE 16            /* FX_MEDIA 的 FAT 缓存，最小 8，须为 2 的幂。 */
+// #define FX_FAT_MAP_SIZE 128            /* FX_MEDIA 内容错 FAT 位图字节数。 */
+// #define FX_MAX_SECTOR_CACHE 8          /* 逻辑扇区缓存条目数（LevelX 下为 512B 扇区）。 */
+
+/* LevelX 选项。src/lx_user.h 会包含本文件；仅在选用 LevelX 中间层时生效。 */
+// #define LX_NOR_SECTOR_MAPPING_CACHE_SIZE 16  /* 映射缓存，最小 8，须为 2 的幂。 */
+// #define LX_NOR_EXTENDED_CACHE_SIZE 8         /* 扩展缓存扇区数，0 表示关闭。 */
+// #define LX_NOR_DISABLE_EXTENDED_CACHE        /* 完全去掉扩展缓存。 */
+// #define LX_NOR_FLASH_MAX_ERASE_COUNT_DELTA 4 /* 触发搬迁前的擦除次数差。 */
+
 // #define STORAGE_PROFILE_FILE_NUM 4      /* 持久化配置文件数量。 */
 
 /********/
@@ -171,7 +200,7 @@
 // #define MACRO_ENABLE                    /* 启用宏录制和回放。 */
 // #define MACRO_NUM 4                     /* 宏槽数量。 */
 // #define MACRO_MAX_ACTIONS 128           /* 每个宏的最大动作数。 */
-/* SCRIPT_ENABLE 依赖 STORAGE_ENABLE 和 LFS_ENABLE。 */
+/* SCRIPT_ENABLE 依赖 STORAGE_ENABLE 和已配置的文件系统。 */
 /* SCRIPT_AOT 执行保存的字节码；SCRIPT_JIT 编译保存的源码。 */
 // #define SCRIPT_ENABLE                   /* 启用 JavaScript 运行时。 */
 // #define SCRIPT_POLLING                  /* 从 keyboard_process() 运行脚本。 */

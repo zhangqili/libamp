@@ -7,7 +7,7 @@
 #include "math.h"
 #include "test_fixture.h"
 
-extern "C" void _dynamic_key_add_buffer(KeyboardEvent event, DynamicKey*dynamic_key);
+extern "C" void _dynamic_key_add_to_report(KeyboardEvent event, DynamicKey*dynamic_key);
 
 #include "layer.h"
 
@@ -37,9 +37,9 @@ Keycode collection_keycode(uint8_t collection, uint8_t subcode)
 
 void expect_dynamic_key_buffer(Keycode first_key, Keycode second_key = KEY_NO_EVENT)
 {
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], first_key);
     EXPECT_EQ(keyboard_send_buffer[3], second_key);
 }
@@ -70,12 +70,12 @@ TEST(DynamicKey, ModTap)
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
     dynamic_key_process();
-    keyboard_clear_buffer();
+    keyboard_report_clear_all();
     if (g_keyboard_advanced_keys[0].key.report_state)
     {
-        keyboard_add_buffer(MK_EVENT(layer_cache_get_keycode(0), KEYBOARD_EVENT_NO_EVENT, &g_keyboard_advanced_keys[0]));
+        keyboard_event_report_handler(MK_EVENT(layer_cache_get_keycode(0), KEYBOARD_EVENT_NO_EVENT, &g_keyboard_advanced_keys[0]));
     }
-    keyboard_buffer_send();
+    keyboard_report_send();
     //EXPECT_TRUE(dynamic_key.mt.vkey0.report_state);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
     g_keyboard_tick += 200;
@@ -83,32 +83,32 @@ TEST(DynamicKey, ModTap)
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     //EXPECT_TRUE(dynamic_key.mt.vkey1.report_state);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_B);
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(0.0));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
     g_keyboard_tick += 50;
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(0.0));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     //EXPECT_TRUE(dynamic_key.mt.vkey0.state);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
 }
@@ -130,33 +130,33 @@ TEST(DynamicKey, ToggleKey)
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(g_dynamic_keys[0].tk.state, true);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(0.0));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(g_dynamic_keys[0].tk.state, true);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(g_dynamic_keys[0].tk.state, false);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(0.0));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(g_dynamic_keys[0].tk.state, false);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
 }
@@ -197,9 +197,9 @@ TEST(DynamicKey, DynamicKeyStroke)
     g_keyboard_tick+=10;
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.3));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_D);
     EXPECT_EQ(keyboard_send_buffer[4], KEY_NO_EVENT);
@@ -207,9 +207,9 @@ TEST(DynamicKey, DynamicKeyStroke)
     g_keyboard_tick+=10;
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.4));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_D);
     EXPECT_EQ(keyboard_send_buffer[4], KEY_NO_EVENT);
@@ -221,9 +221,9 @@ TEST(DynamicKey, DynamicKeyStroke)
     g_keyboard_tick+=10;
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.8));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_B);
     EXPECT_EQ(keyboard_send_buffer[4], KEY_C);
@@ -232,9 +232,9 @@ TEST(DynamicKey, DynamicKeyStroke)
     g_keyboard_tick+=10;
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.9));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_B);
     EXPECT_EQ(keyboard_send_buffer[4], KEY_C);
@@ -247,9 +247,9 @@ TEST(DynamicKey, DynamicKeyStroke)
     g_keyboard_tick+=10;
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.6));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_C);
     EXPECT_EQ(keyboard_send_buffer[4], KEY_D);
@@ -258,9 +258,9 @@ TEST(DynamicKey, DynamicKeyStroke)
     g_keyboard_tick+=10;
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.5));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_NO_EVENT);
 
@@ -271,18 +271,18 @@ TEST(DynamicKey, DynamicKeyStroke)
     g_keyboard_tick+=10;
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.2));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_C);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_NO_EVENT);
 
     g_keyboard_tick+=10;
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.1));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_C);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_NO_EVENT);
 }
@@ -409,9 +409,9 @@ TEST(DynamicKey, MutexDistancePriority)
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.3));
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[1],A_ANTI_NORM(0));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_NO_EVENT);
 
@@ -421,9 +421,9 @@ TEST(DynamicKey, MutexDistancePriority)
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.3));
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[1],A_ANTI_NORM(0.9));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_B);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_NO_EVENT);
 
@@ -432,9 +432,9 @@ TEST(DynamicKey, MutexDistancePriority)
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(1));
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[1],A_ANTI_NORM(0.9));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_NO_EVENT);
     
@@ -443,9 +443,9 @@ TEST(DynamicKey, MutexDistancePriority)
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(1));
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[1],A_ANTI_NORM(0.9));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_NO_EVENT);
     EXPECT_EQ(keyboard_send_buffer[4], KEY_NO_EVENT);
@@ -457,9 +457,9 @@ TEST(DynamicKey, MutexDistancePriority)
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0));
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[1],A_ANTI_NORM(0));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(dynamic_key->m.key_report_state[0], false);
     EXPECT_EQ(dynamic_key->m.key_report_state[1], false);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
@@ -474,9 +474,9 @@ TEST(DynamicKey, MutexDistancePriority)
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(1));
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[1],A_ANTI_NORM(0.9));
     dynamic_key_process();
-    keyboard_clear_buffer();
-    dynamic_key_add_buffer();
-    keyboard_buffer_send();
+    keyboard_report_clear_all();
+    dynamic_key_add_to_report();
+    keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_B);
     EXPECT_EQ(keyboard_send_buffer[4], KEY_NO_EVENT);

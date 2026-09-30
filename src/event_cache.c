@@ -18,7 +18,7 @@ void event_cache_init(void)
     event_loop_queue_init(&event_cache_buffer, event_cache_buffers, EVENT_CACHE_BUFFER_LENGTH);
 }
 
-void event_cache_add_buffer(void)
+void event_cache_add_to_report(void)
 {
     EventCacheList * list = &g_event_buffer_list;
     EventCacheListNode * last_node = &list->data[list->head];
@@ -32,7 +32,7 @@ void event_cache_add_buffer(void)
     {
         EventCacheListNode* node = &(list->data[iterator]);
         EventCache *item = &(node->data);
-        keyboard_add_buffer(item->event);
+        keyboard_event_report_handler(item->event);
         last_node = node;
         iterator = list->data[iterator].next;
     }

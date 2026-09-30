@@ -404,13 +404,13 @@ USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t xinput_out_buffer[XINPUT_EPSIZE];
 
 static int xinput_vendor_class_request_handler(uint8_t busid, struct usb_setup_packet *setup, uint8_t **data, uint32_t *len)
 {
-    Gamepad xinput_report;
+    GamepadReport xinput_report;
 
-    memset(&xinput_report, 0, sizeof(Gamepad));
+    memset(&xinput_report, 0, sizeof(GamepadReport));
     xinput_report.report_size = 20;
 
-    memcpy(*data, &xinput_report, sizeof(Gamepad));
-    *len = sizeof(Gamepad);
+    memcpy(*data, &xinput_report, sizeof(GamepadReport));
+    *len = sizeof(GamepadReport);
     return 0;
 }
 

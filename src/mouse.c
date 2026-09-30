@@ -7,14 +7,14 @@
 #include "string.h"
 #include "driver.h"
 
-static Mouse mouse;
+static MouseReport mouse;
 
 void mouse_event_handler(KeyboardEvent event)
 {
     if (MOUSE_KEYCODE_IS_MOVE(event.keycode))
     {
         g_keyboard_report_flags.mouse = true;
-        if (event.is_virtual)
+        if (!event.is_virtual)
         {
             keyboard_key_set_report_state((Key*)event.key, true);
         }
@@ -24,11 +24,13 @@ void mouse_event_handler(KeyboardEvent event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
         g_keyboard_report_flags.mouse = true;
+        keyboard_key_event_down_dispatch(event);
         break;
     case KEYBOARD_EVENT_KEY_TRUE:
         break;
     case KEYBOARD_EVENT_KEY_UP:
         g_keyboard_report_flags.mouse = true;
+        keyboard_key_event_up_dispatch(event);
         break;
     case KEYBOARD_EVENT_KEY_FALSE:
         break;
@@ -37,12 +39,12 @@ void mouse_event_handler(KeyboardEvent event)
     }
 }
 
-void mouse_buffer_clear(void)
+void mouse_report_clear(void)
 {
-    memset(&mouse, 0, sizeof(Mouse));
+    memset(&mouse, 0, sizeof(MouseReport));
 }
 
-void mouse_add_buffer(KeyboardEvent event)
+void mouse_report_add(KeyboardEvent event)
 {
     if (MOUSE_KEYCODE_IS_MOVE(event.keycode))
     {
@@ -114,16 +116,16 @@ void mouse_set_axis(Keycode keycode, AnalogValue value)
 
 }
 
-int mouse_buffer_send(void)
+int mouse_report_send(void)
 {
-    static Mouse prev_mouse;
+    static MouseReport prev_mouse;
 #ifdef MOUSE_SHARED_EP
     mouse.report_id = REPORT_ID_MOUSE;
 #endif
     int ret = 0;
     if (mouse_should_send(&mouse, &prev_mouse))
     {
-        ret = hid_send_mouse((uint8_t*)&mouse, sizeof(Mouse));
+        ret = hid_send_mouse((uint8_t*)&mouse, sizeof(MouseReport));
         if (!ret)
         {
             prev_mouse = mouse;

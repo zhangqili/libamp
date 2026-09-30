@@ -12,11 +12,12 @@
 #ifdef SCRIPT_ENABLE
 #include"script.h"
 #endif
+#include "record.h"
 #include "file_system.h"
 #include "string.h"
 
-#if defined(STORAGE_ENABLE) && (!defined(LFS_ENABLE))
-#error "STORAGE_ENABLE requires LFS_ENABLE"
+#if defined(STORAGE_ENABLE) && (!(FILE_SYSTEM_TYPE != FILE_SYSTEM_RAW))
+#error "FILE_SYSTEM_RAW is not supported. Please use FILE_SYSTEM_LFS or FILE_SYSTEM_FILEX instead."
 #endif
 
 #ifndef STORAGE_FLASH_BASE_ADDRESS
@@ -50,8 +51,19 @@ static inline void save_advanced_key_config(File *file, AdvancedKey* key)
 
 static inline void read_advanced_key_config(File *file, AdvancedKey* key)
 {
+    uint8_t calibration_mode = key->config.calibration_mode;
+    AnalogRawValue upper_bound = key->config.upper_bound;
+    AnalogRawValue lower_bound = key->config.lower_bound;
     fs_read(file, &key->config, sizeof(AdvancedKeyConfiguration));
-    advanced_key_set_range(key, key->config.upper_bound, key->config.lower_bound);
+    if (key->config.upper_bound != key->config.lower_bound)
+    {
+        advanced_key_set_range(key, key->config.upper_bound, key->config.lower_bound);
+    }
+    else
+    {
+        advanced_key_set_range(key, upper_bound, lower_bound);
+        key->config.calibration_mode = calibration_mode;
+    }
 }
 
 int storage_mount(void)
@@ -94,6 +106,16 @@ int storage_check_version(void)
 void storage_unmount(void)
 {
 
+}
+
+int storage_format(void)
+{
+    int res = fs_format();
+    if (res < 0)
+    {
+        return res;
+    }
+    return fs_init();
 }
 
 uint8_t storage_read_profile_index(void)
@@ -241,4 +263,63 @@ void storage_read_script(void)
     }
 #endif
 #endif
+}
+
+void storage_save_statistics(void)
+{
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+    File file;
+    int res = fs_open(&file, "system/stat", FS_O_RDWR | FS_O_CREAT);
+    if (res >= 0)
+    {
+        uint64_t runtime = record_get_runtime();
+        fs_write(&file, &runtime, sizeof(runtime));
+#ifdef COUNTER_ENABLE
+        fs_write(&file, &g_key_counts, sizeof(g_key_counts));
+#endif
+        fs_close(&file);
+    }
+#endif
+}
+
+void storage_read_statistics(void)
+{
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+    File file;
+    int res = fs_open(&file, "system/stat", FS_O_RDWR | FS_O_CREAT);
+    if (res >= 0)
+    {
+        fs_read(&file, &g_runtime, sizeof(g_runtime));
+#ifdef COUNTER_ENABLE
+        fs_read(&file, &g_key_counts, sizeof(g_key_counts));
+#endif
+        fs_close(&file);
+    }
+#endif
+}
+
+int storage_write_file(const char *filename, const void *data, size_t size)
+{
+    File file;
+    int res = fs_open(&file, filename, FS_O_RDWR | FS_O_CREAT);
+    if (res >= 0)
+    {
+        int write_size = fs_write(&file, data, size);
+        fs_close(&file);
+        return write_size;
+    }
+    return res;
+}
+
+int storage_read_file(const char *filename, void *data, size_t size)
+{
+    File file;
+    int res = fs_open(&file, filename, FS_O_RDWR | FS_O_CREAT);
+    if (res >= 0)
+    {
+        int read_size = fs_read(&file, data, size);
+        fs_close(&file);
+        return read_size;
+    }
+    return res;
 }

@@ -3,10 +3,11 @@
 #include <cstring>
 
 #include "keyboard.h"
+#include "record.h"
 
 extern "C" {
 
-extern uint8_t flash_buffer[LFS_BLOCK_SIZE * LFS_BLOCK_COUNT];
+extern uint8_t flash_buffer[FS_BLOCK_SIZE * FS_BLOCK_COUNT];
 
 void libamp_test_clear_output_buffers(void)
 {
@@ -29,7 +30,15 @@ void libamp_test_clear_output_buffers(void)
 
 void libamp_test_reset_environment(void)
 {
-    std::memset(flash_buffer, 0xFF, LFS_BLOCK_SIZE * LFS_BLOCK_COUNT);
+    flash_read_fail_after = flash_write_fail_after = flash_erase_fail_after = -1;
+    flash_invalid_accesses = flash_erase_calls = 0;
+    std::memset(flash_buffer, 0xFF, FS_BLOCK_SIZE * FS_BLOCK_COUNT);
+#ifdef RECORD_PERSIST_ENABLE
+    g_runtime = 0;
+#endif
+#ifdef COUNTER_ENABLE
+    std::memset(g_key_counts, 0, sizeof(g_key_counts));
+#endif
     keyboard_init();
     g_keyboard_config.nkro = false;
     g_keyboard_config.enable_report = true;

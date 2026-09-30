@@ -22,12 +22,17 @@ extern uint8_t g_current_profile_index;
 int storage_mount(void);
 void storage_unmount(void);
 int storage_check_version(void);
+int storage_format(void);
 uint8_t storage_read_profile_index(void);
 void storage_save_profile_index(void);
 void storage_read_profile(void);
 void storage_save_profile(void);
 void storage_save_script(void);
 void storage_read_script(void);
+void storage_save_statistics(void);
+void storage_read_statistics(void);
+int storage_write_file(const char *filename, const void *data, size_t size);
+int storage_read_file(const char *filename, void *data, size_t size);
 
 #ifdef __cplusplus
 }

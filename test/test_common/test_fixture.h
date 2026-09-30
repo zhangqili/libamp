@@ -26,6 +26,12 @@ extern uint8_t audio_last_play_velocity;
 extern uint32_t midi_message_callback_count;
 extern MIDIMessage midi_last_message;
 
+extern int flash_read_fail_after;
+extern int flash_write_fail_after;
+extern int flash_erase_fail_after;
+extern uint32_t flash_invalid_accesses;
+extern uint32_t flash_erase_calls;
+
 void libamp_test_reset_environment(void);
 void libamp_test_clear_output_buffers(void);
 

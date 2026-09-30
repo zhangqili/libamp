@@ -14,14 +14,6 @@
 #include "event.h"
 #include "keycode.h"
 
-#if defined(MIXED_KRO_ENABLE) && !defined(NKRO_ENABLE)
-#error "MIXED_KRO_ENABLE requires NKRO_ENABLE"
-#endif
-
-#if defined(MIXED_KRO_ENABLE) && !defined(SHARED_EP_ENABLE)
-#error "MIXED_KRO_ENABLE requires SHARED_EP_ENABLE"
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -65,23 +57,13 @@ extern "C" {
 
 #define KEY_BITMAP_SIZE ((TOTAL_KEY_NUM + sizeof(uint32_t)*8 - 1) / (sizeof(uint32_t)*8))
 
-typedef struct
-{
-#ifdef KEYBOARD_SHARED_EP
-    uint8_t report_id;
+#if defined(MIXED_KRO_ENABLE) && !defined(NKRO_ENABLE)
+#error "MIXED_KRO_ENABLE requires NKRO_ENABLE"
 #endif
-    uint8_t modifier;
-    uint8_t reserved;
-    uint8_t buffer[6];
-    uint8_t keynum;
-} __PACKED Keyboard6KROBuffer;
 
-typedef struct
-{
-    uint8_t report_id;
-    uint8_t modifier;
-    uint8_t buffer[NKRO_REPORT_BITS];
-} __PACKED KeyboardNKROBuffer;
+#if defined(MIXED_KRO_ENABLE) && !defined(SHARED_EP_ENABLE)
+#error "MIXED_KRO_ENABLE requires SHARED_EP_ENABLE"
+#endif
 
 typedef enum
 {
@@ -96,7 +78,7 @@ enum
     KEYBOARD_CONFIG_WINLOCK         = 2,
     KEYBOARD_CONFIG_CONTINUOUS_POLL = 3,
     KEYBOARD_CONFIG_ENABLE_REPORT   = 4,
-    KEYBOARD_CONFIG_CONSOLED        = 5,
+    KEYBOARD_CONFIG_CONSOLE        = 5,
     KEYBOARD_CONFIG_NUM             = 6,
 };
 
@@ -106,6 +88,35 @@ enum
     KEYBOARD_CONFIG_OFF     = 1,
     KEYBOARD_CONFIG_TOGGLE  = 2,
 };
+
+enum
+{
+    KEYBOARD_REPORT_FLAG = 0,
+    MOUSE_REPORT_FLAG = 1,
+    CONSUMER_REPORT_FLAG = 2,
+    SYSTEM_REPORT_FLAG = 3,
+    JOYSTICK_REPORT_FLAG = 4,
+};
+
+enum ReportID { 
+    REPORT_ID_ALL = 0,
+    REPORT_ID_KEYBOARD = 1,
+    REPORT_ID_MOUSE,
+    REPORT_ID_SYSTEM,
+    REPORT_ID_CONSUMER,
+    REPORT_ID_PROGRAMMABLE_BUTTON,
+    REPORT_ID_NKRO,
+    REPORT_ID_JOYSTICK,
+    REPORT_ID_DIGITIZER,
+    REPORT_ID_LIGHTING_LAMP_ARRAY_ATTRIBUTES,
+    REPORT_ID_LIGHTING_LAMP_ATTRIBUTES_REQUEST,
+    REPORT_ID_LIGHTING_LAMP_ATTRIBUTES_RESPONSE,
+    REPORT_ID_LIGHTING_LAMP_MULTI_UPDATE,
+    REPORT_ID_LIGHTING_LAMP_RANGE_UPDATE,
+    REPORT_ID_LIGHTING_LAMP_ARRAY_CONTROL,
+    REPORT_ID_COUNT = REPORT_ID_LIGHTING_LAMP_ARRAY_CONTROL
+};
+
 
 typedef union
 {
@@ -151,40 +162,29 @@ typedef union
     };
 } KeyboardReportFlag;
 
-enum
+typedef struct
 {
-    KEYBOARD_REPORT_FLAG = 0,
-    MOUSE_REPORT_FLAG = 1,
-    CONSUMER_REPORT_FLAG = 2,
-    SYSTEM_REPORT_FLAG = 3,
-    JOYSTICK_REPORT_FLAG = 4,
-};
+#ifdef KEYBOARD_SHARED_EP
+    uint8_t report_id;
+#endif
+    uint8_t modifier;
+    uint8_t reserved;
+    uint8_t buffer[6];
+    uint8_t keynum;
+} __PACKED Keyboard6KROReport;
 
-enum ReportID { 
-    REPORT_ID_ALL = 0,
-    REPORT_ID_KEYBOARD = 1,
-    REPORT_ID_MOUSE,
-    REPORT_ID_SYSTEM,
-    REPORT_ID_CONSUMER,
-    REPORT_ID_PROGRAMMABLE_BUTTON,
-    REPORT_ID_NKRO,
-    REPORT_ID_JOYSTICK,
-    REPORT_ID_DIGITIZER,
-    REPORT_ID_LIGHTING_LAMP_ARRAY_ATTRIBUTES,
-    REPORT_ID_LIGHTING_LAMP_ATTRIBUTES_REQUEST,
-    REPORT_ID_LIGHTING_LAMP_ATTRIBUTES_RESPONSE,
-    REPORT_ID_LIGHTING_LAMP_MULTI_UPDATE,
-    REPORT_ID_LIGHTING_LAMP_RANGE_UPDATE,
-    REPORT_ID_LIGHTING_LAMP_ARRAY_CONTROL,
-    REPORT_ID_COUNT = REPORT_ID_LIGHTING_LAMP_ARRAY_CONTROL
-};
+typedef struct
+{
+    uint8_t report_id;
+    uint8_t modifier;
+    uint8_t buffer[NKRO_REPORT_BITS];
+} __PACKED KeyboardNKROReport;
 
 extern AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
 extern Key g_keyboard_keys[KEY_NUM];
 extern KeyboardLEDState g_keyboard_led_state;
 extern volatile KeyboardConfig g_keyboard_config;
 extern Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
-
 
 extern const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
@@ -194,47 +194,50 @@ extern volatile KeyboardReportFlag g_keyboard_report_flags;
 
 extern volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 
+void keyboard_report_add(KeyboardEvent event);
+void keyboard_report_clear(void);
+int keyboard_report_send(void);
+
+void keyboard_init(void);
+void keyboard_task(void);
+void keyboard_process(void);
+
+void keyboard_report_clear_all(void);
+void keyboard_report_build(void);
+void keyboard_report_send_all(void);
+
 void keyboard_event_handler(KeyboardEvent event);
+void keyboard_event_report_handler(KeyboardEvent event);
 void keyboard_event_poller(KeyboardEvent event, uint32_t tick);
-void keyboard_operation_event_handler(KeyboardEvent event);
-void keyboard_operation_event_poller(KeyboardEvent event, uint32_t tick);
 void keyboard_user_event_handler(KeyboardEvent event);
 void keyboard_user_event_poller(KeyboardEvent event, uint32_t tick);
-void keyboard_key_event_down_callback(Key*key);
-void keyboard_key_event_up_callback(Key*key);
-void keyboard_key_event_down_callback_user(Key*key);
-void keyboard_key_event_up_callback_user(Key*key);
-
-void keyboard_add_buffer(KeyboardEvent event);
-int keyboard_buffer_send(void);
-void keyboard_clear_buffer(void);
-
-int keyboard_6KRObuffer_add(Keyboard6KROBuffer *buf, Keycode keycode);
-int keyboard_6KRObuffer_send(Keyboard6KROBuffer *buf);
-void keyboard_6KRObuffer_clear(Keyboard6KROBuffer *buf);
-
-int keyboard_NKRObuffer_add(KeyboardNKROBuffer*buf,Keycode keycode);
-int keyboard_NKRObuffer_send(KeyboardNKROBuffer*buf);
-void keyboard_NKRObuffer_clear(KeyboardNKROBuffer*buf);
 
 bool keyboard_key_update(Key *key, bool state);
 bool keyboard_advanced_key_update(AdvancedKey *advanced_key, AnalogValue value);
 bool keyboard_advanced_key_update_raw(AdvancedKey *advanced_key, AnalogRawValue raw);
 
-void keyboard_init(void);
-void keyboard_reboot(void);
-void keyboard_reset_to_default(void);
+void keyboard_key_event_down_dispatch(KeyboardEvent event);
+void keyboard_key_event_up_dispatch(KeyboardEvent event);
+void keyboard_key_event_down_callback(Key*key);
+void keyboard_key_event_up_callback(Key*key);
+void keyboard_key_event_down_callback_user(Key*key);
+void keyboard_key_event_up_callback_user(Key*key);
+
+void keyboard_operation_event_handler(KeyboardEvent event);
+void keyboard_operation_event_poller(KeyboardEvent event, uint32_t tick);
+
 void keyboard_factory_reset(void);
-void keyboard_jump_to_bootloader(void);
+void keyboard_storage_format(void);
+
+void keyboard_profile_reset_to_default(void);
+void keyboard_profile_restore(void);
+void keyboard_profile_save(void);
+void keyboard_profile_select(uint8_t index);
+
 void keyboard_scan(void);
-void keyboard_fill_buffer(void);
-void keyboard_send_report(void);
-void keyboard_recovery(void);
-void keyboard_save(void);
-void keyboard_set_profile_index(uint8_t index);
-void keyboard_task(void);
-void keyboard_process(void);
 void keyboard_delay(uint32_t ms);
+void keyboard_reboot(void);
+void keyboard_jump_to_bootloader(void);
 
 static inline Key* keyboard_get_key(uint16_t id)
 {    

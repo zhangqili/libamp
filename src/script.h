@@ -47,6 +47,9 @@ void script_process(void);
 void script_event_handler(KeyboardEvent event);
 void script_event_poller(KeyboardEvent event, uint32_t tick);
 
+void script_key_event_handler(KeyboardEvent event);
+void script_key_event_poller(KeyboardEvent event, uint32_t tick);
+
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_AOT
 extern uint8_t g_script_bytecode_buffer[SCRIPT_BYTECODE_BUFFER_SIZE];
 #endif

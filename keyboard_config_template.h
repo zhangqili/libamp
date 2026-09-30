@@ -102,16 +102,47 @@
 /*************/
 /* Storage */
 /*************/
-/* STORAGE_ENABLE and LFS_ENABLE must be enabled together. */
+/* Enable STORAGE_ENABLE and select a filesystem; LittleFS is the default. */
 // #define STORAGE_ENABLE                  /* Enable profiles and persistent settings. */
 // #define LFS_ENABLE                      /* Enable littlefs storage. */
-// #define LFS_READ_SIZE 16                /* Minimum flash read size. */
-// #define LFS_PROG_SIZE 16                /* Minimum flash program size. */
-// #define LFS_BLOCK_SIZE 4096             /* Flash erase-block size. */
-// #define LFS_BLOCK_COUNT 16              /* Number of reserved erase blocks. */
-// #define LFS_CACHE_SIZE 16               /* littlefs cache size. */
-// #define LFS_LOOKAHEAD_SIZE 16           /* littlefs allocation lookahead size. */
+// #define FS_READ_SIZE 16                /* Minimum flash read size. */
+// #define FS_PROG_SIZE 16                /* Minimum flash program size. */
+// #define FS_BLOCK_SIZE 4096             /* Flash erase-block size. */
+// #define FS_BLOCK_COUNT 16              /* Number of reserved erase blocks. */
+// #define FS_CACHE_SIZE 16               /* littlefs cache size. */
+// #define FS_LOOKAHEAD_SIZE 16           /* littlefs allocation lookahead size. */
 // #define LFS_BLOCK_CYCLES 500            /* Wear-leveling relocation interval. */
+
+/* Optional standalone FileX FAT; mount failure erases and rebuilds the partition. */
+// #define FILE_SYSTEM_TYPE FILE_SYSTEM_FILEX
+
+/* Flash layer between the file system and flash_read/flash_write/flash_erase.
+ * Both layers are always compiled, so this only selects which one runs. */
+// #define FLASH_LAYER FLASH_LAYER_DIRECT         /* Raw flash, no wear leveling. */
+// #define FLASH_LAYER FLASH_LAYER_LEVELX         /* LevelX NOR wear leveling. */
+
+// #define FS_FLASH_OFFSET 0              /* Byte offset, erase-block aligned. */
+// #define FS_BLOCK_SIZE 4096             /* Erase-block size. */
+// #define FS_BLOCK_COUNT 4096            /* Reserved erase blocks. */
+// #define FS_PROG_SIZE 256               /* Programming page size. */
+
+/* FileX options. src/fx_user.h includes this file, so every FileX translation
+ * unit sees them and the values below only need to be set here, not on the
+ * compiler command line. They change struct layouts such as FX_MEDIA, so keep
+ * them consistent. */
+// #define FX_MAXIMUM_PATH 256            /* FX_PATH string bytes inside FX_MEDIA. */
+// #define FX_MAX_LONG_NAME_LEN 256       /* Name bytes in FX_MEDIA and FileStat. */
+// #define FX_MAX_FAT_CACHE 16            /* FX_MEDIA FAT cache, min 8, power of two. */
+// #define FX_FAT_MAP_SIZE 128            /* Fault tolerant FAT bitmap bytes in FX_MEDIA. */
+// #define FX_MAX_SECTOR_CACHE 8          /* Logical sector cache entries (512 B under LevelX). */
+
+/* LevelX options. src/lx_user.h includes this file; only used when the LevelX
+ * flash layer is selected. */
+// #define LX_NOR_SECTOR_MAPPING_CACHE_SIZE 16  /* Mapping cache, min 8, power of two. */
+// #define LX_NOR_EXTENDED_CACHE_SIZE 8         /* Extended cache sectors, 0 disables. */
+// #define LX_NOR_DISABLE_EXTENDED_CACHE        /* Drop the extended cache entirely. */
+// #define LX_NOR_FLASH_MAX_ERASE_COUNT_DELTA 4 /* Erase-count spread before relocation. */
+
 // #define STORAGE_PROFILE_FILE_NUM 4      /* Number of persistent profiles. */
 
 /********/
@@ -173,7 +204,7 @@
 // #define MACRO_NUM 4                     /* Number of macro slots. */
 // #define MACRO_MAX_ACTIONS 128           /* Maximum actions per macro. */
 
-/* SCRIPT_ENABLE requires STORAGE_ENABLE and LFS_ENABLE. */
+/* SCRIPT_ENABLE requires STORAGE_ENABLE and a configured filesystem. */
 /* SCRIPT_AOT executes stored bytecode; SCRIPT_JIT compiles stored source. */
 // #define SCRIPT_ENABLE                   /* Enable the JavaScript runtime. */
 // #define SCRIPT_POLLING                  /* Run scripts from keyboard_process(). */

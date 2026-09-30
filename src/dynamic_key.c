@@ -39,7 +39,7 @@ void dynamic_key_process(void)
     }
 }
 
-void _dynamic_key_add_buffer(DynamicKey*dynamic_key)
+void _dynamic_key_add_to_report(DynamicKey*dynamic_key)
 {
     switch (dynamic_key->type)
     {
@@ -49,7 +49,7 @@ void _dynamic_key_add_buffer(DynamicKey*dynamic_key)
         for (int i = 0; i < 4; i++)
         {
             if (BIT_GET(dynamic_key_s->key_state,i))
-                keyboard_add_buffer(MK_EVENT(dynamic_key_s->key_binding[i], KEYBOARD_EVENT_NO_EVENT, keyboard_get_key(dynamic_key_s->key_id)));
+                keyboard_event_report_handler(MK_EVENT(dynamic_key_s->key_binding[i], KEYBOARD_EVENT_NO_EVENT, keyboard_get_key(dynamic_key_s->key_id)));
         }
         break;
     }
@@ -58,7 +58,7 @@ void _dynamic_key_add_buffer(DynamicKey*dynamic_key)
         DynamicKeyModTap*dynamic_key_mt=(DynamicKeyModTap*)dynamic_key;
         if (dynamic_key_mt->key_report_state)
         {
-            keyboard_add_buffer(MK_EVENT(dynamic_key_mt->key_binding[dynamic_key_mt->state], KEYBOARD_EVENT_NO_EVENT, keyboard_get_key(dynamic_key_mt->key_id)));
+            keyboard_event_report_handler(MK_EVENT(dynamic_key_mt->key_binding[dynamic_key_mt->state], KEYBOARD_EVENT_NO_EVENT, keyboard_get_key(dynamic_key_mt->key_id)));
         }
         break;
     }
@@ -67,7 +67,7 @@ void _dynamic_key_add_buffer(DynamicKey*dynamic_key)
         DynamicKeyToggleKey*dynamic_key_tk=(DynamicKeyToggleKey*)dynamic_key;
         if (dynamic_key_tk->state)
         {
-            keyboard_add_buffer(MK_EVENT(dynamic_key_tk->key_binding, KEYBOARD_EVENT_NO_EVENT, keyboard_get_key(dynamic_key_tk->key_id)));
+            keyboard_event_report_handler(MK_EVENT(dynamic_key_tk->key_binding, KEYBOARD_EVENT_NO_EVENT, keyboard_get_key(dynamic_key_tk->key_id)));
         }
         break;
     }
@@ -75,9 +75,9 @@ void _dynamic_key_add_buffer(DynamicKey*dynamic_key)
     {
         DynamicKeyMutex*dynamic_key_m=(DynamicKeyMutex*)dynamic_key;
         if (dynamic_key_m->key_report_state[0])
-            keyboard_add_buffer(MK_EVENT(dynamic_key_m->key_binding[0], KEYBOARD_EVENT_NO_EVENT,  keyboard_get_key(dynamic_key_m->key_id[0])));
+            keyboard_event_report_handler(MK_EVENT(dynamic_key_m->key_binding[0], KEYBOARD_EVENT_NO_EVENT,  keyboard_get_key(dynamic_key_m->key_id[0])));
         if (dynamic_key_m->key_report_state[1])
-            keyboard_add_buffer(MK_EVENT(dynamic_key_m->key_binding[1], KEYBOARD_EVENT_NO_EVENT,  keyboard_get_key(dynamic_key_m->key_id[1])));
+            keyboard_event_report_handler(MK_EVENT(dynamic_key_m->key_binding[1], KEYBOARD_EVENT_NO_EVENT,  keyboard_get_key(dynamic_key_m->key_id[1])));
         break;
     }
     default:
@@ -85,12 +85,12 @@ void _dynamic_key_add_buffer(DynamicKey*dynamic_key)
     }
 }
 
-void dynamic_key_add_buffer(void)
+void dynamic_key_add_to_report(void)
 {
     for (int i = 0; i < DYNAMIC_KEY_NUM && g_dynamic_keys[i].type != DYNAMIC_KEY_NONE; i++)
     {
         DynamicKey*dynamic_key = &g_dynamic_keys[i];
-        _dynamic_key_add_buffer(dynamic_key);
+        _dynamic_key_add_to_report(dynamic_key);
     }
 }
 

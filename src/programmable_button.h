@@ -13,11 +13,11 @@
 extern "C" {
 #endif
 
-typedef struct __ProgrammableButton
+typedef struct __ProgrammableButtonReport
 {
     uint8_t  report_id;
     uint32_t usage;
-} __PACKED ProgrammableButton;
+} __PACKED ProgrammableButtonReport;
 
 #ifdef __cplusplus
 }

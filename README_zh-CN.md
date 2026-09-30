@@ -116,7 +116,7 @@ target_link_libraries(keyboard_firmware PRIVATE
 创建 `platform/keyboard_user.c`，并包含定义数据所需的 libamp 头文件。第一个模拟按键的 ID 是 `0`，以下示例将它映射为 `A` 键，并从环形缓冲区 `0` 读取数据。
 
 ```c
-#include "keyboard.h"
+#include "libamp.h"
 #include "analog.h"
 
 const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM] = {
@@ -352,7 +352,7 @@ void keyboard_user_event_handler(KeyboardEvent event);
 
 ## 4. 添加持久化存储
 
-同时启用 `STORAGE_ENABLE` 和 `LFS_ENABLE`。存储使用 `driver.h` 中声明的回调：
+启用 `STORAGE_ENABLE` 并配置选定的文件系统（默认为 LittleFS）。存储使用 `driver.h` 中声明的回调：
 
 ```c
 int flash_read(uint32_t address, uint32_t size, uint8_t *data);
@@ -360,9 +360,16 @@ int flash_write(uint32_t address, uint32_t size, const uint8_t *data);
 int flash_erase(uint32_t address, uint32_t size);
 ```
 
-应为这些回调实现专门保留的可擦写区域。`LFS_READ_SIZE`、`LFS_PROG_SIZE`、`LFS_BLOCK_SIZE`、`LFS_BLOCK_COUNT`、`LFS_CACHE_SIZE`、`LFS_LOOKAHEAD_SIZE` 和 `LFS_BLOCK_CYCLES` 必须与闪存器件和保留区域相匹配。回调实现尤其要遵守编程和擦除对齐要求。
+应为这些回调实现专门保留的可擦写区域。`FS_READ_SIZE`、`FS_PROG_SIZE`、`FS_BLOCK_SIZE`、`FS_BLOCK_COUNT`、`FS_CACHE_SIZE`、`FS_LOOKAHEAD_SIZE` 和 `LFS_BLOCK_CYCLES` 必须与闪存器件和保留区域相匹配。回调实现尤其要遵守编程和擦除对齐要求。
 
 启动时，`keyboard_init()` 会挂载存储、检查保存的版本并恢复选中的配置文件。因此必须在调用 `keyboard_init()` 之前使存储可用。不要将文件系统放在固件、Bootloader 或其他应用数据上。
+文件系统挂载失败时会自动格式化分区。
+
+### 4.1 FileX FAT 存储与 flash 层
+
+`FILE_SYSTEM_TYPE` 默认为 `FILE_SYSTEM_LFS`；在 `keyboard_config.h` 中定义为 `FILE_SYSTEM_FILEX`，即可使用 FileX FAT。
+
+定义 `FLASH_LAYER` 可选择文件系统访问闪存的方式：`FLASH_LAYER_DIRECT` 直接调用 `driver.h` 中声明的 `flash_*` 回调，不做磨损均衡；`FLASH_LAYER_LEVELX` 增加 LevelX NOR 磨损均衡，但可用容量变小、RAM 占用增加、挂载变慢。
 
 ## 5. 添加灯光
 
@@ -401,7 +408,7 @@ RGB 的三张表使用以下相互关联的索引空间：
 
 `DYNAMICKEY_ENABLE` 提供可配置的高级按键行为，例如 Mod-Tap、切换键、动态击键和 Mutex 键。`MACRO_ENABLE` 启用宏录制/播放。两者都使用与普通物理按键相同的事件路径，因此应在基础输入和报告路径稳定后再验证。
 
-`SCRIPT_ENABLE` 同时依赖 `STORAGE_ENABLE` 和 `LFS_ENABLE`。选择 `SCRIPT_RUNTIME_STRATEGY` 后，根据可用 RAM 设置 `SCRIPT_MEMORY_SIZE` 以及对应的源码或字节码缓冲区大小。即使禁用了脚本，libamp 的构建仍包含主机 mquickjs 头文件生成步骤。
+`SCRIPT_ENABLE` 依赖 `STORAGE_ENABLE` 和已配置的文件系统。选择 `SCRIPT_RUNTIME_STRATEGY` 后，根据可用 RAM 设置 `SCRIPT_MEMORY_SIZE` 以及对应的源码或字节码缓冲区大小。即使禁用了脚本，libamp 的构建仍包含主机 mquickjs 头文件生成步骤。
 
 `MTP_ENABLE` 通过 USB 暴露文件访问。它需要 MTP 后端源码、对应 USB 端点，以及一个能在键盘运行时安全暴露给主机的文件系统。在发布固件前，应测试文件传输、拔插和断电行为。
 
@@ -418,6 +425,15 @@ ctest --test-dir build/libamp-tests --output-on-failure
 ```
 
 如果 libamp 本身就是仓库根目录而不是子目录，将 `third_party/libamp` 替换为 `.`。
+
+`levelx` 组合的主机测试需使用 32 位工具链及 C/C++ 运行库（LevelX 磁盘字长必须与
+32 位固件一致）；`FILE_SYSTEM_TYPE` 中 2 表示 FileX、1 表示 LittleFS：
+
+```bash
+cmake -S . -B b-fx-lx -DLIBAMP_BUILD_TESTS=ON '-DCMAKE_C_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2 -DFLASH_LAYER=FLASH_LAYER_LEVELX' '-DCMAKE_CXX_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2 -DFLASH_LAYER=FLASH_LAYER_LEVELX' && cmake --build b-fx-lx --parallel && ctest --test-dir b-fx-lx --output-on-failure   # FileX + LevelX
+cmake -S . -B b-fx -DLIBAMP_BUILD_TESTS=ON '-DCMAKE_C_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2' '-DCMAKE_CXX_FLAGS=-m32 -DFILE_SYSTEM_TYPE=2' && cmake --build b-fx --parallel && ctest --test-dir b-fx --output-on-failure                                   # FileX + 直连 flash
+cmake -S . -B b-lfs-lx -DLIBAMP_BUILD_TESTS=ON '-DCMAKE_C_FLAGS=-m32 -DFILE_SYSTEM_TYPE=1 -DFLASH_LAYER=FLASH_LAYER_LEVELX' '-DCMAKE_CXX_FLAGS=-m32 -DFILE_SYSTEM_TYPE=1 -DFLASH_LAYER=FLASH_LAYER_LEVELX' && cmake --build b-lfs-lx --parallel && ctest --test-dir b-lfs-lx --output-on-failure   # LittleFS + LevelX
+```
 
 ### 8.2 固件构建检查表
 

@@ -10,6 +10,7 @@
 #include "midi.h"
 #include "audio.h"
 #include "test_fixture.h"
+#include "file_system.h"
 
 uint8_t shared_ep_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
 uint8_t keyboard_send_buffer[LIBAMP_TEST_REPORT_BUFFER_SIZE];
@@ -945,8 +946,15 @@ void analog_channel_select(uint8_t x)
 
 void keyboard_user_event_handler(KeyboardEvent event)
 {
-    if (event.event != KEYBOARD_EVENT_KEY_DOWN)
+    switch (event.event)
     {
+    case KEYBOARD_EVENT_KEY_DOWN:
+        keyboard_key_event_down_dispatch(event);
+        break;
+    case KEYBOARD_EVENT_KEY_UP:
+        keyboard_key_event_up_dispatch(event);
+        // fall through
+    default:
         return;
     }
     switch (KEYCODE_GET_SUB(event.keycode))
@@ -1048,25 +1056,68 @@ int led_flush(void)
     return 0;
 }
 
-uint8_t flash_buffer[LFS_BLOCK_SIZE*LFS_BLOCK_COUNT];
- 
+uint8_t flash_buffer[FS_BLOCK_SIZE*FS_BLOCK_COUNT];
+int flash_read_fail_after = -1;
+int flash_write_fail_after = -1;
+int flash_erase_fail_after = -1;
+uint32_t flash_invalid_accesses;
+uint32_t flash_erase_calls;
+
+static bool flash_test_fail(int *remaining)
+{
+    if (*remaining < 0) return false;
+    if (*remaining == 0) return true;
+    --*remaining;
+    return false;
+}
+
+static bool flash_test_range(uint32_t addr, uint32_t size)
+{
+    if (addr > sizeof(flash_buffer) || size > sizeof(flash_buffer) - addr) {
+        ++flash_invalid_accesses;
+        return false;
+    }
+#if FILE_SYSTEM_TYPE == FILE_SYSTEM_FILEX
+    uint64_t relative = (uint64_t)addr - FILEX_FLASH_OFFSET;
+    uint64_t capacity = (uint64_t)FS_BLOCK_SIZE * FS_BLOCK_COUNT;
+    if (relative > capacity || size > capacity - relative) {
+        ++flash_invalid_accesses;
+        return false;
+    }
+#endif
+    return true;
+}
+
 int flash_read(uint32_t addr, uint32_t size, uint8_t *data)
 {
+    if (!flash_test_range(addr, size) || flash_test_fail(&flash_read_fail_after)) return -1;
     memcpy(data, &flash_buffer[addr], size);
     return 0;
 }
 
 int flash_write(uint32_t addr, uint32_t size, const uint8_t *data)
 {
+    if (!flash_test_range(addr, size) || flash_test_fail(&flash_write_fail_after)) return -1;
+#if FILE_SYSTEM_TYPE == FILE_SYSTEM_FILEX
+    if (size > FS_PROG_SIZE - addr % FS_PROG_SIZE) {
+        ++flash_invalid_accesses;
+        return -1;
+    }
+#endif
     for (uint32_t i = 0; i < size; i++) {
         flash_buffer[addr + i] &= data[i];
     }
-    //memcpy(flash_buffer + addr, data, size);
     return 0;
 }
 
 int flash_erase(uint32_t addr, uint32_t size)
 {
+    ++flash_erase_calls;
+    if (!flash_test_range(addr, size) || flash_test_fail(&flash_erase_fail_after)) return -1;
+    if (addr % FS_BLOCK_SIZE || size % FS_BLOCK_SIZE) {
+        ++flash_invalid_accesses;
+        return -1;
+    }
     memset(&flash_buffer[addr], 0xff, size);
     return 0;
 }

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "record.h"
+#include "storage.h"
 
 #ifdef ANALOG_HISTORY_ENABLE
 LoopArray g_analog_historys[ADVANCED_KEY_NUM];
@@ -30,6 +31,15 @@ size_t g_bit_stream_datas[ADVANCED_KEY_NUM][BIT_DATA_LENGTH];
 #ifdef COUNTER_ENABLE
 uint32_t g_key_counts[TOTAL_KEY_NUM];
 #endif
+
+#ifdef RECORD_PERSIST_ENABLE
+uint64_t g_runtime;
+#endif
+
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+static uint32_t statistics_last_save_tick;
+#endif
+
 // static Key *kps_queue[RECORD_MAX_KEY_NUM];
 // static Key *bit_queue[RECORD_MAX_KEY_NUM];
 // static AdvancedKey *analog_queue[RECORD_MAX_KEY_NUM];
@@ -89,8 +99,26 @@ void record_init()
 #ifdef BIT_STREAM_ENABLE
 #endif
     }
-    
 }
+
+void record_process(void)
+{
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+    const uint32_t interval_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_SAVE_INTERVAL_MS);
+    if ((uint32_t)(g_keyboard_tick - statistics_last_save_tick) >= interval_ticks)
+    {
+        record_reset_save_timer();
+        storage_save_statistics();
+    }
+#endif
+}
+
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+void record_reset_save_timer(void)
+{
+    statistics_last_save_tick = g_keyboard_tick;
+}
+#endif
 
 /*
 void record_kps_register(Key*k)
@@ -189,5 +217,17 @@ uint16_t record_get_kps()
         kps += g_kps_data.data[i];
     }
     return kps;
+}
+#endif
+
+#ifdef RECORD_PERSIST_ENABLE
+uint64_t record_get_runtime(void)
+{
+    return g_runtime + KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+}
+
+void record_set_runtime(uint64_t runtime)
+{
+    g_runtime = runtime - KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
 }
 #endif

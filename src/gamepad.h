@@ -21,7 +21,7 @@ extern "C" {
  * 
  * structure from CherryUSB
  */
-typedef struct __Gamepad {
+typedef struct __GamepadReport {
     uint8_t report_id;   /* Always 0x00 */
     uint8_t report_size; /* Always 0x14 (20) */
     uint16_t buttons;    /* DPAD, Start, Back, L3, R3, LB, RB, Guide, A, B, X, Y */
@@ -32,7 +32,7 @@ typedef struct __Gamepad {
     int16_t rx;          /* Right stick X (-32768 to 32767) */
     int16_t ry;          /* Right stick Y (-32768 to 32767) */
     uint8_t reserved[6]; /* Reserved/padding */
-} __PACKED Gamepad;
+} __PACKED GamepadReport;
 
 typedef struct __GamepadOutReport {
     uint8_t report_id;   // 0x00 = rumble, 0x01 = LED
@@ -44,10 +44,10 @@ typedef struct __GamepadOutReport {
 } __PACKED GamepadOutReport;
 
 void gamepad_event_handler(KeyboardEvent event);
-void gamepad_buffer_clear(void);
-void gamepad_add_buffer(KeyboardEvent event);
+void gamepad_report_clear(void);
+void gamepad_report_add(KeyboardEvent event);
 void gamepad_set_axis(Keycode keycode, AnalogValue value);
-int gamepad_buffer_send(void);
+int gamepad_report_send(void);
 void gamepad_out_callback(GamepadOutReport* report);
 
 #ifdef __cplusplus

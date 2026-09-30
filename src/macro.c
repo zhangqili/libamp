@@ -28,6 +28,7 @@ void macro_event_handler(KeyboardEvent event)
     case KEYBOARD_EVENT_KEY_DOWN:
     {
         uint8_t index = MACRO_KEYCODE_GET_INDEX(event.keycode);
+        keyboard_key_event_down_dispatch(event);
         switch (MACRO_KEYCODE_GET_KEYCODE(event.keycode))
         {
         case MACRO_RECORDING_START:
@@ -70,6 +71,7 @@ void macro_event_handler(KeyboardEvent event)
     case KEYBOARD_EVENT_KEY_TRUE:
         break;
     case KEYBOARD_EVENT_KEY_UP:
+        keyboard_key_event_up_dispatch(event);
         break;
     case KEYBOARD_EVENT_KEY_FALSE:
         break;
