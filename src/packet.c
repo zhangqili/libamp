@@ -488,8 +488,10 @@ void packet_process_record(PacketDataHeader *data)
         default:
             break;
         }
+#ifdef RECORD_PERSIST_ENABLE
         record_reset_save_timer();
         storage_save_statistics();
+#endif
         return;
     }
     else if (data->code == PACKET_CODE_GET)
