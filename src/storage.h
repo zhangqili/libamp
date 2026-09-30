@@ -22,6 +22,7 @@ extern uint8_t g_current_profile_index;
 int storage_mount(void);
 void storage_unmount(void);
 int storage_check_version(void);
+int storage_format(void);
 uint8_t storage_read_profile_index(void);
 void storage_save_profile_index(void);
 void storage_read_profile(void);

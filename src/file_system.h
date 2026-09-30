@@ -203,6 +203,7 @@ typedef struct __VolumeStat {
 
 void fs_init_dir(void);
 int fs_init(void);
+int fs_format(void);
 
 int fs_open(File * file, const char * name, size_t flags);
 int fs_close(File * file);

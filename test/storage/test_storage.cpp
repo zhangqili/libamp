@@ -206,6 +206,57 @@ TEST(Storage, ProfilesAreIsolated)
     EXPECT_EQ(0, std::memcmp(profile1_keymap.data(), g_keymap, sizeof(g_keymap)));
 }
 
+/* fs_format() only erases. It creates nothing itself: the directories are made
+ * by fs_init(). */
+TEST(Storage, FormatErasesWithoutCreatingAnything)
+{
+    FileStat info;
+
+    g_current_profile_index = 0;
+    fill_profile(33);
+    storage_save_profile();
+
+    ASSERT_EQ(0, fs_format());
+    ASSERT_EQ(0, fs_init());
+
+    EXPECT_NE(0, fs_stat("profiles/profile0", &info));
+    EXPECT_NE(0, fs_stat("system/version", &info));
+    /* The layout is fs_init()'s, and it is empty. */
+    EXPECT_EQ(0, fs_stat("profiles", &info));
+    EXPECT_EQ(0, fs_stat("system", &info));
+}
+
+/* The KEYBOARD_FORMAT_STORAGE operation erases the volume and nothing else: it
+ * stores no configuration and no version, so the next boot puts the factory
+ * configuration in and only then marks the volume as initialized. */
+TEST(Storage, FormatStorageOperationErasesTheVolume)
+{
+    FileStat info;
+
+    g_current_profile_index = 0;
+    fill_profile(11);
+    storage_save_profile();
+    storage_save_statistics();
+    ASSERT_EQ(0, fs_stat("profiles/profile0", &info));
+    ASSERT_EQ(0, fs_stat("system/stat", &info));
+
+    keyboard_event_handler(MK_VIRTUAL_EVENT((KEYBOARD_FORMAT_STORAGE << 8) | KEYBOARD_OPERATION,
+                                            KEYBOARD_EVENT_KEY_DOWN, NULL));
+
+    /* Everything is gone, the version with it; the volume is mounted again. */
+    EXPECT_NE(0, fs_stat("profiles/profile0", &info));
+    EXPECT_NE(0, fs_stat("system/stat", &info));
+    EXPECT_NE(0, fs_stat("system/version", &info));
+
+    /* The next boot initializes it... */
+    EXPECT_TRUE(storage_check_version());
+    keyboard_factory_reset();   /* what keyboard_init() does in that case */
+    EXPECT_EQ(0, fs_stat("profiles/profile0", &info));
+    EXPECT_EQ(0, std::memcmp(g_default_keymap, g_keymap, sizeof(g_keymap)));
+    /* ...and the boots after that find it initialized. */
+    EXPECT_FALSE(storage_check_version());
+}
+
 TEST(Storage, ProfileIndexRejectsOutOfRangeValue)
 {
     g_current_profile_index = 2;

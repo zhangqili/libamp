@@ -374,6 +374,11 @@ int fs_init(void)
     return -1;
 }
 
+int fs_format(void)
+{
+    return -1;
+}
+
 int fs_open(File * file, const char * name, size_t flags)
 {
     UNUSED(file);
@@ -632,6 +637,15 @@ int fs_init(void)
     }
     fs_init_dir();
     return err;
+}
+
+int fs_format(void)
+{
+    (void)lfs_unmount(&_lfs);
+    if (flash_layer_init() != 0)
+        return -1;
+    _lfs_config.block_count = (lfs_size_t)(flash_layer_capacity / FS_BLOCK_SIZE);
+    return lfs_format(&_lfs, &_lfs_config);
 }
 
 int fs_open(File * file, const char * name, size_t flags)
@@ -1098,6 +1112,38 @@ int fs_init(void)
         fs_media_ready = false;
     }
     return fs_result(status);
+}
+
+/* Erase the volume. The media is left formatted but not mounted, holding
+ * nothing but an empty root directory; call fs_init() before using it. LevelX
+ * can only append to erased space, so its own block headers are reset first
+ * (format() closes and reopens the layer); the direct layer needs nothing here
+ * because every write of the driver erases the blocks it covers. */
+int fs_format(void)
+{
+    if (fs_media.fx_media_id == FX_MEDIA_ID) (void)fx_media_abort(&fs_media);
+    (void)flash_layer_deinit();
+    fs_media_ready = false;
+    ++fs_generation;
+    if (!fs_generation) ++fs_generation;
+    memset(&fs_media, 0, sizeof(fs_media));
+#if FLASH_LAYER == FLASH_LAYER_LEVELX
+    if (flash_layer_format() != 0) return -FX_IO_ERROR;
+#else
+    if (flash_layer_init() != 0) return -FX_IO_ERROR;
+#endif
+    UINT status = fx_media_format(&fs_media, fs_media_driver, NULL,
+                                  (UCHAR *)fs_media_buffer, sizeof(fs_media_buffer),
+                                  "LIBAMP", 1, 128, 0,
+                                  (ULONG)(flash_layer_capacity / FS_FILEX_SECTOR_SIZE),
+                                  FS_FILEX_SECTOR_SIZE, 1, 1, 1);
+    if (status != FX_SUCCESS) {
+        (void)flash_layer_deinit();
+        return fs_result(status);
+    }
+    /* Reopening rebuilds the geometry, which format() itself does not do. */
+    memset(&fs_media, 0, sizeof(fs_media));
+    return 0;
 }
 
 /* Keep FileX's default directory at root, even between directory iterations. */

@@ -227,6 +227,7 @@ void keyboard_operation_event_handler(KeyboardEvent event);
 void keyboard_operation_event_poller(KeyboardEvent event, uint32_t tick);
 
 void keyboard_factory_reset(void);
+void keyboard_storage_format(void);
 
 void keyboard_profile_reset_to_default(void);
 void keyboard_profile_restore(void);

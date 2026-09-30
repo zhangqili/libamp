@@ -131,7 +131,7 @@ void packet_process_buffer(uint8_t *buf, uint16_t len)
         packet_buffer_push(buf, len, PACKET_BUFFER_CODE_RESPONSE);
         break;
     case PACKET_CODE_DEBUG:
-        packet_process_debug((PacketDataHeader*)buf);
+        packet_process_debug((PacketDebug*)buf);
         break;
     default:
         packet_process_user(buf, len);
@@ -348,7 +348,7 @@ void packet_process_config(PacketDataHeader*data)
     }
 }
 
-void packet_process_debug(PacketDataHeader*data)
+void packet_process_debug(PacketDebug*data)
 {
     PacketDebug* packet = (PacketDebug*)data;
     if (data->code == PACKET_CODE_DEBUG)
@@ -362,9 +362,9 @@ void packet_process_debug(PacketDataHeader*data)
     }
 }
 
-void packet_fill_debug(PacketDataHeader*data)
+void packet_fill_debug(PacketDebug*data)
 {
-    PacketDebug* packet = (PacketDebug*)data;
+    PacketDebug* packet = data;
     if (data->code == PACKET_CODE_DEBUG)
     {       
         packet->tick = g_keyboard_tick;
@@ -378,6 +378,14 @@ void packet_fill_debug(PacketDataHeader*data)
                 packet->data[i].value = g_keyboard_advanced_keys[key_index].value;
                 packet->data[i].state = g_keyboard_advanced_keys[key_index].key.state;
                 packet->data[i].report_state = g_keyboard_advanced_keys[key_index].key.report_state;
+            }
+            else if(key_index < TOTAL_KEY_NUM)
+            {
+                packet->data[i].raw = g_keyboard_keys[key_index-ADVANCED_KEY_NUM].state*ANALOG_VALUE_MAX + ANALOG_VALUE_MIN;
+                packet->data[i].filtered_raw = g_keyboard_keys[key_index-ADVANCED_KEY_NUM].state*ANALOG_VALUE_MAX + ANALOG_VALUE_MIN;
+                packet->data[i].value = g_keyboard_keys[key_index-ADVANCED_KEY_NUM].state*ANALOG_VALUE_MAX + ANALOG_VALUE_MIN;
+                packet->data[i].state = g_keyboard_keys[key_index-ADVANCED_KEY_NUM].state;
+                packet->data[i].report_state = g_keyboard_keys[key_index-ADVANCED_KEY_NUM].report_state;
             }
         }
     }
@@ -581,11 +589,11 @@ void packet_send_debug_packet(void)
         const uint16_t last_key_index = debug_buffer[DEBUG_BUFFER_MAX_LENGTH-1];
         for (uint8_t i = 0; i < DEBUG_BUFFER_MAX_LENGTH; i++)
         {
-            debug_buffer[i] = (last_key_index + 1 + i) % ADVANCED_KEY_NUM;
+            debug_buffer[i] = (last_key_index + 1 + i) % TOTAL_KEY_NUM;
             packet->data[i].index = debug_buffer[i];
         }
     }
-    packet_fill_debug((PacketDataHeader*)packet);
+    packet_fill_debug((PacketDebug*)packet);
     packet_buffer_push((uint8_t*)packet, 63, PACKET_BUFFER_CODE_DEBUG);
 }
 

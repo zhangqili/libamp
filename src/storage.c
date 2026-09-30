@@ -51,8 +51,19 @@ static inline void save_advanced_key_config(File *file, AdvancedKey* key)
 
 static inline void read_advanced_key_config(File *file, AdvancedKey* key)
 {
+    uint8_t calibration_mode = key->config.calibration_mode;
+    AnalogRawValue upper_bound = key->config.upper_bound;
+    AnalogRawValue lower_bound = key->config.lower_bound;
     fs_read(file, &key->config, sizeof(AdvancedKeyConfiguration));
-    advanced_key_set_range(key, key->config.upper_bound, key->config.lower_bound);
+    if (key->config.upper_bound != key->config.lower_bound)
+    {
+        advanced_key_set_range(key, key->config.upper_bound, key->config.lower_bound);
+    }
+    else
+    {
+        advanced_key_set_range(key, upper_bound, lower_bound);
+        key->config.calibration_mode = calibration_mode;
+    }
 }
 
 int storage_mount(void)
@@ -95,6 +106,16 @@ int storage_check_version(void)
 void storage_unmount(void)
 {
 
+}
+
+int storage_format(void)
+{
+    int res = fs_format();
+    if (res < 0)
+    {
+        return res;
+    }
+    return fs_init();
 }
 
 uint8_t storage_read_profile_index(void)

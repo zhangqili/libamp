@@ -445,6 +445,9 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
             case KEYBOARD_RECOVERY:
                 keyboard_profile_restore();
                 break;
+            case KEYBOARD_FORMAT_STORAGE:
+                keyboard_storage_format();
+                break;
 #ifdef RGB_ENABLE
             case KEYBOARD_RGB_BRIGHTNESS_UP:
                 if ((int16_t)g_rgb_base_config.brightness + 16 < 255)
@@ -647,6 +650,14 @@ void keyboard_factory_reset(void)
     }
     g_current_profile_index = 0;
     keyboard_profile_select(0);
+#endif
+}
+
+void keyboard_storage_format(void)
+{
+#ifdef STORAGE_ENABLE
+    storage_format();
+    keyboard_reboot();
 #endif
 }
 
