@@ -35,6 +35,10 @@ extern "C" {
 #define RECORD_SAVE_INTERVAL  1000
 #endif
 
+#ifndef RECORD_STATISTICS_IDLE_SAVE_MS
+#define RECORD_STATISTICS_IDLE_SAVE_MS (120UL * 1000UL)
+#endif
+
 #ifndef RECORD_STATISTICS_SAVE_INTERVAL_MS
 #define RECORD_STATISTICS_SAVE_INTERVAL_MS (30UL * 60UL * 1000UL)
 #endif
@@ -92,6 +96,7 @@ void record_kps_history_timer(void);
 
 #if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
 void record_reset_save_timer(void);
+void record_schedule_idle_save(void);
 #endif
 
 #ifdef RECORD_PERSIST_ENABLE

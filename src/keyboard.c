@@ -531,6 +531,9 @@ void keyboard_key_event_down_callback(Key*key)
 #endif
 #ifdef COUNTER_ENABLE
     g_key_counts[key->id]++;
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+    record_schedule_idle_save();
+#endif
 #endif
 }
 

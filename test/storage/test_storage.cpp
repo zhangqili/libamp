@@ -335,52 +335,141 @@ TEST(Storage, StatisticsRestoreDuringLibampInit)
     }
 }
 
+namespace {
+struct SavedStatistics {
+    uint64_t runtime = 0;
+    std::array<uint32_t, TOTAL_KEY_NUM> counts = {};
+};
+
+SavedStatistics read_saved_statistics()
+{
+    SavedStatistics saved;
+    File file;
+    EXPECT_GE(fs_open(&file, "system/stat", FS_O_RDONLY), 0);
+    EXPECT_EQ(sizeof(saved.runtime), fs_read(&file, &saved.runtime, sizeof(saved.runtime)));
+    EXPECT_EQ(sizeof(saved.counts), fs_read(&file, saved.counts.data(), sizeof(saved.counts)));
+    EXPECT_EQ(0, fs_close(&file));
+    return saved;
+}
+}
+
 TEST(Storage, StatisticsSaveAtConfiguredInterval)
 {
     const uint32_t interval_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_SAVE_INTERVAL_MS);
-
+    storage_save_statistics();
     g_runtime = 17;
-    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
-        g_key_counts[i] = i + 1U;
-    }
     g_keyboard_tick = interval_ticks - 1U;
-    keyboard_process();
+    record_process();
+    EXPECT_EQ(0ULL, read_saved_statistics().runtime);
 
-    g_runtime = 0;
-    std::memset(g_key_counts, 0, sizeof(g_key_counts));
-    storage_read_statistics();
-    EXPECT_EQ(0ULL, g_runtime);
-    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
-        EXPECT_EQ(0U, g_key_counts[i]);
-    }
-
-    g_runtime = 17;
-    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
-        g_key_counts[i] = i + 1U;
-    }
     g_keyboard_tick = interval_ticks;
-    keyboard_process();
+    record_process();
+    const auto saved = read_saved_statistics();
+    EXPECT_EQ(17ULL + RECORD_STATISTICS_SAVE_INTERVAL_MS, saved.runtime);
+    g_keyboard_tick += interval_ticks - 1U;
+    record_process();
+    EXPECT_EQ(saved.runtime, read_saved_statistics().runtime);
+    g_keyboard_tick = g_keyboard_tick + 1U;
+    record_process();
+    EXPECT_EQ(17ULL + 2ULL * RECORD_STATISTICS_SAVE_INTERVAL_MS, read_saved_statistics().runtime);
+}
 
-    g_runtime = 0;
-    std::memset(g_key_counts, 0, sizeof(g_key_counts));
-    storage_read_statistics();
-    EXPECT_EQ(17ULL + KEYBOARD_TICK_TO_TIME(interval_ticks), g_runtime);
-    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
-        EXPECT_EQ(i + 1U, g_key_counts[i]);
-    }
+TEST(Storage, StatisticsActivityRestartsIdleCountdown)
+{
+    const uint32_t idle_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_IDLE_SAVE_MS);
+    storage_save_statistics();
+    auto *key = keyboard_get_key(0);
+    keyboard_key_event_down_callback(key);
+    keyboard_key_event_up_callback(key);
+    g_keyboard_tick = idle_ticks - 1U;
+    keyboard_key_event_down_callback(key);
+    keyboard_key_event_up_callback(key);
+    g_keyboard_tick = idle_ticks;
+    record_process();
+    EXPECT_EQ(0U, read_saved_statistics().counts[0]);
 
-    g_runtime = 99;
-    std::memset(g_key_counts, 0x5A, sizeof(g_key_counts));
-    g_keyboard_tick = interval_ticks + 1U;
-    keyboard_process();
+    g_keyboard_tick = 2U * idle_ticks - 2U;
+    record_process();
+    EXPECT_EQ(0U, read_saved_statistics().counts[0]);
+    g_keyboard_tick = g_keyboard_tick + 1U;
+    record_process();
+    EXPECT_EQ(2U, read_saved_statistics().counts[0]);
 
-    g_runtime = 0;
-    std::memset(g_key_counts, 0, sizeof(g_key_counts));
-    storage_read_statistics();
-    EXPECT_EQ(17ULL + KEYBOARD_TICK_TO_TIME(interval_ticks), g_runtime);
-    for (uint16_t i = 0; i < TOTAL_KEY_NUM; i++) {
-        EXPECT_EQ(i + 1U, g_key_counts[i]);
-    }
+    // A new count change advances the normal interval to another 120-second wait.
+    keyboard_key_event_down_callback(key);
+    keyboard_key_event_up_callback(key);
+    g_keyboard_tick += idle_ticks;
+    record_process();
+    const auto saved = read_saved_statistics();
+    EXPECT_EQ(3U, saved.counts[0]);
+    g_keyboard_tick += idle_ticks;
+    record_process();
+    EXPECT_EQ(saved.runtime, read_saved_statistics().runtime);
+}
+
+TEST(Storage, StatisticsReleasesAndHeldKeysDoNotChangeCountdown)
+{
+    const uint32_t idle_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_IDLE_SAVE_MS);
+    storage_save_statistics();
+    auto *first = keyboard_get_key(0);
+    keyboard_key_event_down_callback(first);
+    g_keyboard_tick = idle_ticks / 2U;
+    keyboard_key_event_up_callback(first);
+    g_keyboard_tick = idle_ticks;
+    record_process();
+    EXPECT_EQ(1U, read_saved_statistics().counts[0]);
+
+    keyboard_key_event_down_callback(first);
+    g_keyboard_tick += idle_ticks - 1U;
+    record_process();
+    EXPECT_EQ(1U, read_saved_statistics().counts[0]);
+    g_keyboard_tick = g_keyboard_tick + 1U;
+    record_process();
+    EXPECT_EQ(2U, read_saved_statistics().counts[0]);
+}
+
+TEST(Storage, StatisticsCountChangeNearDeadlineLeavesFullIdleDelay)
+{
+    const uint32_t interval_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_SAVE_INTERVAL_MS);
+    const uint32_t idle_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_IDLE_SAVE_MS);
+    storage_save_statistics();
+    g_keyboard_tick = interval_ticks - 1U;
+    keyboard_key_event_down_callback(keyboard_get_key(0));
+    g_keyboard_tick = interval_ticks;
+    record_process();
+    EXPECT_EQ(0U, read_saved_statistics().counts[0]);
+    g_keyboard_tick = interval_ticks + idle_ticks - 1U;
+    record_process();
+    EXPECT_EQ(1U, read_saved_statistics().counts[0]);
+}
+
+TEST(Storage, StatisticsIdleCountdownHandlesTickWrap)
+{
+    const uint32_t idle_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_IDLE_SAVE_MS);
+    storage_save_statistics();
+    g_keyboard_tick = UINT32_MAX - idle_ticks / 2U;
+    keyboard_key_event_down_callback(keyboard_get_key(0));
+    keyboard_key_event_up_callback(keyboard_get_key(0));
+    g_keyboard_tick += idle_ticks - 1U;
+    record_process();
+    EXPECT_EQ(0U, read_saved_statistics().counts[0]);
+    g_keyboard_tick = g_keyboard_tick + 1U;
+    record_process();
+    EXPECT_EQ(1U, read_saved_statistics().counts[0]);
+}
+
+TEST(Storage, ExplicitStatisticsSaveRestoresNormalInterval)
+{
+    const uint32_t idle_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_IDLE_SAVE_MS);
+    keyboard_key_event_down_callback(keyboard_get_key(0));
+    keyboard_key_event_up_callback(keyboard_get_key(0));
+    record_reset_save_timer();
+    storage_save_statistics();
+    const auto saved = read_saved_statistics();
+    EXPECT_EQ(1U, saved.counts[0]);
+    g_keyboard_tick = idle_ticks * 2U;
+    record_process();
+    EXPECT_EQ(saved.runtime, read_saved_statistics().runtime);
 }
 
 TEST(Storage, ScriptBytecodeRoundTrip)

@@ -85,6 +85,9 @@ LoopArrayElement loop_array_max(LoopArray *arr)
 
 void record_init()
 {
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+    record_reset_save_timer();
+#endif
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
 #ifdef ANALOG_HISTORY_ENABLE
@@ -117,6 +120,12 @@ void record_process(void)
 void record_reset_save_timer(void)
 {
     statistics_last_save_tick = g_keyboard_tick;
+}
+
+void record_schedule_idle_save(void)
+{
+    statistics_last_save_tick = g_keyboard_tick - KEYBOARD_TIME_TO_TICK(
+        RECORD_STATISTICS_SAVE_INTERVAL_MS - RECORD_STATISTICS_IDLE_SAVE_MS);
 }
 #endif
 

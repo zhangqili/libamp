@@ -219,6 +219,7 @@ typedef struct __PacketRecordRuntime
 {
   PacketDataHeader header;
   uint8_t sub_cmd;
+  uint64_t uptime;
   uint64_t runtime;
 } __PACKED PacketRecordRuntime;
 

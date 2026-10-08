@@ -500,6 +500,7 @@ void packet_process_record(PacketDataHeader *data)
         {
         case PACKET_DATA_RECORD_RUNTIME:
             {
+                ((PacketRecordRuntime *)data)->uptime = KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
 #ifdef RECORD_PERSIST_ENABLE
                 ((PacketRecordRuntime *)data)->runtime = record_get_runtime();
 #else

@@ -477,6 +477,13 @@ recovers the selected profile. Storage therefore must be usable before calling
 other application data.
 A mount failure formats the partition automatically.
 
+With `RECORD_PERSIST_ENABLE`, statistics are saved to `system/stat` every
+`RECORD_STATISTICS_SAVE_INTERVAL_MS` (30 minutes by default). A key count change
+advances the save timer so only `RECORD_STATISTICS_IDLE_SAVE_MS` (120 seconds by
+default) remain; subsequent count changes restart those 120 seconds. Saving
+resets the normal interval. Key releases and held keys do not affect the timer.
+Statistics writes and resets from the host still save immediately.
+
 ### 4.1 FileX FAT Storage and the Flash Layer
 
 `FILE_SYSTEM_TYPE` defaults to `FILE_SYSTEM_LFS`; define it as

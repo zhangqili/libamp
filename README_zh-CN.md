@@ -365,6 +365,8 @@ int flash_erase(uint32_t address, uint32_t size);
 启动时，`keyboard_init()` 会挂载存储、检查保存的版本并恢复选中的配置文件。因此必须在调用 `keyboard_init()` 之前使存储可用。不要将文件系统放在固件、Bootloader 或其他应用数据上。
 文件系统挂载失败时会自动格式化分区。
 
+启用 `RECORD_PERSIST_ENABLE` 后，统计信息按 `RECORD_STATISTICS_SAVE_INTERVAL_MS`（默认 30 分钟）保存到 `system/stat`。按键次数变化时，将保存计时器推进到距到期 `RECORD_STATISTICS_IDLE_SAVE_MS`（默认 120 秒）的位置；后续次数变化会重新安排这 120 秒。保存后恢复正常周期。松开或保持按住按键不影响计时。上位机写入或清空统计仍立即保存。
+
 ### 4.1 FileX FAT 存储与 flash 层
 
 `FILE_SYSTEM_TYPE` 默认为 `FILE_SYSTEM_LFS`；在 `keyboard_config.h` 中定义为 `FILE_SYSTEM_FILEX`，即可使用 FileX FAT。
