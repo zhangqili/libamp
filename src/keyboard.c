@@ -598,6 +598,9 @@ void keyboard_init(void)
     }
 #ifdef RECORD_PERSIST_ENABLE
     storage_read_statistics();
+#ifdef COUNTER_ENABLE
+    memcpy(g_key_counts_at_startup, g_key_counts, sizeof(g_key_counts));
+#endif
     record_init();
 #endif
 #endif

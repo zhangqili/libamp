@@ -485,6 +485,33 @@ void packet_process_record(PacketDataHeader *data)
 #endif
             }
             break;
+        case PACKET_DATA_RECORD_KEYCOUNT_SINCE_BOOT:
+            {
+#ifdef COUNTER_ENABLE
+#ifdef RECORD_PERSIST_ENABLE
+                PacketRecordKeyCount *record = (PacketRecordKeyCount *)data;
+                for (uint16_t i = 0; i < record->length; i++)
+                {
+                    const uint16_t key_index = record->data[i].key_index;
+                    if (key_index < TOTAL_KEY_NUM)
+                    {
+                        g_key_counts[key_index] = record->data[i].count + g_key_counts_at_startup[key_index];
+                    }
+                }
+#else
+                PacketRecordKeyCount *record = (PacketRecordKeyCount *)data;
+                for (uint16_t i = 0; i < record->length; i++)
+                {
+                    const uint16_t key_index = record->data[i].key_index;
+                    if (key_index < TOTAL_KEY_NUM)
+                    {
+                        g_key_counts[key_index] = record->data[i].count;
+                    }
+                }
+#endif
+#endif
+            }
+            break;
         default:
             break;
         }
@@ -516,6 +543,24 @@ void packet_process_record(PacketDataHeader *data)
                     const uint16_t key_index = record->data[i].key_index;
 #ifdef COUNTER_ENABLE
                     record->data[i].count = g_key_counts[key_index];
+#else
+                    record->data[i].count = 0;
+#endif
+                }
+            }
+            break;
+        case PACKET_DATA_RECORD_KEYCOUNT_SINCE_BOOT:
+            {
+                PacketRecordKeyCount *record = (PacketRecordKeyCount *)data;
+                for (uint16_t i = 0; i < record->length; i++)
+                {
+                    const uint16_t key_index = record->data[i].key_index;
+#ifdef COUNTER_ENABLE
+#ifdef RECORD_PERSIST_ENABLE
+                    record->data[i].count = g_key_counts[key_index] - g_key_counts_at_startup[key_index];
+#else
+                    record->data[i].count = g_key_counts[key_index];
+#endif
 #else
                     record->data[i].count = 0;
 #endif

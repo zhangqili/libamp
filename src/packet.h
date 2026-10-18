@@ -207,6 +207,7 @@ typedef struct __PacketLargeData
 enum {
   PACKET_DATA_RECORD_RUNTIME = 0x00,
   PACKET_DATA_RECORD_KEYCOUNT = 0x01,
+  PACKET_DATA_RECORD_KEYCOUNT_SINCE_BOOT = 0x02,
 };
 typedef struct __PacketRecord
 {

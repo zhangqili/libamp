@@ -30,6 +30,9 @@ size_t g_bit_stream_datas[ADVANCED_KEY_NUM][BIT_DATA_LENGTH];
 
 #ifdef COUNTER_ENABLE
 uint32_t g_key_counts[TOTAL_KEY_NUM];
+#ifdef RECORD_PERSIST_ENABLE
+uint32_t g_key_counts_at_startup[TOTAL_KEY_NUM];
+#endif
 #endif
 
 #ifdef RECORD_PERSIST_ENABLE

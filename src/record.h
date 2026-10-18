@@ -60,6 +60,9 @@ extern uint64_t g_runtime;
 
 #ifdef COUNTER_ENABLE
 extern uint32_t g_key_counts[TOTAL_KEY_NUM];
+#ifdef RECORD_PERSIST_ENABLE
+extern uint32_t g_key_counts_at_startup[TOTAL_KEY_NUM];
+#endif
 #endif
 
 #ifdef KPS_ENABLE

@@ -210,7 +210,7 @@ int fs_close(File * file);
 int fs_unlink(const char * name);
 int fs_rename(const char * old, const char * new_name);
 size_t fs_read(File *file, void *ptr, size_t size);
-size_t fs_write(File *file, void *ptr, size_t size);
+size_t fs_write(File *file, const void *ptr, size_t size);
 int fs_seek(File *file,  FilePosition offset, int whence);
 FilePosition fs_tell(File * file);
 int fs_truncate(File * file, FilePosition size);

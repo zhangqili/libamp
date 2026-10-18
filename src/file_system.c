@@ -414,7 +414,7 @@ size_t fs_read(File *file, void *ptr, size_t size)
     return 0;
 }
 
-size_t fs_write(File *file, void *ptr, size_t size)
+size_t fs_write(File *file, const void *ptr, size_t size)
 {
     UNUSED(ptr);
     UNUSED(size);
@@ -698,7 +698,7 @@ size_t fs_read(File *file, void *ptr, size_t size)
     return (size_t)(res);
 }
 
-size_t fs_write(File *file, void *ptr, size_t size)
+size_t fs_write(File *file, const void *ptr, size_t size)
 {
     if (ptr == NULL || file == NULL)
         return 0;
@@ -1290,7 +1290,7 @@ static UINT fs_extend(File *file, ULONG size)
     return status;
 }
 
-size_t fs_write(File *file, void *ptr, size_t size)
+size_t fs_write(File *file, const void *ptr, size_t size)
 {
     if (!fs_file_valid(file) || !ptr || (file->flags & FS_MODE_MASK) == FS_O_RDONLY || !size) return 0;
     if (file->flags & FS_O_APPEND) file->position = (FilePosition)file->handle.fx_file_current_file_size;
