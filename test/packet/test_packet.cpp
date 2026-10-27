@@ -219,6 +219,11 @@ TEST(Packet, SetAndGetRGBBaseConfig)
     packet->density = 90;
     packet->brightness = 100;
 
+    rgb_set_brightness(100);
+    rgb_set(0, 255, 128, 64);
+    const ColorRGB expected_led = led_color_buffer[0];
+    rgb_set_brightness(255);
+
     packet_process(buffer.data(), sizeof(PacketRGBBaseConfig));
 
     EXPECT_EQ(RGB_BASE_MODE_WAVE, g_rgb_base_config.mode);
@@ -226,6 +231,10 @@ TEST(Packet, SetAndGetRGBBaseConfig)
     EXPECT_EQ(20, g_rgb_base_config.rgb.g);
     EXPECT_EQ(30, g_rgb_base_config.rgb.b);
     EXPECT_EQ(100, g_rgb_base_config.brightness);
+    rgb_set(0, 255, 128, 64);
+    EXPECT_EQ(expected_led.r, led_color_buffer[0].r);
+    EXPECT_EQ(expected_led.g, led_color_buffer[0].g);
+    EXPECT_EQ(expected_led.b, led_color_buffer[0].b);
 
     buffer.fill(0);
     packet = packet_as<PacketRGBBaseConfig>(buffer);

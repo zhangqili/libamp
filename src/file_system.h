@@ -23,9 +23,6 @@ extern "C" {
 #define FS_TYPE_REG 1
 #define FS_TYPE_DIR 2
 
-/* Without STORAGE_ENABLE nothing in libamp needs a file system, so the stub
- * backend is compiled and no flash geometry has to be configured. Define
- * FILE_SYSTEM_TYPE explicitly to use the fs_* API without libamp storage. */
 #ifndef FILE_SYSTEM_TYPE
 #ifdef STORAGE_ENABLE
 #define FILE_SYSTEM_TYPE FILE_SYSTEM_LFS

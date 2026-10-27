@@ -18,8 +18,6 @@ void event_cache_init(void)
     event_loop_queue_init(&event_cache_buffer, event_cache_buffers, EVENT_CACHE_BUFFER_LENGTH);
 }
 
-/* Move the events queued from other contexts into the cache, then add every
- * cached event (held virtual keys of macros and scripts) to the report. */
 void event_cache_add_to_report(void)
 {
     event_loop_queue_foreach(&event_cache_buffer, EventLoopQueueElm, event)

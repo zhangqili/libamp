@@ -44,7 +44,8 @@ lut_output = np.clip(np.round(lut_analog_values), min_val_bound, max_val_bound).
 def generate_c_header():
     normalize_function = '''
 /* advanced_key_lut_index() maps the calibrated raw range onto 0..LUT_LENGTH
- * (inclusive, clamped) without overflow; the table has LUT_LENGTH entries. */
+ * (inclusive, clamped) without overflow; the table has LUT_LENGTH entries.
+ * Entries already include ANALOG_VALUE_MIN. */
 AnalogValue advanced_key_normalize(AdvancedKey* advanced_key, AnalogRawValue value)
 {
     int32_t index = advanced_key_lut_index(advanced_key, value);
@@ -52,7 +53,7 @@ AnalogValue advanced_key_normalize(AdvancedKey* advanced_key, AnalogRawValue val
     {
         index = LUT_LENGTH - 1;
     }
-    return (AnalogValue)(table[index] + ANALOG_VALUE_MIN);
+    return (AnalogValue)table[index];
 }'''
     print("#include <stdint.h>")
     print("#include \"advanced_key.h\"\n")

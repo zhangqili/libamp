@@ -10,8 +10,6 @@
 #include "packet.h"
 #include "packet_buffer.h"
 #include "analog.h"
-#include "advanced_key_internal.h"
-#include "keyboard_internal.h"
 
 #include "stdio.h"
 #include "string.h"
@@ -152,7 +150,6 @@ void keyboard_report_clear(void)
 }
 
 
-/* Win lock drops both GUI modifiers from an outgoing report. */
 static inline void keyboard_report_apply_winlock(uint8_t *modifier)
 {
     if (g_keyboard_config.winlock)
@@ -172,7 +169,6 @@ int keyboard_report_send(void)
     keyboard_nkro_buffer.report_id = REPORT_ID_NKRO;
 #endif
 #if defined(MIXED_KRO_ENABLE)
-    /* Mixed: the 6KRO report always goes out, the NKRO report carries the overflow. */
     if (g_keyboard_config.nkro)
     {
         return keyboard_6kro_report_send(&keyboard_6kro_buffer) || keyboard_nkro_report_send(&keyboard_nkro_buffer);
@@ -189,8 +185,6 @@ int keyboard_report_send(void)
 void keyboard_report_add(KeyboardEvent event)
 {
 #ifdef MIXED_KRO_ENABLE
-    /* Keys beyond the six 6KRO slots spill into the NKRO bitmap (without
-     * their modifiers, which the 6KRO report already carries). */
     if (keyboard_6kro_report_add(&keyboard_6kro_buffer, event.keycode) && g_keyboard_config.nkro)
     {
         keyboard_nkro_report_add(&keyboard_nkro_buffer, KEYCODE_GET_MAIN(event.keycode));
@@ -231,8 +225,6 @@ void keyboard_keycode_event_handler(KeyboardEvent event)
     }
 }
 
-/* A press or release that a handler accepted: queue it for the foreground
- * poller, let scripts and macro recording see it, and run the key callbacks. */
 static void keyboard_key_event_dispatch(KeyboardEvent event, bool pressed)
 {
     event_loop_queue_push(&event_buffer, (EventLoopQueueElm){event, g_keyboard_tick});
@@ -343,12 +335,14 @@ void keyboard_event_poller(KeyboardEvent event, uint32_t tick)
     }
     script_key_event_poller(event, tick);
 #endif
-#ifdef RGB_ENABLE
     if (!event.is_virtual && event.event == KEYBOARD_EVENT_KEY_DOWN)
-    {
-        rgb_activate(((Key*)event.key)->id, tick);
-    }
+    {    
+        Key * key = (Key*)event.key;
+#ifdef RGB_ENABLE
+        rgb_activate(key->id, g_keyboard_tick);
 #endif
+        // keyboard_key_event_down_callback((Key*)event.key);
+    }
     switch (KEYCODE_GET_MAIN(event.keycode))
     {
     case SCRIPT_COLLECTION:
@@ -411,7 +405,7 @@ void keyboard_event_report_handler(KeyboardEvent event)
 static void keyboard_rgb_brightness_step(int step)
 {
     const int brightness = (int)g_rgb_base_config.brightness + step;
-    g_rgb_base_config.brightness = (uint8_t)(brightness > 255 ? 255 : (brightness < 0 ? 0 : brightness));
+    rgb_set_brightness((uint8_t)(brightness > 255 ? 255 : (brightness < 0 ? 0 : brightness)));
 }
 #endif
 
@@ -495,7 +489,6 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
         keyboard_key_event_up_dispatch(event);
         if (KEYCODE_GET_SUB(event.keycode) == KEYBOARD_CALIBRATE)
         {
-            /* Calibration runs on release, after a delay, so the hand is off the keys. */
 #if defined(NEXUS_ENABLE) && !NEXUS_IS_SLAVE
             nexus_calibrate();
 #endif
@@ -541,6 +534,9 @@ void keyboard_key_event_down_callback(Key*key)
 #endif
 #ifdef COUNTER_ENABLE
     g_key_counts[key->id]++;
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+    record_schedule_idle_save();
+#endif
 #endif
 }
 
@@ -609,6 +605,9 @@ void keyboard_init(void)
     }
 #ifdef RECORD_PERSIST_ENABLE
     storage_read_statistics();
+#ifdef COUNTER_ENABLE
+    memcpy(g_key_counts_at_startup, g_key_counts, sizeof(g_key_counts));
+#endif
     record_init();
 #endif
 #endif
@@ -851,7 +850,6 @@ void keyboard_report_send_all(void)
 #endif
 }
 
-/* Sample every local analog key and run it through the key pipeline. */
 static void keyboard_task_update_advanced_keys(void)
 {
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
@@ -861,7 +859,6 @@ static void keyboard_task_update_advanced_keys(void)
     }
 }
 
-/* Build and send the HID reports for this tick, then flush raw packets. */
 static void keyboard_task_send_reports(void)
 {
 #ifdef SUSPEND_ENABLE
@@ -958,20 +955,33 @@ void keyboard_process(void)
 #endif
 }
 
+static inline bool keyboard_key_report_and_dispatch(Key *key)
+{
+    const bool changed = keyboard_key_set_report_state(key, keyboard_key_debounce(key));
+    const Keycode keycode = layer_cache_get_keycode(key->id);
+    if (changed || keyboard_keycode_dispatches_unchanged(keycode))
+    {
+        /* Most polls have nothing to dispatch. Keep event construction on
+         * this branch so Cortex-M does not spill an unused event to stack. */
+        keyboard_event_handler(MK_EVENT(keycode, EVENT_TYPE(changed, key->report_state), key));
+    }
+    return changed;
+}
 
 bool keyboard_key_update(Key *key, bool state)
 {
-    return keyboard_update_key_state(key, state);
+    key_update(key, state);
+    return keyboard_key_report_and_dispatch(key);
 }
 
 bool keyboard_advanced_key_update(AdvancedKey *advanced_key, AnalogValue value)
 {
-    advanced_key_update_value(advanced_key, value);
+    advanced_key_update(advanced_key, value);
     return keyboard_key_report_and_dispatch(&advanced_key->key);
 }
 
 bool keyboard_advanced_key_update_raw(AdvancedKey *advanced_key, AnalogRawValue raw)
 {
-    advanced_key_update_sample(advanced_key, raw);
+    advanced_key_update_raw(advanced_key, raw);
     return keyboard_key_report_and_dispatch(&advanced_key->key);
 }

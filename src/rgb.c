@@ -59,32 +59,11 @@ static RGBArgumentListNode rgb_argument_list_buffer[RGB_ARGUMENT_LIST_BUFFER_LEN
 static uint32_t rgb_frame_tick;
 static bool rgb_frame_rendered;
 
-/* Per-frame constants of the base effect that depend only on the
- * configuration: the direction's sine and cosine, and the base color in HSV.
- * They are recomputed only when the configuration value they derive from
- * changes, which spares two libm calls and a color conversion per frame
- * without changing a single frame. */
-static float rgb_base_direction_sin;
-static float rgb_base_direction_cos;
-static uint16_t rgb_base_direction_cached;
-static bool rgb_base_direction_valid;
-static ColorHSV rgb_base_hsv_cached;
-static ColorRGB rgb_base_rgb_cached;
-static bool rgb_base_hsv_valid;
-
-static void rgb_base_cache_invalidate(void)
-{
-    rgb_base_direction_valid = false;
-    rgb_base_hsv_valid = false;
-}
-
-#ifdef RGB_GAMMA_ENABLE
+#if defined(RGB_GAMMA_ENABLE) && defined(RGB_GAMMA_LUT_ENABLE)
 /* Gamma curve and global brightness folded into one byte-to-byte table, so a
  * frame costs three lookups per LED instead of three powf() calls. Rebuilt
- * only when the brightness changes. */
+ * by rgb_set_brightness(). */
 static uint8_t rgb_output_lut[256];
-static uint8_t rgb_output_lut_brightness;
-static bool rgb_output_lut_valid;
 
 static void rgb_output_lut_rebuild(uint8_t brightness)
 {
@@ -93,8 +72,6 @@ static void rgb_output_lut_rebuild(uint8_t brightness)
     {
         rgb_output_lut[value] = (uint8_t)(GAMMA_CORRECT(value, 255) * brightness_scale + 0.5f);
     }
-    rgb_output_lut_brightness = brightness;
-    rgb_output_lut_valid = true;
 }
 #endif
 
@@ -113,10 +90,7 @@ void rgb_init(void)
     }
 #endif
     rgb_frame_rendered = false;
-    rgb_base_cache_invalidate();
-#ifdef RGB_GAMMA_ENABLE
-    rgb_output_lut_valid = false;
-#endif
+    rgb_set_brightness(g_rgb_base_config.brightness);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -172,16 +146,9 @@ static void rgb_render_base(void)
     {
         return;
     }
-    if (!rgb_base_direction_valid || rgb_base_direction_cached != g_rgb_base_config.direction)
-    {
-        const float direction = (float)g_rgb_base_config.direction * ((float)M_PI / 180.0f);
-        rgb_base_direction_sin = sinf(direction);
-        rgb_base_direction_cos = cosf(direction);
-        rgb_base_direction_cached = g_rgb_base_config.direction;
-        rgb_base_direction_valid = true;
-    }
-    const float direction_sin = rgb_base_direction_sin;
-    const float direction_cos = rgb_base_direction_cos;
+    const float direction = (float)g_rgb_base_config.direction * ((float)M_PI / 180.0f);
+    const float direction_sin = sinf(direction);
+    const float direction_cos = cosf(direction);
     const float time_offset = rgb_base_time_offset();
     const float density = g_rgb_base_config.density;
     ColorRGB temp_rgb;
@@ -191,15 +158,8 @@ static void rgb_render_base(void)
 #if RGB_BASE_MODE_USE_RAINBOW
     case RGB_BASE_MODE_RAINBOW:
     {
-        const ColorRGB *base_rgb = &g_rgb_base_config.rgb;
-        if (!rgb_base_hsv_valid || rgb_base_rgb_cached.r != base_rgb->r ||
-            rgb_base_rgb_cached.g != base_rgb->g || rgb_base_rgb_cached.b != base_rgb->b)
-        {
-            rgb_to_hsv(&rgb_base_hsv_cached, base_rgb);
-            rgb_base_rgb_cached = *base_rgb;
-            rgb_base_hsv_valid = true;
-        }
-        ColorHSV hsv = rgb_base_hsv_cached;
+        ColorHSV hsv;
+        memcpy(&hsv, &g_rgb_base_config.hsv, sizeof(hsv));
         const float base_hue = hsv.h;
         for (uint16_t i = 0; i < RGB_NUM; i++)
         {
@@ -545,14 +505,24 @@ __WEAK void rgb_update_callback(void)
 
 }
 
+void rgb_set_brightness(uint8_t brightness)
+{
+    g_rgb_base_config.brightness = brightness;
+#if defined(RGB_GAMMA_ENABLE) && defined(RGB_GAMMA_LUT_ENABLE)
+    rgb_output_lut_rebuild(brightness);
+#endif
+}
+
 void rgb_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b)
 {
-#ifdef RGB_GAMMA_ENABLE
-    if (!rgb_output_lut_valid || rgb_output_lut_brightness != g_rgb_base_config.brightness)
-    {
-        rgb_output_lut_rebuild(g_rgb_base_config.brightness);
-    }
+#if defined(RGB_GAMMA_ENABLE) && defined(RGB_GAMMA_LUT_ENABLE)
     led_set(index, rgb_output_lut[r], rgb_output_lut[g], rgb_output_lut[b]);
+#elif defined(RGB_GAMMA_ENABLE)
+    const float brightness_scale = g_rgb_base_config.brightness / 255.0f;
+    r = (uint8_t)(GAMMA_CORRECT(r, 255) * brightness_scale + 0.5f);
+    g = (uint8_t)(GAMMA_CORRECT(g, 255) * brightness_scale + 0.5f);
+    b = (uint8_t)(GAMMA_CORRECT(b, 255) * brightness_scale + 0.5f);
+    led_set(index, r, g, b);
 #else
     const uint8_t brightness = g_rgb_base_config.brightness;
     led_set(index, (uint8_t)((r * brightness) >> 8), (uint8_t)((g * brightness) >> 8), (uint8_t)((b * brightness) >> 8));
@@ -631,7 +601,7 @@ void rgb_factory_reset(void)
 {
     const ColorHSV default_hsv = RGB_DEFAULT_COLOR_HSV;
     g_rgb_base_config.mode = RGB_BASE_MODE_BLANK;
-    g_rgb_base_config.brightness = 255;
+    rgb_set_brightness(255);
     g_rgb_base_config.density = 32;
     g_rgb_base_config.direction = 0;
     g_rgb_base_config.speed = (int16_t)(RGB_DEFAULT_SPEED);

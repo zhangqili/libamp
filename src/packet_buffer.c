@@ -29,7 +29,7 @@ int packet_buffer_push(const uint8_t *data, uint16_t length, uint8_t code)
     }
     memcpy(packet_buffer[code], data, length);
     packet_buffer_lengths[code] = length;
-    LIBAMP_COMPILER_FENCE(); /* the packet is complete before it is announced */
+    COMPILER_FENCE(); /* the packet is complete before it is announced */
     packet_buffer_pending[code] = true;
     return 0;
 }
@@ -50,7 +50,7 @@ int packet_buffer_flush(void)
         {
             return 1; /* transport busy: keep the packet, try again next tick */
         }
-        LIBAMP_COMPILER_FENCE(); /* the transport has copied the packet */
+        COMPILER_FENCE(); /* the transport has copied the packet */
         packet_buffer_pending[code] = false;
     }
     return 0;

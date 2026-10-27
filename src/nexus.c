@@ -8,7 +8,6 @@
 #include "driver.h"
 #include "analog.h"
 #include "layer.h"
-#include "keyboard_internal.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -23,7 +22,7 @@
  * the flag that announces it. This is sufficient on a single core; a
  * multi-core port would need hardware barriers in NEXUS_FENCE().
  */
-#define NEXUS_FENCE() LIBAMP_COMPILER_FENCE()
+#define NEXUS_FENCE() COMPILER_FENCE()
 
 #define NEXUS_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define NEXUS_LINK_TIMEOUT_TICKS    KEYBOARD_TIME_TO_TICK(NEXUS_LINK_TIMEOUT_MS)
@@ -403,7 +402,7 @@ static inline void nexus_apply_bitmap_word(NexusSlave *slave, uint32_t bitmap, u
             bitmap >>= 1;
             if (key != NULL && nexus_key_update_has_effect(key, state))
             {
-                keyboard_update_key_state(key, state);
+                keyboard_key_update(key, state);
                 end = nexus_bitmap_word_end(slave, first);
             }
         }

@@ -119,9 +119,10 @@ own USB identifiers before shipping hardware.
 #define SERIAL_NUMBER            "0001"
 ```
 
-`POLLING_RATE` is the USB keyboard report rate and the frequency of both
-`g_keyboard_tick` and `keyboard_task()`. Use `1000` for a full-speed USB
-keyboard (1 kHz) and `8000` for a high-speed USB keyboard (8 kHz); define
+`POLLING_RATE` sets the frequency of `g_keyboard_tick` and `keyboard_task()`.
+The USB endpoint interval is configured separately by `USB_POLLING_INTERVAL_MS`;
+reports are sent when pending, or attempted every tick with `continuous_poll`
+enabled. Use `1000` for a full-speed USB keyboard (1 kHz) and `8000` for a high-speed USB keyboard (8 kHz); define
 `CONFIG_USB_HS` for the latter. Keep `USB_POLLING_INTERVAL_MS` at `1`: it is a
 1 ms interval at full speed and one 125 us microframe at high speed.
 
@@ -204,22 +205,28 @@ AnalogValue advanced_key_normalize(AdvancedKey *key, AnalogRawValue sample)
         return ANALOG_VALUE_MIN;
     }
 
-    int64_t value = ((int64_t)(upper - (int32_t)sample) * ANALOG_VALUE_MAX) / span;
-    if (value < ANALOG_VALUE_MIN) return ANALOG_VALUE_MIN;
-    if (value > ANALOG_VALUE_MAX) return ANALOG_VALUE_MAX;
-    return (AnalogValue)value;
+    int64_t travel = ((int64_t)(upper - (int32_t)sample) * ANALOG_VALUE_RANGE) / span;
+    if (travel < 0) return ANALOG_VALUE_MIN;
+    if (travel > ANALOG_VALUE_RANGE) return ANALOG_VALUE_MAX;
+    return (AnalogValue)(travel + ANALOG_VALUE_MIN);
 }
 ```
 
-The default implementation is the same linear mapping without any division on
-the sampling path: `advanced_key_set_range()` precomputes a fixed-point scale
-when the calibrated range changes.
+The default implementation uses a Q16 scale precomputed by
+`advanced_key_set_range()` to obtain a clamped LUT index, then rescales that
+index to `ANALOG_VALUE_RANGE` and adds `ANALOG_VALUE_MIN`. This fixed-point
+mapping may differ slightly from the direct formula above. Its final rescaling
+still contains a division by the compile-time `LUT_LENGTH`; whether that becomes
+a multiply/shift depends on the configuration and compiler.
 
 For a non-linear magnetic response, `tools/lut_generator/lut_generator.py` can
 generate a lookup table and an `advanced_key_normalize()` override. The
 override calls `advanced_key_lut_index()`, which maps the calibrated range onto
-`0` through `LUT_LENGTH` without overflow, and reads the table at that index.
-Set the script's constants for the switch geometry:
+`0` through `LUT_LENGTH` (inclusive) without overflow and clamps the final
+index to `LUT_LENGTH - 1` before reading the table. Entries are absolute
+normalized values that already include `ANALOG_VALUE_MIN`; the override returns
+them without adding the minimum again. Set the script's constants for the
+switch geometry:
 
 | Constant | Meaning |
 | --- | --- |
@@ -228,13 +235,13 @@ Set the script's constants for the switch geometry:
 | `Z_END` | Axial distance, in mm, from the sensor to the magnet at the end of travel. Use the same physical reference point as `Z_START`. |
 | `Z_START` | Axial sensor-to-magnet distance, in mm, at the start of travel. It must be greater than `Z_END`; their difference is the modeled travel. |
 | `LUT_LENGTH` | Number of lookup-table entries. It must equal the firmware's `LUT_LENGTH` configuration. |
-| `ANALOG_VALUE_MIN` / `ANALOG_VALUE_MAX` | Generated normalized values at the start and end of travel respectively. |
+| `ANALOG_VALUE_MIN` / `ANALOG_VALUE_MAX` | Generated normalized values at the start and end of travel. Match the firmware and keep `0 <= MIN < MAX <= 65535`. |
 
 Then generate the C source (the script requires NumPy):
 
 ```bash
 python3 -m pip install numpy
-python3 lut_generator.py > analog_lut.c
+python3 tools/lut_generator/lut_generator.py > analog_lut.c
 ```
 
 Compile the generated table and function with the firmware, ensuring the source
@@ -297,11 +304,14 @@ timer/RTOS schedule or from a deadline-driven bare-metal loop, at exactly
 `POLLING_RATE`.
 
 Run `keyboard_process()` continuously outside the time-critical sampling path.
-It handles queued events, protocol work, and optional runtime processing.
-Calling it more often than the keyboard tick costs little: the RGB renderer
-produces at most one frame per tick and returns immediately otherwise. Boards
-that tick at several kHz can set `RGB_MAX_FRAME_RATE` to space frames further
-apart; effects are timed by the tick, so they look the same at any frame rate.
+It handles queued key events, delayed calibration, and enabled background work
+such as RGB rendering, Nexus configuration sync, and statistics saving. Raw HID
+requests are processed synchronously by the receive callback, not by this loop.
+The RGB renderer produces at most one frame per tick. Set `RGB_MAX_FRAME_RATE`
+to space frames further apart; it defaults to `POLLING_RATE`. The actual interval
+is `max(POLLING_RATE / RGB_MAX_FRAME_RATE, 1)` ticks, using integer division.
+Choose a positive divisor of `POLLING_RATE` for an exact target rate. Effects
+remain timed by the tick; fewer frames sample the same animation time scale.
 
 ```c
 int main(void)
@@ -333,19 +343,28 @@ platform is responsible for every subsequent increment.
 
 #### Execution contexts
 
-libamp assumes three contexts, from highest to lowest priority. Each entry
-point below belongs to exactly one of them.
+The following table describes where the built-in task and transport paths run.
+Platform callbacks and application calls retain their caller's context.
 
 | Context | Entry points | Notes |
 | --- | --- | --- |
-| Transport interrupt (may preempt the tick) | `nexus_process_buffer()`, `packet_process_buffer()`, `midi_input_callback()`, `ringbuf_push()`, `encoder_input()`, `encoder_input_delta()` | Short and allocation-free. They publish word-sized values that the tick picks up; keep their priority at or above the tick's. |
-| Keyboard tick (`POLLING_RATE`, timer interrupt or deadline loop) | `keyboard_task()` and everything it calls: key sampling, debounce, event handlers, HID report sending, `packet_buffer_flush()`, `nexus_process()` / `nexus_send_report()` | Must not be re-entered. `hid_send_*()` and `nexus_report()` are therefore called from this context and must not block. |
-| Main loop | `keyboard_process()` (event poller, `rgb_process()`, `nexus_poll()`, console flush, statistics saving, delayed calibration), `analog_calibrate()`, `rgb_init_flash()`, `rgb_flash()`, every `storage_*()` and `fs_*()` function, `nexus_request_timeout()` / `nexus_send_timeout()` | May take milliseconds (flash writes, calibration scans). The synchronous Nexus requests spin on `g_keyboard_tick`, so the tick must already be running. |
+| Input/transport callback | `ringbuf_push()`, `encoder_input()`, `encoder_input_delta()`, `midi_input_callback()`, `nexus_process_buffer()`, `packet_process_buffer()` | The platform determines whether these run in an interrupt. Packet processing is synchronous and can access flash or invoke user code. On a Nexus slave, `nexus_process_buffer()` also processes command packets synchronously. |
+| Keyboard tick (`POLLING_RATE`) | `keyboard_task()`: scan, debounce, event handlers, HID reports, `packet_buffer_flush()`, `nexus_process()` / `nexus_send_report()` | Must not be re-entered. Transport send functions reached here must not block. Scripts also run here unless `SCRIPT_POLLING` is defined. |
+| Main loop | `keyboard_process()`: key-event poller, `rgb_process()`, `nexus_poll()`, console flush, statistics saving, delayed calibration | Flash writes and calibration can take milliseconds. Defining `SCRIPT_POLLING` also moves periodic script processing here. |
 
-Keyboard operations bound to keys (`KEYBOARD_SAVE`, profile selection, factory
-reset) write to storage from the context that delivers the key event, which is
-the tick by default; define `KEYBOARD_OPERATION_POLLING` to run them from
-`keyboard_process()` instead when flash access must stay out of interrupts.
+Call `analog_calibrate()`, `rgb_init_flash()`, `rgb_flash()`, and application
+storage/filesystem operations from a context that permits their latency. The
+synchronous `nexus_request_timeout()` / `nexus_send_timeout()` calls require
+the tick to keep advancing while they wait.
+
+Key-bound operations (`KEYBOARD_SAVE`, profile selection, factory reset) access
+storage in the event handler by default. Define `KEYBOARD_OPERATION_POLLING` to
+run those operations in `keyboard_process()` instead. This switch does not move
+Raw HID commands or other direct `storage_*()` / `fs_*()` calls: the bundled
+CherryUSB Raw HID callback calls `packet_process_buffer()` directly, including
+statistics writes and profile/filesystem operations. If flash access must stay
+out of interrupts, the platform must defer these complete requests as well and
+serialize filesystem access with foreground work.
 
 For startup calibration, wait briefly after `keyboard_init()` for analog
 samples to become stable, then call `analog_calibrate()` once. The delay should
@@ -376,12 +395,18 @@ in one place so a wiring change cannot silently remap key IDs.
 ### 3.2 Calibration, Dead Zones, and Filtering
 
 The default advanced-key configuration controls normal, rapid-trigger, and
-speed modes. `keyboard_init()` restores the defaults and the library performs
-its calibration flow. Tune `DEFAULT_ESTIMATED_RANGE`, dead zones, trigger and
-release distances after collecting real sensor data.
+speed modes. `keyboard_init()` restores a stored profile when storage is
+enabled, otherwise the defaults; it does not call `analog_calibrate()`.
+Call that function with released, stable keys to establish the resting bounds
+and initialize enabled filters. It resets the calibration direction to
+`ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED`; subsequent samples determine the
+direction and extend the pressed bound. Tune `DEFAULT_ESTIMATED_RANGE`, dead
+zones, trigger and release distances after collecting real sensor data.
 
-`FILTER_TYPE`, `FILTER_DOMAIN`, and `FILTER_LOWPASS_ALPHA` select the built-in
-filtering behavior. Enable `FILTER_HYSTERESIS_ENABLE` only after choosing a
+`FILTER_ENABLE` enables the main filter; `FILTER_TYPE` and `FILTER_DOMAIN`
+select its algorithm and input domain. For the low-pass filter,
+`FILTER_LOWPASS_ALPHA` weights the previous state (default `0.5f`); a larger
+value smooths more. Enable `FILTER_HYSTERESIS_ENABLE` only after choosing a
 hysteresis appropriate for the raw or normalized domain. Filtering should
 remove sample noise without hiding real travel changes at the chosen polling
 rate.
@@ -405,13 +430,21 @@ void keyboard_scan(void)
 }
 ```
 
-Matrix scanning, expander reads, and debouncing policy remain platform-owned.
-The `DEBOUNCE_*` settings are expressed in keyboard ticks.
+The platform implements matrix scanning and expander reads. libamp applies
+debouncing in `keyboard_key_update()` according to the platform's `DEBOUNCE_*`
+settings, expressed in keyboard ticks.
 
 `keyboard_task()` calls `keyboard_scan()` once per keyboard tick.
 `keyboard_key_update()` takes a `Key` and its physical pressed state, applies
 the configured debounce policy, and updates the key's report state. Its return
 value indicates whether that report state changed.
+
+`KEYBOARD_SKIP_UNCHANGED_EVENTS` defaults to `1`: unchanged states skip event
+dispatch except mouse movement, joystick/gamepad axes, and `KEY_USER`, which
+continue on every update. Set it to `0` to dispatch unchanged states for every
+keycode too. This applies to digital and advanced-key update paths and Nexus
+bitmap processing; it does not change the debounce policy or itself force a USB
+report on every tick.
 
 ### 3.4 Rotary Encoders
 
@@ -459,8 +492,9 @@ movement into the configured clockwise or counter-clockwise key state.
 
 ### 3.5 Custom Events, Reset, and Bootloader Entry
 
-`keyboard_reboot()`, `keyboard_jump_to_bootloader()`, `keyboard_delay()`, and
-`keyboard_user_event_handler()` are weak hooks. Override only the operations
+`keyboard_reboot()`, `keyboard_jump_to_bootloader()`, and
+`keyboard_user_event_handler()` are weak hooks. `keyboard_delay()` is a platform
+function declaration with no default implementation. Override only the hooks
 your keymap exposes. A custom keycode should use `KEY_USER` and be handled in
 `keyboard_user_event_handler()`; keep reset and bootloader policy out of
 libamp itself.
@@ -474,10 +508,13 @@ void keyboard_user_event_handler(KeyboardEvent event);
 
 The built-in reboot and bootloader operations call `keyboard_reboot()` and
 `keyboard_jump_to_bootloader()` respectively. Implement `keyboard_delay(ms)`
-when the platform needs to provide the millisecond delay requested by libamp.
-`keyboard_user_event_handler(KeyboardEvent event)` receives each `KEY_USER`
-event, including its keycode and press/release state, and is the place to
-dispatch application-defined actions.
+when using Kalman-filter calibration, which requests 1 ms delays during its
+sampling loop. `keyboard_user_event_handler(KeyboardEvent event)` receives each
+`KEY_USER` event, including unchanged states under the default dispatch policy.
+When overriding it, call `keyboard_key_event_down_dispatch(event)` on key-down
+and `keyboard_key_event_up_dispatch(event)` on key-up to retain queued events,
+physical-key callbacks, statistics, and enabled script/macro hooks. Handle held
+states separately if the application needs them.
 
 ## 4. Add Persistent Storage
 
@@ -492,8 +529,11 @@ int flash_erase(uint32_t address, uint32_t size);
 
 Implement them for an erasable region that is reserved exclusively for libamp.
 The `FS_READ_SIZE`, `FS_PROG_SIZE`, `FS_BLOCK_SIZE`,
-`FS_BLOCK_COUNT`, `FS_CACHE_SIZE`, `FS_LOOKAHEAD_SIZE`, and
-`LFS_BLOCK_CYCLES` values must match the flash device and the reserved region.
+`FS_BLOCK_COUNT`, and `FS_CACHE_SIZE` values must match the flash device and
+the reserved region. `FS_LOOKAHEAD_SIZE` and `LFS_BLOCK_CYCLES` configure LittleFS.
+`FS_FLASH_OFFSET` sets the partition's byte offset in the flash callback address
+space; it defaults to `0` and accepts `FILEX_FLASH_OFFSET` as a compatibility
+spelling. Define one spelling, or give both the same value.
 In particular, programming and erase alignment must be honored by the callback
 implementation.
 
@@ -501,7 +541,9 @@ On startup, `keyboard_init()` mounts storage, verifies the stored version, and
 recovers the selected profile. Storage therefore must be usable before calling
 `keyboard_init()`. Never place the filesystem over firmware, bootloader, or
 other application data.
-A mount failure formats the partition automatically.
+A mount/open failure triggers an automatic format attempt. Switching the
+filesystem or flash layer does not migrate existing data and can trigger this
+recovery; back up needed files before changing those settings.
 
 ### 4.1 FileX FAT Storage and the Flash Layer
 
@@ -512,6 +554,45 @@ Define `FLASH_LAYER` to select how the filesystem accesses flash:
 `FLASH_LAYER_DIRECT` calls the `flash_*` callbacks declared in `driver.h`
 directly and does no wear leveling, while `FLASH_LAYER_LEVELX` adds LevelX NOR
 wear leveling but reduces usable capacity, uses more RAM and mounts more slowly.
+
+### 4.2 Statistics and Host Protocol
+
+Enable `COUNTER_ENABLE` for per-key counts. Add `STORAGE_ENABLE` and
+`RECORD_PERSIST_ENABLE` to persist counts and total runtime in `system/stat`.
+`keyboard_init()` loads the saved statistics and snapshots the startup counts.
+The normal save interval is `RECORD_STATISTICS_SAVE_INTERVAL_MS` (30 minutes by default).
+A physical-key down callback that increments a count schedules saving after
+`RECORD_STATISTICS_IDLE_SAVE_MS` (120 seconds by default); increments restart that
+delay. Releases and unchanged held states do not affect it. Saving resets the
+normal interval; continuous typing can keep postponing this automatic save.
+Keep the idle interval between zero and the normal interval. Host statistics
+writes, including resets, save immediately when persistence is enabled.
+
+With Raw HID enabled, send `PACKET_DATA_RECORD` (`0x0E`) using
+`PACKET_CODE_GET` (`0x02`) or `PACKET_CODE_SET` (`0x01`). The packed structures in
+`src/packet.h` define the wire layout:
+
+| Subcommand | Value | GET | SET |
+| --- | --- | --- | --- |
+| `PACKET_DATA_RECORD_RUNTIME` | `0x00` | Boot `uptime` and total `runtime`, both in milliseconds. Without persistence, both return the current tick converted to milliseconds. | Sets total `runtime` when persistence is enabled; does not change `uptime`. |
+| `PACKET_DATA_RECORD_KEYCOUNT` | `0x01` | Current cumulative count for each requested key. | Replaces each requested cumulative count. |
+| `PACKET_DATA_RECORD_KEYCOUNT_SINCE_BOOT` | `0x02` | Current count minus the startup snapshot when persistence is enabled; otherwise the current count. | Sets the requested boot count by storing startup count plus the supplied value; without persistence, replaces the current count. |
+
+`PacketRecordRuntime` is **20 bytes**: a 3-byte header (`code`, `id`, `type`),
+1-byte `sub_cmd`, `uint64_t uptime` at byte offset 4, and `uint64_t runtime` at
+offset 12. Update the host parser and SET encoder together with the firmware;
+the previous 12-byte layout is not supported. `uptime` is derived from the
+32-bit `g_keyboard_tick`: the 64-bit field does not extend tick wraparound.
+The current total-runtime calculation also uses that converted tick.
+
+Key-count packets contain the same header and subcommand, a `uint16_t length`,
+then `length` packed entries of `uint16_t key_index` and `uint32_t count`.
+Keep every index below `TOTAL_KEY_NUM` and fit all entries into the report;
+a 64-byte Raw HID report can hold at most nine entries. Counts are zero when
+`COUNTER_ENABLE` is disabled, and SET has no counting effect. The startup
+snapshot stays fixed until reinitialization: changing cumulative counts does
+not reset it, so boot deltas use unsigned 32-bit subtraction if the total is
+set below the snapshot.
 
 ## 5. Add Lighting
 
@@ -524,6 +605,22 @@ int led_flush(void);
 
 `led_set()` updates one logical LED; `led_flush()` makes the pending frame
 visible. A serial LED driver usually buffers all colors until `led_flush()`.
+
+Set global brightness with `rgb_set_brightness(uint8_t brightness)` (`0` to
+`255`). With the gamma LUT enabled, direct writes to
+`g_rgb_base_config.brightness` leave the output table stale. `rgb_init()`,
+profile loading, host brightness commands, brightness keys, and factory reset
+already use the setter.
+
+`RGB_GAMMA_ENABLE` enables gamma correction with `RGB_GAMMA` (default `2.2f`).
+Also define `RGB_GAMMA_LUT_ENABLE` to cache gamma and brightness in a 256-byte
+RAM table rebuilt by the setter. With gamma enabled but no LUT, every output
+channel is calculated directly; the LUT flag alone has no effect.
+
+If application code changes base colors directly, keep RGB and HSV fields in
+sync with `rgb_to_hsv()` / `hsv_to_rgb()`, including the secondary color. The
+rainbow base effect reads `g_rgb_base_config.hsv` directly; the host color
+packet handler already updates both representations.
 
 To show a startup flash animation, `rgb_init_flash()` or `rgb_flash()` may be
 called after `keyboard_init()`. Start the periodic tick source first: both
@@ -609,10 +706,10 @@ applies the slaves' reports and `keyboard_process()` pushes each slave's
 advanced-key configuration without blocking, both at start-up and whenever it
 changes or a slave reconnects. A slave that stops reporting for
 `NEXUS_LINK_TIMEOUT_MS` is treated as unplugged and its keys release.
-`nexus_slave_is_online()` exposes that state. Applying a report only touches
-the keys whose state changed, whose debounce is still settling or whose
-keycode runs every tick (mouse movement, analog axes, `KEY_USER`), so idle
-slaves cost the master almost nothing per tick. With `NEXUS_USE_RAW 1` the
+`nexus_slave_is_online()` exposes that state. In bitmap mode, with the default
+`KEYBOARD_SKIP_UNCHANGED_EVENTS=1`, applying reports only updates keys whose
+state changed, whose debounce is still settling, or whose keycode runs every
+tick (mouse movement, analog axes, `KEY_USER`). With `NEXUS_USE_RAW 1` the
 slaves send raw samples instead and the master normalizes them; master keys
 that no slave maps are left to the application's `keyboard_scan()`.
 
@@ -660,7 +757,8 @@ same ADC, USB, and RGB load before claiming an end-to-end latency improvement.
 
 The [aggressive performance report](docs/performance/aggressive.md) records the
 changes from `codex-fable`, raw measurements, behavior checks, and code-size
-tradeoffs. To compare the raw-key pipeline across two source checkouts:
+tradeoffs at that revision; it is historical evidence, not a measurement of
+subsequent changes. To compare the raw-key pipeline across two source checkouts:
 
 ```bash
 python3 test/advanced_key/check_pipeline.py path/to/reference-checkout .
@@ -697,5 +795,5 @@ Before building the target firmware, confirm that:
 | The device enumerates but no key is sent | Confirm `g_keyboard_tick` and `keyboard_task()` both run at `POLLING_RATE`, `keyboard_process()` runs in the foreground, the backend sources are included, and `usb_init()` is called after USB is initialized. |
 | The analog key never changes state | Inspect raw samples, `g_analog_map`, buffer indices, calibration range, and normalization direction. |
 | Reports stop after the first key press | Check the endpoint callback, DMA buffer placement, and cache handling. |
-| Storage corrupts firmware or fails to mount | Recheck the reserved flash range, erase/program alignment, and littlefs geometry. |
+| Storage corrupts firmware or fails to mount | Recheck the reserved flash range, erase/program alignment, and the selected filesystem/flash-layer geometry. |
 | USB fails after enabling a feature | Rebuild the descriptor/backend registration together and verify endpoint count, directions, report IDs, and DMA-safe buffers. |

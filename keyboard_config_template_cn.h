@@ -37,6 +37,7 @@
 // #define LOG_OUTPUT_FILE               /* 在日志中包含源码文件和行号。 */
 // #define KEY_CALLBACK_ENABLE           /* 启用每个按键的按下/释放回调。 */
 #define OPTIMIZE_KEY_BITMAP           /* 使用紧凑的按键位图更新路径。 */
+// #define KEYBOARD_SKIP_UNCHANGED_EVENTS 0 /* 设为 0 时也分发未变化的状态；默认 1，仅保留轴、鼠标移动和 KEY_USER 的持续分发。 */
 #define OPTIMIZE_MOVING_AVERAGE_FOR_RINGBUF /* 为模拟缓冲区维护滑动求和。 */
 // #define EVENT_BUFFER_LENGTH 32        /* 键盘事件队列容量。 */
 // #define EVENT_CACHE_LENGTH 16         /* 事件缓存条目容量。 */

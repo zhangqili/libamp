@@ -11,15 +11,12 @@
 
 DynamicKey g_dynamic_keys[DYNAMIC_KEY_NUM];
 
-/* A dynamic key only acts while the key's current binding points back at it;
- * a layer change or remap silently detaches it. */
 static inline bool dynamic_key_is_bound_to(const void *dynamic_key, const Key *key)
 {
     const Keycode keycode = layer_cache_get_keycode(key->id);
     return KEYCODE_GET_MAIN(keycode) == DYNAMIC_KEY &&
            &g_dynamic_keys[KEYCODE_GET_SUB(keycode)] == (const DynamicKey *)dynamic_key;
 }
-#define DYNAMIC_KEY_NOT_MATCH(dynamic_key, key) (!dynamic_key_is_bound_to((dynamic_key), (key)))
 
 void dynamic_key_process(void)
 {
@@ -46,7 +43,7 @@ void dynamic_key_process(void)
     }
 }
 
-static void dynamic_key_add_one_to_report(DynamicKey*dynamic_key)
+static void _dynamic_key_add_to_report(DynamicKey*dynamic_key)
 {
     switch (dynamic_key->type)
     {
@@ -97,7 +94,7 @@ void dynamic_key_add_to_report(void)
     for (int i = 0; i < DYNAMIC_KEY_NUM && g_dynamic_keys[i].type != DYNAMIC_KEY_NONE; i++)
     {
         DynamicKey*dynamic_key = &g_dynamic_keys[i];
-        dynamic_key_add_one_to_report(dynamic_key);
+        _dynamic_key_add_to_report(dynamic_key);
     }
 }
 
@@ -135,7 +132,7 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
 {
     DynamicKeyStroke4x4*dynamic_key_s=(DynamicKeyStroke4x4*)dynamic_key;
     Key * key = (Key*)keyboard_get_key(dynamic_key_s->key_id);
-    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key))
+    if (!dynamic_key_is_bound_to(dynamic_key,key))
     {
         return;
     }
@@ -184,7 +181,7 @@ void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
 {
     DynamicKeyModTap*dynamic_key_mt=(DynamicKeyModTap*)dynamic_key;
     Key * key = keyboard_get_key(dynamic_key_mt->key_id);
-    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key))
+    if (!dynamic_key_is_bound_to(dynamic_key,key))
     {
         return;
     }
@@ -232,7 +229,7 @@ void dynamic_key_tk_process(DynamicKeyToggleKey*dynamic_key)
 {
     DynamicKeyToggleKey*dynamic_key_tk=(DynamicKeyToggleKey*)dynamic_key;
     Key * key = keyboard_get_key(dynamic_key_tk->key_id);
-    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key))
+    if (!dynamic_key_is_bound_to(dynamic_key,key))
     {
         return;
     }
@@ -251,7 +248,7 @@ void dynamic_key_m_process(DynamicKeyMutex*dynamic_key)
     DynamicKeyMutex*dynamic_key_m=(DynamicKeyMutex*)dynamic_key;
     Key*key0 = (Key*)keyboard_get_key(dynamic_key_m->key_id[0]);
     Key*key1 = (Key*)keyboard_get_key(dynamic_key_m->key_id[1]);
-    if (DYNAMIC_KEY_NOT_MATCH(dynamic_key,key0) || DYNAMIC_KEY_NOT_MATCH(dynamic_key,key1))
+    if (!dynamic_key_is_bound_to(dynamic_key,key0) || !dynamic_key_is_bound_to(dynamic_key,key1))
     {
         return;
     }

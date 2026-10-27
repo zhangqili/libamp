@@ -22,7 +22,7 @@
 
 #include "log.h"
 #include "keyboard.h"
-#include <inttypes.h>
+#include "inttypes.h"
 
 #define MAX_CALLBACKS 32
 

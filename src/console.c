@@ -60,10 +60,16 @@ bool console_buffer_pop(ConsoleBuffer* q, ConsoleBufferElm* out_char)
     return true;
 }
 
-/* Console input is not implemented yet; there is nothing to read. */
 char console_read_char(void)
 {
+    /*
+    ConsoleBufferElm c = '\0';
+    if (console_buffer_pop(&console_rx_buffer, &c))
+    {
+        return c;
+    }
     return '\0';
+    */
 }
 
 void console_send_char(char c)

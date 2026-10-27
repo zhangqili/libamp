@@ -64,6 +64,7 @@ TEST(Keyboard, DebounceMatchesEveryCounterAndStateClass)
 TEST(Keyboard, EveryBindingPreservesItsUnchangedDispatchPolicy)
 {
     for (uint32_t code = 0; code <= UINT16_MAX; code++) {
+#if KEYBOARD_SKIP_UNCHANGED_EVENTS
         const uint8_t main = code & 0xff;
         const uint8_t sub = code >> 8;
         bool expected = main == KEY_USER;
@@ -76,7 +77,15 @@ TEST(Keyboard, EveryBindingPreservesItsUnchangedDispatchPolicy)
 #ifdef GAMEPAD_ENABLE
         expected |= main == GAMEPAD_COLLECTION && sub > GAMEPAD_RT;
 #endif
+#else
+        const bool expected = true;
+#endif
         ASSERT_EQ(expected, keyboard_keycode_dispatches_unchanged((Keycode)code)) << code;
+        for (uint8_t type : {KEYBOARD_EVENT_KEY_FALSE, KEYBOARD_EVENT_KEY_UP,
+                             KEYBOARD_EVENT_KEY_TRUE, KEYBOARD_EVENT_KEY_DOWN}) {
+            const KeyboardEvent event = MK_VIRTUAL_EVENT(code, type, nullptr);
+            ASSERT_EQ(expected || EVENT_CHANGED(type), keyboard_event_needs_dispatch(event)) << code << ',' << unsigned(type);
+        }
     }
 }
 

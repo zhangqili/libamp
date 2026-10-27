@@ -48,7 +48,6 @@ static inline void key_attach(Key* key, KeyEvent e, KeyCallback cb);
 static inline void key_emit(Key* key, KeyEvent e);
 #endif
 
-/* Assign the key its id and clear its runtime state. Attached callbacks are kept. */
 static inline void key_init(Key* key, uint16_t id)
 {
     key->id = id;

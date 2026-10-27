@@ -168,6 +168,7 @@ void storage_read_profile(void)
     layer_cache_refresh();
 #ifdef RGB_ENABLE
     fs_read(&file, &g_rgb_base_config, sizeof(g_rgb_base_config));
+    rgb_set_brightness(g_rgb_base_config.brightness);
     fs_read(&file, g_rgb_configs, sizeof(g_rgb_configs));
     g_rgb_base_config.begin_tick = 0;
     for (int i = 0; i < RGB_NUM; i++)

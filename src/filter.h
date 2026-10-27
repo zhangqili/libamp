@@ -30,7 +30,7 @@ extern "C" {
 #if FILTER_DOMAIN == FILTER_DOMAIN_RAW
 #define FILTER_HYSTERESIS 3
 #else
-/* 1% of the full travel, in normalized counts. */
+
 #define FILTER_HYSTERESIS A_ANTI_NORM(0.01f)
 #endif
 #endif
@@ -132,8 +132,7 @@ static inline FilterValue kalman_filter(KalmanFilter *filter, FilterValue value)
     FilterValue S = p00_pred + filter->R;
     
     // K = P_pred * H^T * inv(S) = [p00_pred / S, p10_pred / S]^T
-    // One division shared by both gains: float division is the slowest FPU
-    // operation on Cortex-M and this runs once per key per tick.
+
     FilterValue inv_S = 1.0f / S;
     FilterValue K_pos = p00_pred * inv_S;
     FilterValue K_vel = p10_pred * inv_S;

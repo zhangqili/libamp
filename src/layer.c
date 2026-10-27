@@ -31,7 +31,6 @@ void layer_event_handler(KeyboardEvent event)
         switch (action)
         {
         case LAYER_MOMENTARY:
-        case LAYER_TOGGLE:
             layer_toggle(layer);
             break;
         case LAYER_TURN_ON:
@@ -40,6 +39,9 @@ void layer_event_handler(KeyboardEvent event)
         case LAYER_TURN_OFF:
             layer_reset(layer);
             break;
+        case LAYER_TOGGLE:
+            layer_toggle(layer);
+            break;
         default:
             break;
         }
@@ -47,9 +49,13 @@ void layer_event_handler(KeyboardEvent event)
         break;
     case KEYBOARD_EVENT_KEY_UP:
         keyboard_key_event_up_dispatch(event);
-        if (action == LAYER_MOMENTARY)
+        switch (action)
         {
-            layer_toggle(layer); /* momentary layers end with the key */
+        case LAYER_MOMENTARY:
+            layer_toggle(layer);
+            break;
+        default:
+            break;
         }
         layer_cache_refresh();
         break;

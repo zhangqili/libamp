@@ -38,7 +38,6 @@ enum {
   PACKET_DATA_MACRO = 0x0A,
   PACKET_DATA_FEATURE = 0x0B,
   PACKET_DATA_SCRIPT_SOURCE = 0x0C,
-  PACKET_DATA_SCRIPT_SCOURCE = PACKET_DATA_SCRIPT_SOURCE, /* former misspelling */
   PACKET_DATA_SCRIPT_BYTECODE = 0x0D,
   PACKET_DATA_RECORD = 0x0E,
   PACKET_DATA_LAYOUT_OPTIONS = 0x0F,
@@ -208,6 +207,7 @@ typedef struct __PacketLargeData
 enum {
   PACKET_DATA_RECORD_RUNTIME = 0x00,
   PACKET_DATA_RECORD_KEYCOUNT = 0x01,
+  PACKET_DATA_RECORD_KEYCOUNT_SINCE_BOOT = 0x02,
 };
 typedef struct __PacketRecord
 {
@@ -220,6 +220,7 @@ typedef struct __PacketRecordRuntime
 {
   PacketDataHeader header;
   uint8_t sub_cmd;
+  uint64_t uptime;
   uint64_t runtime;
 } __PACKED PacketRecordRuntime;
 

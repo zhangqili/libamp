@@ -3,7 +3,7 @@
 #include <string.h>
 #include "analog.h"
 #if LIBAMP_CHECK_INLINE_PIPELINE
-#include "advanced_key_internal.h"
+#include "advanced_key.h"
 #endif
 
 AdvancedKey g_keyboard_advanced_keys[ADVANCED_KEY_NUM];
@@ -87,7 +87,7 @@ int main(void)
             bool changed;
 #if LIBAMP_CHECK_INLINE_PIPELINE
             if (tick & 1u)
-                changed = advanced_key_update_sample(key, raw);
+                changed = advanced_key_update_raw(key, raw);
             else
 #endif
                 changed = advanced_key_update_raw(key, raw);

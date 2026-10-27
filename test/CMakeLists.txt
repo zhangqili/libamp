@@ -25,6 +25,7 @@ add_executable(libamp_tests
     large_packet/test_large_packet.cpp
     macro/test_macro.cpp
     record/test_record.cpp
+    record/test_runtime_packet.cpp
     mouse/test_mouse.cpp
     extra_key/test_extra_key.cpp
     joystick/test_joystick.cpp

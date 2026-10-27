@@ -35,6 +35,10 @@ extern "C" {
 #define RECORD_SAVE_INTERVAL  1000
 #endif
 
+#ifndef RECORD_STATISTICS_IDLE_SAVE_MS
+#define RECORD_STATISTICS_IDLE_SAVE_MS (120UL * 1000UL)
+#endif
+
 #ifndef RECORD_STATISTICS_SAVE_INTERVAL_MS
 #define RECORD_STATISTICS_SAVE_INTERVAL_MS (30UL * 60UL * 1000UL)
 #endif
@@ -56,6 +60,9 @@ extern uint64_t g_runtime;
 
 #ifdef COUNTER_ENABLE
 extern uint32_t g_key_counts[TOTAL_KEY_NUM];
+#ifdef RECORD_PERSIST_ENABLE
+extern uint32_t g_key_counts_at_startup[TOTAL_KEY_NUM];
+#endif
 #endif
 
 #ifdef KPS_ENABLE
@@ -65,7 +72,7 @@ extern LoopArray g_kps_data;
 
 #ifdef KPS_HISTORY_ENABLE
 extern LoopArray g_kps_history;
-extern uint16_t g_kps_max;
+extern uint16_t g_kps_max_since_last_timer;
 #endif
 
 #ifdef BIT_STREAM_ENABLE
@@ -92,6 +99,7 @@ void record_kps_history_timer(void);
 
 #if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
 void record_reset_save_timer(void);
+void record_schedule_idle_save(void);
 #endif
 
 #ifdef RECORD_PERSIST_ENABLE

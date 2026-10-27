@@ -30,6 +30,9 @@ size_t g_bit_stream_datas[ADVANCED_KEY_NUM][BIT_DATA_LENGTH];
 
 #ifdef COUNTER_ENABLE
 uint32_t g_key_counts[TOTAL_KEY_NUM];
+#ifdef RECORD_PERSIST_ENABLE
+uint32_t g_key_counts_at_startup[TOTAL_KEY_NUM];
+#endif
 #endif
 
 #ifdef RECORD_PERSIST_ENABLE
@@ -85,17 +88,22 @@ LoopArrayElement loop_array_max(LoopArray *arr)
 
 void record_init(void)
 {
+#if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
+    record_reset_save_timer();
+#endif
 #ifdef ANALOG_HISTORY_ENABLE
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-        loop_array_init(&g_analog_historys[i], analog_datas[i], ANALOG_HISTORY_LENGTH);
+        loop_array_init(&g_analog_historys[i],analog_datas[i],ANALOG_HISTORY_LENGTH);
     }
 #endif
 #ifdef KPS_ENABLE
     loop_array_init(&g_kps_data, kps_data, KPS_REFRESH_RATE);
 #endif
 #ifdef KPS_HISTORY_ENABLE
-    loop_array_init(&g_kps_history, kps_history_data, KPS_HISTORY_LENGTH);
+    loop_array_init(&g_kps_history,kps_history_data,KPS_HISTORY_LENGTH);
+#endif
+#ifdef BIT_STREAM_ENABLE
 #endif
 }
 
@@ -115,6 +123,12 @@ void record_process(void)
 void record_reset_save_timer(void)
 {
     statistics_last_save_tick = g_keyboard_tick;
+}
+
+void record_schedule_idle_save(void)
+{
+    statistics_last_save_tick = g_keyboard_tick - KEYBOARD_TIME_TO_TICK(
+        RECORD_STATISTICS_SAVE_INTERVAL_MS - RECORD_STATISTICS_IDLE_SAVE_MS);
 }
 #endif
 

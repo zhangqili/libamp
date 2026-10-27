@@ -76,29 +76,15 @@ typedef struct __AdvancedKey
     AnalogValue filtered_raw;
     AnalogValue extremum;
     int16_t difference;
-    /* Q16 raw-delta to lookup-table-index factor, set by advanced_key_set_range(). */
     int32_t q_scale_to_index;
-    /* Q16 factor stretching the dead-zone-free travel over the full range, and
-     * the dead-zone sum it was computed for. Refreshed when the dead zones
-     * change so advanced_key_get_effective_value() never divides. */
-    uint32_t q_scale_effective;
-    uint32_t q_scale_effective_deadzone;
     AdvancedKeyConfiguration config;
 } AdvancedKey;
 
-/* Assign the key its id and clear its runtime state (sample, travel, extremum).
- * The configuration and calibration range are left untouched. */
 void advanced_key_init(AdvancedKey *advanced_key, uint16_t id);
 bool advanced_key_update(AdvancedKey *advanced_key, AnalogValue value);
-bool advanced_key_update_raw(AdvancedKey *advanced_key, AnalogValue value);
+bool advanced_key_update_raw(AdvancedKey *advanced_key, AnalogRawValue raw);
 bool advanced_key_update_state(AdvancedKey *advanced_key, bool state);
-/* Lookup-table index for a raw sample: 0 at the calibrated upper bound,
- * LUT_LENGTH at the lower bound, clamped. Overrides of advanced_key_normalize()
- * that use a table should index it with this. */
 int32_t advanced_key_lut_index(const AdvancedKey *advanced_key, AnalogRawValue value);
-/* Weak: convert a raw sample to the normalized ANALOG_VALUE_MIN..MAX range.
- * The default is linear between the calibrated bounds; override it for a
- * non-linear sensor response (see tools/lut_generator). */
 AnalogValue advanced_key_normalize(AdvancedKey *advanced_key, AnalogRawValue value);
 void advanced_key_set_range(AdvancedKey *advanced_key, AnalogRawValue upper, AnalogRawValue lower);
 void advanced_key_reset_range(AdvancedKey* advanced_key, AnalogRawValue value);

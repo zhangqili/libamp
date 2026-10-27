@@ -110,6 +110,9 @@ static inline bool rgb_frame_is_due(uint32_t tick, uint32_t last_frame_tick, uin
 #define RGB_HEIGHT ((RGB_BOTTOM)-(RGB_TOP))
 #define RGB_HEIGHT_UM ((RGB_BOTTOM_UM)-(RGB_TOP_UM))
 
+/* Define RGB_GAMMA_ENABLE to enable gamma correction. Define
+ * RGB_GAMMA_LUT_ENABLE as well to cache gamma and brightness in a 256-byte
+ * table; without it, gamma is computed for each output channel. */
 #ifndef RGB_GAMMA
 #define RGB_GAMMA 2.2f
 #endif
@@ -178,7 +181,6 @@ typedef struct __RGBLocation
     int32_t y;
 }RGBLocation;
 
-/* A ripple in flight: which LED it started from and when. */
 typedef struct __RGBArgument
 {
     uint32_t begin_tick;
@@ -221,6 +223,7 @@ extern const RGBLocation g_rgb_locations[RGB_NUM];
 void rgb_init(void);
 void rgb_process(void);
 void rgb_update_callback(void);
+void rgb_set_brightness(uint8_t brightness);
 void rgb_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b);
 void rgb_init_flash(void);
 void rgb_flash(void);

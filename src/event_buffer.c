@@ -5,9 +5,6 @@
  */
 #include "event_buffer.h"
 
-/* Fixed-capacity ring of queued events. One slot is always left empty so that
- * front == rear means "empty" without a separate count. */
-
 void event_loop_queue_init(EventLoopQueue *q, EventLoopQueueElm *data, uint16_t len)
 {
     q->data = data;
@@ -24,7 +21,7 @@ EventLoopQueueElm event_loop_queue_pop(EventLoopQueue *q)
         return empty;
     }
     const EventLoopQueueElm element = q->data[q->front];
-    LIBAMP_COMPILER_FENCE(); /* copy out before releasing the slot to the producer */
+    COMPILER_FENCE(); /* copy out before releasing the slot to the producer */
     q->front = event_loop_queue_next_index(q, q->front);
     return element;
 }
@@ -37,6 +34,6 @@ void event_loop_queue_push(EventLoopQueue *q, EventLoopQueueElm t)
         return; /* full: the newest event is dropped */
     }
     q->data[q->rear] = t;
-    LIBAMP_COMPILER_FENCE(); /* the element is complete before it is published */
+    COMPILER_FENCE(); /* the element is complete before it is published */
     q->rear = next_rear;
 }

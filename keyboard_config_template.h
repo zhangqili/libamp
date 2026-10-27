@@ -38,6 +38,7 @@
 // #define LOG_OUTPUT_FILE               /* Include source file and line in log output. */
 // #define KEY_CALLBACK_ENABLE           /* Enable per-key press/release callbacks. */
 #define OPTIMIZE_KEY_BITMAP           /* Use the compact key bitmap update path. */
+// #define KEYBOARD_SKIP_UNCHANGED_EVENTS 0 /* Dispatch unchanged states too; defaults to 1 (skip except axes, mouse movement and KEY_USER). */
 #define OPTIMIZE_MOVING_AVERAGE_FOR_RINGBUF /* Keep a running analog-buffer sum. */
 // #define EVENT_BUFFER_LENGTH 32        /* Queued keyboard-event capacity. */
 // #define EVENT_CACHE_LENGTH 16         /* Cached-event entry capacity. */
@@ -167,7 +168,8 @@
 // #define RGB_BOTTOM 4.5f                 /* RGB layout bottom boundary. */
 // #define RGB_DEPTH 0.0f                  /* RGB layout depth boundary. */
 // #define RGB_GAMMA_ENABLE                /* Apply gamma correction. */
-// #define RGB_GAMMA 2.2f                  /* Gamma correction exponent. */
+// #define RGB_GAMMA 2.2f                  /* Gamma correction exponent; defaults to 2.2f. */
+// #define RGB_GAMMA_LUT_ENABLE            /* Cache gamma and brightness in a 256-byte table; requires RGB_GAMMA_ENABLE. */
 // #define RGB_ARGUMENT_LIST_BUFFER_LENGTH 64 /* RGB command-argument buffer size. */
 // #define RGB_CUSTOM_INVERSE_MAPPING      /* Provide g_rgb_inverse_mapping yourself. */
 // #define RGB_BASE_MODE_USE_RAINBOW 1     /* Include the rainbow base effect. */

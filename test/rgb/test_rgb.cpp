@@ -127,7 +127,7 @@ TEST(RGB, FactoryResetAppliesDefaultBaseAndPerKeyConfigs)
 
 TEST(RGB, SetAppliesBrightnessAndGammaBeforeWritingLedBuffer)
 {
-    g_rgb_base_config.brightness = 128;
+    rgb_set_brightness(128);
 
     rgb_set(3, 128, 64, 32);
 
@@ -136,11 +136,66 @@ TEST(RGB, SetAppliesBrightnessAndGammaBeforeWritingLedBuffer)
     EXPECT_EQ(gamma_correct(32, 128), led_color_buffer[3].b);
 }
 
+TEST(RGB, SetBrightnessUpdatesOutputAcrossRepeatedValues)
+{
+    for (uint8_t brightness : {0, 255, 128, 128, 1, 0, 255}) {
+        rgb_set_brightness(brightness);
+        rgb_set(3, 128, 64, 255);
+
+        EXPECT_EQ(brightness, g_rgb_base_config.brightness);
+        EXPECT_EQ(gamma_correct(128, brightness), led_color_buffer[3].r);
+        EXPECT_EQ(gamma_correct(64, brightness), led_color_buffer[3].g);
+        EXPECT_EQ(gamma_correct(255, brightness), led_color_buffer[3].b);
+    }
+}
+
+TEST(RGB, InitRebuildsBrightnessAfterConfigImport)
+{
+    rgb_set_brightness(32);
+    RGBBaseConfig imported = g_rgb_base_config;
+    imported.brightness = 137;
+    g_rgb_base_config = imported;
+
+    rgb_init();
+    rgb_set(3, 128, 64, 255);
+
+    EXPECT_EQ(gamma_correct(128, 137), led_color_buffer[3].r);
+    EXPECT_EQ(gamma_correct(64, 137), led_color_buffer[3].g);
+    EXPECT_EQ(gamma_correct(255, 137), led_color_buffer[3].b);
+}
+
+TEST(RGB, BrightnessKeysUpdateOutputAndClampAtLimits)
+{
+    const struct {
+        uint8_t initial;
+        uint8_t command;
+        uint8_t expected;
+    } cases[] = {
+        {250, KEYBOARD_RGB_BRIGHTNESS_UP, 255},
+        {8, KEYBOARD_RGB_BRIGHTNESS_DOWN, 0},
+        {32, KEYBOARD_RGB_BRIGHTNESS_UP, 48},
+        {32, KEYBOARD_RGB_BRIGHTNESS_DOWN, 16},
+    };
+    for (const auto &test : cases) {
+        rgb_set_brightness(test.initial);
+        const KeyboardEvent event = MK_VIRTUAL_EVENT(
+            KEYCODE(KEYBOARD_OPERATION, test.command), KEYBOARD_EVENT_KEY_DOWN, keyboard_get_key(0));
+        keyboard_operation_event_handler(event);
+        keyboard_operation_event_poller(event, g_keyboard_tick);
+        rgb_set(3, 128, 64, 255);
+
+        EXPECT_EQ(test.expected, g_rgb_base_config.brightness);
+        EXPECT_EQ(gamma_correct(128, test.expected), led_color_buffer[3].r);
+        EXPECT_EQ(gamma_correct(64, test.expected), led_color_buffer[3].g);
+        EXPECT_EQ(gamma_correct(255, test.expected), led_color_buffer[3].b);
+    }
+}
+
 TEST(RGB, FixedModeFlushesDeterministicLedColors)
 {
     libamp_test_clear_output_buffers();
     g_rgb_base_config.mode = RGB_BASE_MODE_BLANK;
-    g_rgb_base_config.brightness = 255;
+    rgb_set_brightness(255);
 
     for (uint16_t i = 0; i < RGB_NUM; i++) {
         g_rgb_configs[i].mode = RGB_MODE_FIXED;
@@ -193,7 +248,7 @@ TEST(RGB, TriggerFadeEndsExactlyWhereTheColorTruncatesToBlack)
 {
     libamp_test_clear_output_buffers();
     g_rgb_base_config.mode = RGB_BASE_MODE_BLANK;
-    g_rgb_base_config.brightness = 255;
+    rgb_set_brightness(255);
     for (uint16_t i = 0; i < RGB_NUM; i++) {
         g_rgb_configs[i].mode = RGB_MODE_FIXED;
         g_rgb_configs[i].rgb = {0, 0, 0};
@@ -325,11 +380,13 @@ uint32_t render_fingerprint(RGBBaseMode base_mode, RGBMode key_mode)
 {
     g_rgb_base_config.mode = base_mode;
     g_rgb_base_config.rgb = {200, 80, 30};
+    rgb_to_hsv(&g_rgb_base_config.hsv, &g_rgb_base_config.rgb);
     g_rgb_base_config.secondary_rgb = {10, 60, 220};
+    rgb_to_hsv(&g_rgb_base_config.secondary_hsv, &g_rgb_base_config.secondary_rgb);
     g_rgb_base_config.speed = 20;
     g_rgb_base_config.direction = 37;
     g_rgb_base_config.density = 3;
-    g_rgb_base_config.brightness = 255;
+    rgb_set_brightness(255);
     for (uint16_t i = 0; i < RGB_NUM; i++) {
         g_rgb_configs[i].mode = key_mode;
         g_rgb_configs[i].rgb = {255, 128, 64};
@@ -357,6 +414,7 @@ uint32_t render_fingerprint(RGBBaseMode base_mode, RGBMode key_mode)
         }
         if (frame == 3) {
             g_rgb_base_config.rgb = {15, 230, 120};  /* base color changes mid-way */
+            rgb_to_hsv(&g_rgb_base_config.hsv, &g_rgb_base_config.rgb);
         }
     }
     return h;
@@ -368,6 +426,6 @@ TEST(RGB, RenderersReproduceTheirReferenceFrames)
 {
     EXPECT_EQ(2761176814u, render_fingerprint(RGB_BASE_MODE_RAINBOW, RGB_MODE_LINEAR));
     EXPECT_EQ(965217455u, render_fingerprint(RGB_BASE_MODE_WAVE, RGB_MODE_TRIGGER));
-    EXPECT_EQ(3476325781u, render_fingerprint(RGB_BASE_MODE_BLANK, RGB_MODE_JELLY));
+    EXPECT_EQ(3163515849u, render_fingerprint(RGB_BASE_MODE_BLANK, RGB_MODE_JELLY));
     EXPECT_EQ(3643513885u, render_fingerprint(RGB_BASE_MODE_RAINBOW, RGB_MODE_CYCLE));
 }

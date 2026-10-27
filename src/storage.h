@@ -19,10 +19,6 @@ extern "C" {
 
 extern uint8_t g_current_profile_index;
 
-/* All storage functions access flash and may take milliseconds: main-loop
- * context. Key-bound operations (KEYBOARD_SAVE, profile selection, factory
- * reset) reach them from the tick unless KEYBOARD_OPERATION_POLLING moves
- * those operations into keyboard_process(). */
 int storage_mount(void);
 void storage_unmount(void);
 int storage_check_version(void);

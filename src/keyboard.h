@@ -46,6 +46,11 @@ extern "C" {
 #define CALIBRATION_DELAY 1000
 #endif
 
+/* Set to 0 to dispatch unchanged states for every keycode on each update. */
+#ifndef KEYBOARD_SKIP_UNCHANGED_EVENTS
+#define KEYBOARD_SKIP_UNCHANGED_EVENTS 1
+#endif
+
 #define NKRO_REPORT_BITS 30
 
 #define TOTAL_KEY_NUM (ADVANCED_KEY_NUM + KEY_NUM)
@@ -59,9 +64,6 @@ extern "C" {
 #define KEYBOARD_CONFIG_GET_INDEX(keycode)    (KEYBOARD_OPERATION_GET_CODE(keycode) - KEYBOARD_CONFIG_BASE)
 #define KEYBOARD_CONFIG_GET_ACTION(keycode)   ((KEYCODE_GET_SUB(keycode) >> 6) & 0x03)
 
-/* Milliseconds <-> keyboard ticks. Exact for every POLLING_RATE: when the rate
- * is a multiple or a divisor of 1000 Hz this is a single 32-bit multiply or
- * divide by a constant; the 64-bit form is only kept for other rates. */
 #if (POLLING_RATE % 1000) == 0
 #define KEYBOARD_TIME_TO_TICK(x)   ((uint32_t)(x) * (uint32_t)(POLLING_RATE / 1000))
 #define KEYBOARD_TICK_TO_TIME(x)   ((uint32_t)(x) / (uint32_t)(POLLING_RATE / 1000))
@@ -272,13 +274,15 @@ static inline Key* keyboard_get_key(uint16_t id)
     return id < ADVANCED_KEY_NUM ? &g_keyboard_advanced_keys[id].key : &g_keyboard_keys[id - ADVANCED_KEY_NUM];
 }
 
-/* Every key reports its state on every tick, but only a change of state does
+/* With KEYBOARD_SKIP_UNCHANGED_EVENTS enabled, only a change of state does
  * keyboard work. The exceptions are bindings whose report follows the analog
  * travel of the key (mouse movement, joystick and gamepad axes), which are
  * refreshed on every poll, and KEY_USER, whose handler is user code that may
- * act on held keys. Everything else is skipped when the state is unchanged. */
+ * act on held keys. Everything else is skipped when the state is unchanged.
+ * When disabled, every keycode continues through event dispatch on each update. */
 static inline bool keyboard_keycode_dispatches_unchanged(Keycode keycode)
 {
+#if KEYBOARD_SKIP_UNCHANGED_EVENTS
     const uint8_t main = KEYCODE_GET_MAIN(keycode);
     if (main <= KEY_EXSEL)
     {
@@ -303,6 +307,10 @@ static inline bool keyboard_keycode_dispatches_unchanged(Keycode keycode)
     default:
         return false;
     }
+#else
+    (void)keycode;
+    return true;
+#endif
 }
 
 static inline bool keyboard_event_needs_dispatch(KeyboardEvent event)

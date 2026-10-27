@@ -40,13 +40,10 @@
 #define UNUSED(X) (void)X      /* To avoid gcc/g++ warnings */
 #endif /* UNUSED */
 
-/* Compiler barrier for data handed between an interrupt and the tick or main
- * loop: everything stored before it is visible before anything stored after
- * it. Sufficient on a single core; a multi-core port needs a hardware barrier. */
 #if defined(__GNUC__) || defined(__clang__)
-  #define LIBAMP_COMPILER_FENCE() __atomic_signal_fence(__ATOMIC_SEQ_CST)
+  #define COMPILER_FENCE() __atomic_signal_fence(__ATOMIC_SEQ_CST)
 #else
-  #define LIBAMP_COMPILER_FENCE() ((void)0)
+  #define COMPILER_FENCE() ((void)0)
 #endif
 
 #ifdef __cplusplus

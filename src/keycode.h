@@ -735,8 +735,6 @@ static inline uint16_t consumer_keycode_to_rawcode(uint8_t key) {
     return key;
   }
 }
-/* Former misspelling, kept for existing callers. */
-#define consumer_keycode_to_rawcide consumer_keycode_to_rawcode
 
 enum ScriptKeycode {
   SCRIPT_WATCH = 0,

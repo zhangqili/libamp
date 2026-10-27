@@ -208,7 +208,7 @@ int main(int argc, char **argv)
     std::printf("nexus_process, 16 toggling slave keys: %8.1f ns/tick\n", ns_per_call(nexus_tick_toggle, ticks));
 
     g_rgb_base_config.mode = RGB_BASE_MODE_RAINBOW;
-    g_rgb_base_config.brightness = 200;
+    rgb_set_brightness(200);
     set_per_key_mode(RGB_MODE_LINEAR);
     std::printf("rgb_process, rainbow + linear  : %8.1f ns/frame\n", ns_per_call(frame, frames));
 
