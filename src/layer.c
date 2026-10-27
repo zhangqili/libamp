@@ -12,14 +12,23 @@ static uint16_t layer_state;
 __WEAK Keycode g_keymap_cache[TOTAL_KEY_NUM];
 bool g_keymap_lock[TOTAL_KEY_NUM];
 
+void layer_init(void)
+{
+    layer_state = 0;
+    g_current_layer = 0;
+    memset(g_keymap_lock, 0, sizeof(g_keymap_lock));
+}
+
+
 void layer_event_handler(KeyboardEvent event)
 {
-    const uint8_t layer = ((event.keycode >> 8) & 0x0F);
+    const uint8_t layer = LAYER_KEYCODE_GET_LAYER(event.keycode);
+    const uint8_t action = LAYER_KEYCODE_GET_ACTION(event.keycode);
     switch (event.event)
     {
     case KEYBOARD_EVENT_KEY_DOWN:
         keyboard_key_event_down_dispatch(event);
-        switch ((event.keycode >> 12) & 0x0F)
+        switch (action)
         {
         case LAYER_MOMENTARY:
             layer_toggle(layer);
@@ -40,7 +49,7 @@ void layer_event_handler(KeyboardEvent event)
         break;
     case KEYBOARD_EVENT_KEY_UP:
         keyboard_key_event_up_dispatch(event);
-        switch ((event.keycode >> 12) & 0x0F)
+        switch (action)
         {
         case LAYER_MOMENTARY:
             layer_toggle(layer);

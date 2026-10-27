@@ -22,6 +22,7 @@
 
 #include "log.h"
 #include "keyboard.h"
+#include "inttypes.h"
 
 #define MAX_CALLBACKS 32
 
@@ -55,22 +56,22 @@ static void stdout_callback(log_Event *ev) {
 #ifdef LOG_OUTPUT_FILE
 #ifdef LOG_USE_COLOR
   fprintf(
-    ev->udata, "[%lu] %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
+    ev->udata, "[%" PRIu32 "] %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
     ev->tick, level_colors[ev->level], level_strings[ev->level],
     ev->file, ev->line);
 #else
   fprintf(
-    ev->udata, "[%lu] %-5s %s:%d: ",
+    ev->udata, "[%" PRIu32 "] %-5s %s:%d: ",
     ev->tick, level_strings[ev->level], ev->file, ev->line);
 #endif
 #else
 #ifdef LOG_USE_COLOR
   fprintf(
-    ev->udata, "[%lu] %s%-5s\x1b[0m ",
+    ev->udata, "[%" PRIu32 "] %s%-5s\x1b[0m ",
     ev->tick, level_colors[ev->level], level_strings[ev->level]);
 #else  
   fprintf(
-    ev->udata, "[%lu] %-5s ",
+    ev->udata, "[%" PRIu32 "] %-5s ",
     ev->tick, level_strings[ev->level]);
 #endif
 #endif
@@ -82,7 +83,7 @@ static void stdout_callback(log_Event *ev) {
 
 static void file_callback(log_Event *ev) {
   fprintf(
-    ev->udata, "[%lu] %-5s %s:%d: ",
+    ev->udata, "[%" PRIu32 "] %-5s %s:%d: ",
     ev->tick, level_strings[ev->level], ev->file, ev->line);
   vfprintf(ev->udata, ev->fmt, ev->ap);
   fprintf(ev->udata, "\n");

@@ -1299,7 +1299,7 @@ size_t fs_write(File *file, const void *ptr, size_t size)
         fs_extend(file, (ULONG)file->position) != FX_SUCCESS) return 0;
     if (fx_file_seek(&file->handle, (ULONG)file->position) != FX_SUCCESS) return 0;
     ULONG64 before = file->handle.fx_file_current_file_offset;
-    UINT status = fx_file_write(&file->handle, ptr, size);
+    UINT status = fx_file_write(&file->handle, (VOID *)ptr, size); /* FileX takes a non-const buffer */
     size_t actual = (size_t)(file->handle.fx_file_current_file_offset - before);
     if (status != FX_SUCCESS && actual > size) return 0;
     file->position += (FilePosition)actual;

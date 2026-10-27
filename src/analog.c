@@ -67,18 +67,18 @@ void analog_calibrate(void)
 
 void ringbuf_push(RingBuffer* ringbuf, AnalogRawValue data)
 {
-    ringbuf->pointer++;
-    if (ringbuf->pointer >= RING_BUF_LEN)
+    uint16_t pointer = ringbuf->pointer + 1;
+    if (pointer >= RING_BUF_LEN)
     {
-        ringbuf->pointer = 0;
+        pointer = 0;
     }
+    ringbuf->pointer = pointer;
 #ifdef OPTIMIZE_MOVING_AVERAGE_FOR_RINGBUF
     ringbuf->dirty = true;
-    ringbuf->sum -= ringbuf->datas[ringbuf->pointer];
-    ringbuf->sum += data;
+    ringbuf->sum = ringbuf->sum - ringbuf->datas[pointer] + data;
     ringbuf->dirty = false;
 #endif
-    ringbuf->datas[ringbuf->pointer] = data;
+    ringbuf->datas[pointer] = data;
 }
 
 AnalogRawValue ringbuf_avg(RingBuffer* ringbuf)

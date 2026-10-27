@@ -37,6 +37,7 @@
 // #define LOG_OUTPUT_FILE               /* 在日志中包含源码文件和行号。 */
 // #define KEY_CALLBACK_ENABLE           /* 启用每个按键的按下/释放回调。 */
 #define OPTIMIZE_KEY_BITMAP           /* 使用紧凑的按键位图更新路径。 */
+// #define KEYBOARD_SKIP_UNCHANGED_EVENTS 0 /* 设为 0 时也分发未变化的状态；默认 1，仅保留轴、鼠标移动和 KEY_USER 的持续分发。 */
 #define OPTIMIZE_MOVING_AVERAGE_FOR_RINGBUF /* 为模拟缓冲区维护滑动求和。 */
 // #define EVENT_BUFFER_LENGTH 32        /* 键盘事件队列容量。 */
 // #define EVENT_CACHE_LENGTH 16         /* 事件缓存条目容量。 */
@@ -156,6 +157,7 @@
 // #define RGB_FLASH_RIPPLE_SPEED 500      /* Flash Ripple 传播速度。 */
 // #define RGB_DEFAULT_MODE RGB_MODE_LINEAR /* 初始 RGB 效果模式。 */
 // #define RGB_DEFAULT_SPEED 20            /* 初始 RGB 效果速度。 */
+// #define RGB_MAX_FRAME_RATE 1000         /* 渲染帧率上限；默认每个 tick 一帧。 */
 // #define RGB_DEFAULT_COLOR_HSV {273, 78, 99} /* 初始 RGB HSV 颜色。 */
 // #define RGB_LEFT 0.0f                   /* RGB 布局左边界。 */
 // #define RGB_TOP -0.5f                   /* RGB 布局上边界。 */
@@ -234,6 +236,8 @@
 // #define NEXUS_SLICE_LENGTH_MAX 16       /* 单个从机切片的最大按键数。 */
 // #define NEXUS_VALUE_MAX 65535           /* 同步按键值的最大值。 */
 // #define NEXUS_BUFFER_SIZE 8             /* 每个从机的报告缓冲区大小。 */
+// #define NEXUS_LINK_TIMEOUT_MS 100       /* 从机静默超过此时间视为断开，其按键释放。 */
+// #define NEXUS_REQUEST_TIMEOUT_MS 1000   /* 等待从机回显配置请求的时间。 */
 // #define NEXUS_RETRY_COUNT 100           /* Nexus 发送重试上限。 */
 
 /************/

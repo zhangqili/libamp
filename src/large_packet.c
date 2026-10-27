@@ -271,7 +271,7 @@ uint32_t large_packet_dispatch(uint8_t type, uint8_t code, uint8_t sub_cmd, uint
     switch (type)
     {
 #ifdef SCRIPT_ENABLE
-    case PACKET_DATA_SCRIPT_SCOURCE:
+    case PACKET_DATA_SCRIPT_SOURCE:
         return script_source_handle_large_data(code, sub_cmd, val, data, len);
     case PACKET_DATA_SCRIPT_BYTECODE:
         return script_bytecode_handle_large_data(code, sub_cmd, val, data, len);

@@ -35,6 +35,11 @@ extern "C" {
 #    define MIDI_DEFAULT_AUDIO_HANDLER_ENABLE 1
 #endif
 
+/* Analog travel per millisecond (normalized, 0..1) that yields full velocity. */
+#ifndef MIDI_REF_VELOCITY
+#    define MIDI_REF_VELOCITY 0.01f
+#endif
+
 typedef struct __MIDIEventPacket {
     uint8_t Event;
     uint8_t Data1;

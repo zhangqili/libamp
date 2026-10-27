@@ -444,12 +444,11 @@ static void script_key_event_handler_(KeyboardEvent event)
     {
         return;
     }
-    JSGCRef func_ref;
-    JSValue *pfunc;
     const uint16_t id = ((Key*)event.key)->id;
-    if (!(BIT_GET(g_script_watcher_mask[id / 32], id % 32) ||
-        (KEYCODE_GET_MAIN(event.keycode) == SCRIPT_COLLECTION) && 
-        KEYCODE_GET_SUB(event.keycode) == SCRIPT_WATCH))
+    const bool watched = BIT_GET(g_script_watcher_mask[id / 32], id % 32) != 0;
+    const bool watch_keycode = KEYCODE_GET_MAIN(event.keycode) == SCRIPT_COLLECTION &&
+                               KEYCODE_GET_SUB(event.keycode) == SCRIPT_WATCH;
+    if (!watched && !watch_keycode)
     {
         return;
     }

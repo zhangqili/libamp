@@ -40,7 +40,7 @@ void extra_key_event_handler(KeyboardEvent event)
         switch (KEYCODE_GET_MAIN(event.keycode))
         {
         case CONSUMER_COLLECTION:
-            consumer_buffer.usage = consumer_keycode_to_rawcide(KEYCODE_GET_SUB(event.keycode));
+            consumer_buffer.usage = consumer_keycode_to_rawcode(KEYCODE_GET_SUB(event.keycode));
             g_keyboard_report_flags.consumer = true;
             break;
         case SYSTEM_COLLECTION:
@@ -65,7 +65,7 @@ void extra_key_report_add(KeyboardEvent event)
     case CONSUMER_COLLECTION:
         if (!consumer_buffer.usage)
         {
-            consumer_buffer.usage = consumer_keycode_to_rawcide(KEYCODE_GET_SUB(event.keycode));
+            consumer_buffer.usage = consumer_keycode_to_rawcode(KEYCODE_GET_SUB(event.keycode));
         }
             break;
     case SYSTEM_COLLECTION:

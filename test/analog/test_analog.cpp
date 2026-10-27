@@ -29,6 +29,27 @@ TEST(Analog, DirtyRingBufferFallsBackToDataScan)
     EXPECT_EQ(200, ringbuf_avg(&ringbuf));
 }
 
+TEST(Analog, RawReadUsesMappedWindowAndDirtyFallback)
+{
+    for (uint16_t id = 0; id < ADVANCED_KEY_NUM; id++) {
+        AdvancedKey key = {};
+        key.key.id = id;
+        RingBuffer *ringbuf = &g_adc_ringbufs[g_analog_map[id]];
+        for (unsigned sample = 0; sample < 32; sample++) {
+            ringbuf_push(ringbuf, (AnalogRawValue)(id * 1000u + sample * 997u));
+            ASSERT_EQ(ringbuf_avg(ringbuf), advanced_key_read_raw(&key));
+#ifdef OPTIMIZE_MOVING_AVERAGE_FOR_RINGBUF
+            const uint32_t sum = ringbuf->sum;
+            ringbuf->sum = 0;
+            ringbuf->dirty = true;
+            ASSERT_EQ(ringbuf_avg(ringbuf), advanced_key_read_raw(&key));
+            ringbuf->sum = sum;
+            ringbuf->dirty = false;
+#endif
+        }
+    }
+}
+
 TEST(Analog, GrayCodeChannelSelectAcceptsAllConfiguredChannels)
 {
     for (uint8_t channel = 0; channel < ANALOG_CHANNEL_MAX; channel++) {

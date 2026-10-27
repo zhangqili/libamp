@@ -67,11 +67,11 @@
 #define FADING_DISTANCE         8.0f
 #define JELLY_DISTANCE          5.0f
 #define BUBBLE_DISTANCE         2.5f
-#define PORT_LOCATION           {1, -0.5}
+#define PORT_LOCATION           {UNIT_TO_UM(1), UNIT_TO_UM(-0.5)}
 #define RGB_FLASH_MAX_DURATION  1000
 //#define RGB_FLASH_RIPPLE_SPEED  30
 #define RGB_DEFAULT_MODE        RGB_MODE_LINEAR
-#define RGB_DEFAULT_SPEED       0.03
+#define RGB_DEFAULT_SPEED       20
 #define RGB_DEFAULT_COLOR_HSV   {273, 78, 99}
 #define RGB_LEFT                -0.5f
 #define RGB_TOP                 -0.5f

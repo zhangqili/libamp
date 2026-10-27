@@ -90,7 +90,7 @@ bool advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
     {
         advanced_key->difference = value - advanced_key->value;
         advanced_key->value = value;
-        return advanced_key_update_state(advanced_key, advanced_key_update_digital_mode(advanced_key));
+        return key_update(&advanced_key->key, advanced_key_update_digital_mode(advanced_key));
     }
 #if defined(FILTER_ENABLE) && FILTER_DOMAIN == FILTER_DOMAIN_NORMALIZED
     value = analog_filter(&g_analog_filters[advanced_key->key.id], value);
@@ -111,10 +111,11 @@ bool advanced_key_update(AdvancedKey* advanced_key, AnalogValue value)
             break;
         case ADVANCED_KEY_ANALOG_SPEED_MODE:
             state = advanced_key_update_analog_speed_mode(advanced_key);
+            break;
         default:
             break;
     }
-    return advanced_key_update_state(advanced_key, state);
+    return key_update(&advanced_key->key, state);
 }
 
 bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue raw)
@@ -133,11 +134,11 @@ bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue raw)
 #endif
 #ifdef CALIBRATION_LPF_ENABLE
     static AnalogRawValue low_pass_raws[ADVANCED_KEY_NUM];
-    low_pass_raws[advanced_key->key.id] = 
-        ((uint32_t)filtered_raw + ((uint32_t)low_pass_raws[advanced_key->key.id]<<4) - low_pass_raws[advanced_key->key.id]) >> 4; 
-    AnalogRawValue lpf_value = low_pass_raws[advanced_key->key.id];
+    AnalogRawValue *low_pass_raw = &low_pass_raws[advanced_key->key.id];
+    *low_pass_raw = (AnalogRawValue)(((uint32_t)filtered_raw + ((uint32_t)*low_pass_raw << 4) - *low_pass_raw) >> 4);
+    const AnalogRawValue lpf_value = *low_pass_raw;
 #else
-    AnalogRawValue lpf_value = filtered_raw;
+    const AnalogRawValue lpf_value = filtered_raw;
 #endif
     advanced_key->filtered_raw = filtered_raw;
     switch (advanced_key->config.calibration_mode)
@@ -171,37 +172,62 @@ bool advanced_key_update_raw(AdvancedKey* advanced_key, AnalogRawValue raw)
     return advanced_key_update(advanced_key, advanced_key_normalize(advanced_key, filtered_raw));
 }
 
+void advanced_key_init(AdvancedKey* advanced_key, uint16_t id)
+{
+    key_init(&advanced_key->key, id);
+    advanced_key->value = 0;
+    advanced_key->raw = 0;
+    advanced_key->filtered_raw = 0;
+    advanced_key->extremum = 0;
+    advanced_key->difference = 0;
+}
+
 bool advanced_key_update_state(AdvancedKey* advanced_key, bool state)
 {
     return key_update(&(advanced_key->key), state);
 }
 
+int32_t advanced_key_lut_index(const AdvancedKey* advanced_key, AnalogRawValue value)
+{
+    const int32_t delta = (int32_t)advanced_key->config.upper_bound - (int32_t)value;
+    int32_t index = (int32_t)(((int64_t)delta * advanced_key->q_scale_to_index) >> 16);
+    if (index < 0)
+    {
+        return 0;
+    }
+    if (index > LUT_LENGTH)
+    {
+        return LUT_LENGTH;
+    }
+    return index;
+}
+
 __WEAK AnalogValue advanced_key_normalize(AdvancedKey* advanced_key, AnalogRawValue value)
 {
-    int32_t delta = (int32_t)advanced_key->config.upper_bound - (int32_t)value;
-    int32_t mapped_val = (delta * advanced_key->q_scale_to_index) >> 16;
-    mapped_val += ANALOG_VALUE_MIN;
-    if (mapped_val < ANALOG_VALUE_MIN)
-    {
-        return ANALOG_VALUE_MIN;
-    }
-    if (mapped_val > ANALOG_VALUE_MAX)
-    {
-        return ANALOG_VALUE_MAX;
-    }
-    return (AnalogValue)mapped_val;
+    const uint32_t index = (uint32_t)advanced_key_lut_index(advanced_key, value);
+    return (AnalogValue)(index * (uint32_t)ANALOG_VALUE_RANGE / (uint32_t)LUT_LENGTH) + ANALOG_VALUE_MIN;
 }
 
 void advanced_key_set_range(AdvancedKey* advanced_key, AnalogRawValue upper, AnalogRawValue lower)
 {
     advanced_key->config.upper_bound = upper;
     advanced_key->config.lower_bound = lower;
-    int32_t range = upper - lower;
-    if (range != 0) {
-        advanced_key->q_scale_to_index = (int32_t)(((int64_t)LUT_LENGTH << 16) / range);
-    } else {
-        advanced_key->q_scale_to_index = 0;
-    }
+    const int32_t range = (int32_t)upper - (int32_t)lower;
+    /* A 64-bit target can divide this directly in its native word size. On
+     * 32-bit MCUs, avoid a software 64-bit divide when calibration expands. */
+#if UINTPTR_MAX > UINT32_MAX
+    advanced_key->q_scale_to_index = range != 0 ? (int32_t)(((int64_t)LUT_LENGTH << 16) / range) : 0;
+#elif LUT_LENGTH <= 32767
+    /* Small tables fit a signed numerator and need just one SDIV on M4. */
+    advanced_key->q_scale_to_index = range != 0 ? ((int32_t)LUT_LENGTH << 16) / range : 0;
+#else
+    /* LUT_LENGTH <= 65535 still fits uint32_t. Divide the magnitude, then
+     * restore the sign with unsigned arithmetic, preserving the old cast
+     * even for quotients above INT32_MAX. */
+    const uint32_t magnitude = (uint32_t)(range < 0 ? -range : range);
+    const uint32_t scale = magnitude != 0 ? ((uint32_t)LUT_LENGTH << 16) / magnitude : 0;
+    advanced_key->q_scale_to_index = (int32_t)(range < 0 ? 0u - scale : scale);
+#endif
 }
 
 void advanced_key_reset_range(AdvancedKey* advanced_key, AnalogRawValue value)
@@ -249,7 +275,7 @@ AnalogValue advanced_key_get_effective_value(AdvancedKey *advanced_key)
         return ANALOG_VALUE_MAX;
     }
 
-    uint64_t mapped_val = ((uint64_t)active_val * (uint64_t)ANALOG_VALUE_RANGE) / (uint32_t)active_range;
+    uint32_t mapped_val = ((uint32_t)active_val * (uint32_t)ANALOG_VALUE_RANGE) / (uint32_t)active_range;
 
     return (AnalogValue)mapped_val + ANALOG_VALUE_MIN;
 }

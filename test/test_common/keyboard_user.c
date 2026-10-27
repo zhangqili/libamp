@@ -907,35 +907,18 @@ static const int32_t table[8192] = {
     A_ANTI_NORM(0.99996586), A_ANTI_NORM(1.00000000)
 };
 
+/* Lookup-table normalization used by the host tests. The table already holds
+ * AnalogValue entries (see A_ANTI_NORM above), so its content is returned as
+ * is; converting it a second time would overflow AnalogValue. */
 AnalogValue advanced_key_normalize(AdvancedKey* advanced_key, AnalogRawValue value)
 {
-    const uint16_t length = sizeof(table) / sizeof(table[0]);
-    int32_t delta = (advanced_key->config.upper_bound - value);
-    int16_t index = ((delta * advanced_key->q_scale_to_index) >> 16);
-    if (index < 0)
-    {
-        index = 0;
-    }
+    const int32_t length = (int32_t)(sizeof(table) / sizeof(table[0]));
+    int32_t index = advanced_key_lut_index(advanced_key, value);
     if (index >= length)
     {
         index = length - 1;
     }
-    return A_ANTI_NORM(table[index]) + ANALOG_VALUE_MIN;
-    /*
-    if (x<0.225)
-    {
-        return x*(0.5/0.225);
-    }
-    else if (x<0.404)
-    {
-        return (x-0.225)*(0.25/(0.404-0.225))+0.5;
-    }
-    else
-    {
-        return (x-0.404)*(0.25/(1.0-0.404))+0.75;
-    }
-    */
-    
+    return (AnalogValue)(table[index] + ANALOG_VALUE_MIN);
 }
 
 void analog_channel_select(uint8_t x)

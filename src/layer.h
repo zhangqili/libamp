@@ -15,6 +15,7 @@ extern uint8_t g_current_layer;
 extern Keycode g_keymap_cache[TOTAL_KEY_NUM];
 extern bool g_keymap_lock[TOTAL_KEY_NUM];
 
+void layer_init(void);
 void layer_event_handler(KeyboardEvent event);
 uint8_t layer_get(void);
 void layer_set(uint8_t layer);

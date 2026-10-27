@@ -24,7 +24,11 @@ extern "C" {
 #define FS_TYPE_DIR 2
 
 #ifndef FILE_SYSTEM_TYPE
+#ifdef STORAGE_ENABLE
 #define FILE_SYSTEM_TYPE FILE_SYSTEM_LFS
+#else
+#define FILE_SYSTEM_TYPE FILE_SYSTEM_RAW
+#endif
 #endif
 
 /* Optional middle layer between the file system and the flash driver. It is

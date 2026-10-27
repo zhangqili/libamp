@@ -107,7 +107,7 @@ void console_printf(const char *format, ...)
 
     if (written > 0)
     {
-        int actual_len = (written < max_write_len) ? written : (max_write_len - 1);
+        int actual_len = ((unsigned int)written < max_write_len) ? written : (int)(max_write_len - 1);
         console_tx_buffer.rear = (console_tx_buffer.rear + actual_len) % CONSOLE_BUFFER_LENGTH;
         console_tx_buffer.len += actual_len;
     }

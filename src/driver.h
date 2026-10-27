@@ -32,6 +32,10 @@ int led_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b);
 int led_flush(void);
 
 
+/* Nexus transport. nexus_send() carries a frame from the master to one slave,
+ * nexus_report() from the slave to the master. Both return 0 once the frame
+ * has been copied or transmitted and nonzero when it must be retried; the
+ * buffer is reused as soon as they return. */
 int nexus_send(uint8_t slave_id, uint8_t *report, uint16_t len);
 int nexus_report(uint8_t *report, uint16_t len);
 

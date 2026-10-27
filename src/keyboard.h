@@ -46,14 +46,34 @@ extern "C" {
 #define CALIBRATION_DELAY 1000
 #endif
 
+/* Set to 0 to dispatch unchanged states for every keycode on each update. */
+#ifndef KEYBOARD_SKIP_UNCHANGED_EVENTS
+#define KEYBOARD_SKIP_UNCHANGED_EVENTS 1
+#endif
+
 #define NKRO_REPORT_BITS 30
 
 #define TOTAL_KEY_NUM (ADVANCED_KEY_NUM + KEY_NUM)
 
+/* KEYBOARD_OPERATION keycodes carry the operation in the sub-byte. Values
+ * below KEYBOARD_CONFIG_BASE are commands (reboot, save, profile ...); from
+ * KEYBOARD_CONFIG_BASE on, the low six bits select a configuration bit and the
+ * top two bits the action (KEYBOARD_CONFIG_ON/OFF/TOGGLE). */
 #define KEYBOARD_CONFIG(index, action) ((((KEYBOARD_CONFIG_BASE + (index)) | ((action) << 6)) << 8) | KEYBOARD_OPERATION)
+#define KEYBOARD_OPERATION_GET_CODE(keycode)  (KEYCODE_GET_SUB(keycode) & 0x3F)
+#define KEYBOARD_CONFIG_GET_INDEX(keycode)    (KEYBOARD_OPERATION_GET_CODE(keycode) - KEYBOARD_CONFIG_BASE)
+#define KEYBOARD_CONFIG_GET_ACTION(keycode)   ((KEYCODE_GET_SUB(keycode) >> 6) & 0x03)
 
+#if (POLLING_RATE % 1000) == 0
+#define KEYBOARD_TIME_TO_TICK(x)   ((uint32_t)(x) * (uint32_t)(POLLING_RATE / 1000))
+#define KEYBOARD_TICK_TO_TIME(x)   ((uint32_t)(x) / (uint32_t)(POLLING_RATE / 1000))
+#elif (1000 % POLLING_RATE) == 0
+#define KEYBOARD_TIME_TO_TICK(x)   ((uint32_t)(x) / (uint32_t)(1000 / POLLING_RATE))
+#define KEYBOARD_TICK_TO_TIME(x)   ((uint32_t)(x) * (uint32_t)(1000 / POLLING_RATE))
+#else
 #define KEYBOARD_TIME_TO_TICK(x)   ((uint32_t)(((uint64_t)(x) * POLLING_RATE) / 1000))
 #define KEYBOARD_TICK_TO_TIME(x)   ((uint32_t)(((uint64_t)(x) * 1000) / POLLING_RATE))
+#endif
 
 #define KEY_BITMAP_SIZE ((TOTAL_KEY_NUM + sizeof(uint32_t)*8 - 1) / (sizeof(uint32_t)*8))
 
@@ -198,6 +218,12 @@ void keyboard_report_add(KeyboardEvent event);
 void keyboard_report_clear(void);
 int keyboard_report_send(void);
 
+/* Execution contexts (see README, "Execution contexts"):
+ *   keyboard_init()    once, before the tick starts; mounts storage.
+ *   keyboard_task()    keyboard tick (POLLING_RATE), interrupt or deadline
+ *                      loop; never re-entered. Everything it calls, including
+ *                      hid_send_*() and nexus_report(), runs here.
+ *   keyboard_process() main loop; may take milliseconds (RGB frame, flash). */
 void keyboard_init(void);
 void keyboard_task(void);
 void keyboard_process(void);
@@ -246,6 +272,50 @@ static inline Key* keyboard_get_key(uint16_t id)
         return NULL;
     }
     return id < ADVANCED_KEY_NUM ? &g_keyboard_advanced_keys[id].key : &g_keyboard_keys[id - ADVANCED_KEY_NUM];
+}
+
+/* With KEYBOARD_SKIP_UNCHANGED_EVENTS enabled, only a change of state does
+ * keyboard work. The exceptions are bindings whose report follows the analog
+ * travel of the key (mouse movement, joystick and gamepad axes), which are
+ * refreshed on every poll, and KEY_USER, whose handler is user code that may
+ * act on held keys. Everything else is skipped when the state is unchanged.
+ * When disabled, every keycode continues through event dispatch on each update. */
+static inline bool keyboard_keycode_dispatches_unchanged(Keycode keycode)
+{
+#if KEYBOARD_SKIP_UNCHANGED_EVENTS
+    const uint8_t main = KEYCODE_GET_MAIN(keycode);
+    if (main <= KEY_EXSEL)
+    {
+        return false; /* ordinary keys and modifiers only dispatch edges */
+    }
+    switch (main)
+    {
+#ifdef MOUSE_ENABLE
+    case MOUSE_COLLECTION:
+        return MOUSE_KEYCODE_IS_MOVE(keycode);
+#endif
+#ifdef JOYSTICK_ENABLE
+    case JOYSTICK_COLLECTION:
+        return JOYSTICK_KEYCODE_IS_AXIS(keycode);
+#endif
+#ifdef GAMEPAD_ENABLE
+    case GAMEPAD_COLLECTION:
+        return GAMEPAD_KEYCODE_IS_AXIS(keycode);
+#endif
+    case KEY_USER:
+        return true;
+    default:
+        return false;
+    }
+#else
+    (void)keycode;
+    return true;
+#endif
+}
+
+static inline bool keyboard_event_needs_dispatch(KeyboardEvent event)
+{
+    return EVENT_CHANGED(event.event) || keyboard_keycode_dispatches_unchanged(event.keycode);
 }
 
 static inline bool keyboard_key_set_report_state(Key*key, bool state)

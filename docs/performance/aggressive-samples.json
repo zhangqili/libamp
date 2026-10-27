@@ -1,0 +1,254 @@
+{
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "binaries": {
+    "baseline": "codex-fable@bcecc2e (Release)",
+    "candidate": "codex-aggressive-performance (Release)"
+  },
+  "ticks": 2000000,
+  "frames": 200000,
+  "repeats": 9,
+  "units": {
+    "keyboard_task, idle keys": "ns/tick",
+    "keyboard_task, travelling keys": "ns/tick",
+    "advanced_key_set_range": "ns/key",
+    "hsv_to_rgb, saturated colors": "ns/color",
+    "nexus_process, 16 idle slave keys": "ns/tick",
+    "nexus_process, 16 toggling slave keys": "ns/tick",
+    "rgb_process, rainbow + linear": "ns/frame",
+    "rgb_process, wave + fading trigger": "ns/frame",
+    "rgb_process, wave + held trigger": "ns/frame",
+    "rgb_process, 8 live bubble ripples": "ns/frame"
+  },
+  "samples": {
+    "baseline": {
+      "keyboard_task, idle keys": [
+        344.3,
+        354.6,
+        336.0,
+        353.2,
+        348.2,
+        358.9,
+        348.7,
+        323.9,
+        365.6
+      ],
+      "keyboard_task, travelling keys": [
+        313.3,
+        329.8,
+        308.6,
+        321.1,
+        317.8,
+        323.0,
+        332.2,
+        309.0,
+        317.8
+      ],
+      "advanced_key_set_range": [
+        0.731,
+        0.65,
+        0.597,
+        0.739,
+        0.688,
+        0.684,
+        0.743,
+        0.564,
+        0.671
+      ],
+      "hsv_to_rgb, saturated colors": [
+        1.622,
+        1.643,
+        1.631,
+        1.632,
+        1.633,
+        1.638,
+        1.635,
+        1.633,
+        1.631
+      ],
+      "nexus_process, 16 idle slave keys": [
+        11.4,
+        10.2,
+        11.0,
+        9.9,
+        12.1,
+        10.5,
+        11.4,
+        10.3,
+        10.8
+      ],
+      "nexus_process, 16 toggling slave keys": [
+        25.1,
+        25.2,
+        25.5,
+        25.0,
+        25.4,
+        25.1,
+        25.6,
+        25.8,
+        25.9
+      ],
+      "rgb_process, rainbow + linear": [
+        352.9,
+        356.4,
+        354.4,
+        354.8,
+        354.1,
+        356.3,
+        355.1,
+        354.3,
+        352.6
+      ],
+      "rgb_process, wave + fading trigger": [
+        275.0,
+        278.3,
+        275.6,
+        273.6,
+        278.0,
+        278.1,
+        278.4,
+        275.4,
+        277.1
+      ],
+      "rgb_process, wave + held trigger": [
+        172.6,
+        173.3,
+        172.9,
+        174.2,
+        173.9,
+        174.1,
+        173.3,
+        173.4,
+        172.6
+      ],
+      "rgb_process, 8 live bubble ripples": [
+        460.8,
+        465.4,
+        463.2,
+        465.0,
+        465.3,
+        466.7,
+        464.3,
+        466.4,
+        463.8
+      ]
+    },
+    "candidate": {
+      "keyboard_task, idle keys": [
+        288.2,
+        293.4,
+        285.2,
+        291.9,
+        302.1,
+        324.9,
+        305.8,
+        288.9,
+        284.3
+      ],
+      "keyboard_task, travelling keys": [
+        268.3,
+        280.2,
+        283.0,
+        277.2,
+        271.8,
+        296.7,
+        283.0,
+        275.4,
+        268.0
+      ],
+      "advanced_key_set_range": [
+        0.689,
+        0.555,
+        0.738,
+        0.571,
+        0.594,
+        0.745,
+        0.562,
+        0.59,
+        0.708
+      ],
+      "hsv_to_rgb, saturated colors": [
+        1.582,
+        1.589,
+        1.599,
+        1.592,
+        1.591,
+        1.591,
+        1.59,
+        1.591,
+        1.594
+      ],
+      "nexus_process, 16 idle slave keys": [
+        7.7,
+        8.3,
+        7.9,
+        7.8,
+        8.2,
+        7.8,
+        7.9,
+        8.0,
+        7.8
+      ],
+      "nexus_process, 16 toggling slave keys": [
+        22.1,
+        22.3,
+        22.7,
+        21.9,
+        22.5,
+        22.0,
+        22.3,
+        22.0,
+        22.2
+      ],
+      "rgb_process, rainbow + linear": [
+        351.5,
+        354.3,
+        355.4,
+        354.6,
+        351.8,
+        352.6,
+        353.4,
+        353.1,
+        353.0
+      ],
+      "rgb_process, wave + fading trigger": [
+        274.5,
+        277.9,
+        277.3,
+        275.5,
+        278.2,
+        278.1,
+        277.2,
+        273.8,
+        277.4
+      ],
+      "rgb_process, wave + held trigger": [
+        172.1,
+        172.7,
+        173.2,
+        173.8,
+        173.5,
+        174.1,
+        174.0,
+        173.6,
+        173.4
+      ],
+      "rgb_process, 8 live bubble ripples": [
+        462.9,
+        460.5,
+        463.5,
+        465.6,
+        463.1,
+        464.5,
+        465.9,
+        465.2,
+        464.4
+      ]
+    }
+  },
+  "compiler": "Apple clang 21.0.0 (clang-2100.3.34.2), arm64, CMake Release -O3 -DNDEBUG, no LTO",
+  "baseline_commit": "bcecc2e471fb7639509e2b7bdc2526152763625b",
+  "notes": [
+    "Host CPU timings include benchmark fixture work; no AT32F405 cycle or USB latency measurements.",
+    "Calibration has identical machine instructions in these two executables; its timing delta is not an added optimization."
+  ]
+}

@@ -78,11 +78,6 @@ typedef struct __JoystickReport {
 #endif
 } __PACKED JoystickReport;
 
-#define JOYSTICK_KEYCODE_GET_AXIS_MAP(keycode) (KEYCODE_GET_SUB((keycode) >> 5) & 0x03)
-#define JOYSTICK_KEYCODE_IS_AXIS_INVERT(keycode) (KEYCODE_GET_SUB((keycode)) & 0x80)
-#define JOYSTICK_KEYCODE_IS_AXIS(keycode) (KEYCODE_GET_SUB((keycode)) & 0xE0)
-#define JOYSTICK_KEYCODE_GET_AXIS_INDEX(keycode) (KEYCODE_GET_SUB((keycode)) & 0x1F)
-
 void joystick_event_handler(KeyboardEvent event);
 void joystick_report_clear(void);
 void joystick_report_add(KeyboardEvent event);

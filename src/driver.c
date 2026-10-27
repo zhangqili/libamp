@@ -147,6 +147,6 @@ __WEAK int nexus_report(uint8_t *report, uint16_t len)
 {
     UNUSED(report);
     UNUSED(len);
-    printf("nexus_send needs to be implemented.\n");
+    printf("nexus_report needs to be implemented.\n");
     return 0;
 }

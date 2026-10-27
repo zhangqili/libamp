@@ -56,6 +56,26 @@ extern "C" {
 #define RGB_DEFAULT_SPEED 20
 #endif
 
+/* Upper bound on rendered frames per second. keyboard_process() may call
+ * rgb_process() on every pass of the main loop; frames are rendered at least
+ * RGB_FRAME_INTERVAL_TICKS apart. The default keeps the historic pacing of one
+ * frame per keyboard tick. A board that ticks at several kHz can lower this to
+ * a few hundred and spend far less main-loop time on frames the LEDs cannot
+ * show; effects are timed by g_keyboard_tick, so they look the same at any
+ * frame rate. */
+#ifndef RGB_MAX_FRAME_RATE
+#define RGB_MAX_FRAME_RATE (POLLING_RATE)
+#endif
+#define RGB_FRAME_INTERVAL_TICKS \
+    (((POLLING_RATE) / (RGB_MAX_FRAME_RATE)) > 0 ? ((POLLING_RATE) / (RGB_MAX_FRAME_RATE)) : 1)
+
+/* True when a frame may be rendered at `tick`, the previous frame having been
+ * rendered at `last_frame_tick`. Correct across the tick counter wrapping. */
+static inline bool rgb_frame_is_due(uint32_t tick, uint32_t last_frame_tick, uint32_t interval_ticks)
+{
+    return (uint32_t)(tick - last_frame_tick) >= interval_ticks;
+}
+
 #ifndef RGB_DEFAULT_COLOR_HSV
 #define RGB_DEFAULT_COLOR_HSV {273, 78, 99}
 #endif
@@ -90,6 +110,9 @@ extern "C" {
 #define RGB_HEIGHT ((RGB_BOTTOM)-(RGB_TOP))
 #define RGB_HEIGHT_UM ((RGB_BOTTOM_UM)-(RGB_TOP_UM))
 
+/* Define RGB_GAMMA_ENABLE to enable gamma correction. Define
+ * RGB_GAMMA_LUT_ENABLE as well to cache gamma and brightness in a 256-byte
+ * table; without it, gamma is computed for each output channel. */
 #ifndef RGB_GAMMA
 #define RGB_GAMMA 2.2f
 #endif
@@ -161,7 +184,7 @@ typedef struct __RGBLocation
 typedef struct __RGBArgument
 {
     uint32_t begin_tick;
-    uint8_t rgb_ptr;
+    uint16_t rgb_ptr;
 }RGBArgument;
 
 typedef struct __RGBArgumentListNode
@@ -200,6 +223,7 @@ extern const RGBLocation g_rgb_locations[RGB_NUM];
 void rgb_init(void);
 void rgb_process(void);
 void rgb_update_callback(void);
+void rgb_set_brightness(uint8_t brightness);
 void rgb_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b);
 void rgb_init_flash(void);
 void rgb_flash(void);

@@ -197,7 +197,7 @@ void packet_process_rgb_base_config(PacketDataHeader*data)
         g_rgb_base_config.speed = packet->speed;
         g_rgb_base_config.direction = packet->direction;
         g_rgb_base_config.density = packet->density;
-        g_rgb_base_config.brightness = packet->brightness;
+        rgb_set_brightness(packet->brightness);
     }
     else if (data->code == PACKET_CODE_GET)
     {

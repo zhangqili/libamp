@@ -30,8 +30,8 @@ TEST(LargePacket, WritesScriptBytecodePayloadsToStorage)
     LargePacketBuffer buffer = {};
     PacketLargeData *packet = packet_from(buffer);
 
-    packet->code = PACKET_CODE_LARGE_SET;
-    packet->type = PACKET_DATA_SCRIPT_BYTECODE;
+    packet->data_header.code = PACKET_CODE_LARGE_SET;
+    packet->data_header.type = PACKET_DATA_SCRIPT_BYTECODE;
     packet->sub_cmd = kLargeDataStart;
     packet->header.total_size = 5;
     packet->header.checksum = 0;
@@ -39,8 +39,8 @@ TEST(LargePacket, WritesScriptBytecodePayloadsToStorage)
 
     buffer.fill(0);
     packet = packet_from(buffer);
-    packet->code = PACKET_CODE_LARGE_SET;
-    packet->type = PACKET_DATA_SCRIPT_BYTECODE;
+    packet->data_header.code = PACKET_CODE_LARGE_SET;
+    packet->data_header.type = PACKET_DATA_SCRIPT_BYTECODE;
     packet->sub_cmd = kLargeDataPayload;
     packet->payload.offset = 0;
     packet->payload.length = 5;
@@ -62,16 +62,16 @@ TEST(LargePacket, RejectsOutOfOrderScriptPayload)
     LargePacketBuffer buffer = {};
     PacketLargeData *packet = packet_from(buffer);
 
-    packet->code = PACKET_CODE_LARGE_SET;
-    packet->type = PACKET_DATA_SCRIPT_BYTECODE;
+    packet->data_header.code = PACKET_CODE_LARGE_SET;
+    packet->data_header.type = PACKET_DATA_SCRIPT_BYTECODE;
     packet->sub_cmd = kLargeDataStart;
     packet->header.total_size = 4;
     large_packet_process(packet);
 
     buffer.fill(0);
     packet = packet_from(buffer);
-    packet->code = PACKET_CODE_LARGE_SET;
-    packet->type = PACKET_DATA_SCRIPT_BYTECODE;
+    packet->data_header.code = PACKET_CODE_LARGE_SET;
+    packet->data_header.type = PACKET_DATA_SCRIPT_BYTECODE;
     packet->sub_cmd = kLargeDataPayload;
     packet->payload.offset = 2;
     packet->payload.length = 4;
@@ -93,16 +93,16 @@ TEST(LargePacket, GetsScriptBytecodePayloadsFromStorage)
     LargePacketBuffer buffer = {};
     PacketLargeData *packet = packet_from(buffer);
 
-    packet->code = PACKET_CODE_LARGE_SET;
-    packet->type = PACKET_DATA_SCRIPT_BYTECODE;
+    packet->data_header.code = PACKET_CODE_LARGE_SET;
+    packet->data_header.type = PACKET_DATA_SCRIPT_BYTECODE;
     packet->sub_cmd = kLargeDataStart;
     packet->header.total_size = 5;
     large_packet_process(packet);
 
     buffer.fill(0);
     packet = packet_from(buffer);
-    packet->code = PACKET_CODE_LARGE_SET;
-    packet->type = PACKET_DATA_SCRIPT_BYTECODE;
+    packet->data_header.code = PACKET_CODE_LARGE_SET;
+    packet->data_header.type = PACKET_DATA_SCRIPT_BYTECODE;
     packet->sub_cmd = kLargeDataPayload;
     packet->payload.offset = 0;
     packet->payload.length = 5;
@@ -111,8 +111,8 @@ TEST(LargePacket, GetsScriptBytecodePayloadsFromStorage)
 
     buffer.fill(0);
     packet = packet_from(buffer);
-    packet->code = PACKET_CODE_LARGE_GET;
-    packet->type = PACKET_DATA_SCRIPT_BYTECODE;
+    packet->data_header.code = PACKET_CODE_LARGE_GET;
+    packet->data_header.type = PACKET_DATA_SCRIPT_BYTECODE;
     packet->sub_cmd = kLargeDataStart;
     large_packet_process(packet);
 
@@ -120,8 +120,8 @@ TEST(LargePacket, GetsScriptBytecodePayloadsFromStorage)
 
     buffer.fill(0);
     packet = packet_from(buffer);
-    packet->code = PACKET_CODE_LARGE_GET;
-    packet->type = PACKET_DATA_SCRIPT_BYTECODE;
+    packet->data_header.code = PACKET_CODE_LARGE_GET;
+    packet->data_header.type = PACKET_DATA_SCRIPT_BYTECODE;
     packet->sub_cmd = kLargeDataPayload;
     packet->payload.offset = 1;
     packet->payload.length = 3;

@@ -103,8 +103,8 @@ TEST(Packet, SetAndGetKeymap)
 {
     PacketBuffer buffer = {};
     PacketKeymap *packet = packet_as<PacketKeymap>(buffer);
-    packet->code = PACKET_CODE_SET;
-    packet->type = PACKET_DATA_KEYMAP;
+    packet->header.code = PACKET_CODE_SET;
+    packet->header.type = PACKET_DATA_KEYMAP;
     packet->layer = 1;
     packet->start = 3;
     packet->length = 5;
@@ -125,8 +125,8 @@ TEST(Packet, SetAndGetKeymap)
 
     buffer.fill(0);
     packet = packet_as<PacketKeymap>(buffer);
-    packet->code = PACKET_CODE_GET;
-    packet->type = PACKET_DATA_KEYMAP;
+    packet->header.code = PACKET_CODE_GET;
+    packet->header.type = PACKET_DATA_KEYMAP;
     packet->layer = 1;
     packet->start = 3;
     packet->length = 5;
@@ -157,8 +157,8 @@ TEST(Packet, SetAndGetAdvancedKey)
 {
     PacketBuffer buffer = {};
     PacketAdvancedKey *packet = packet_as<PacketAdvancedKey>(buffer);
-    packet->code = PACKET_CODE_SET;
-    packet->type = PACKET_DATA_ADVANCED_KEY;
+    packet->header.code = PACKET_CODE_SET;
+    packet->header.type = PACKET_DATA_ADVANCED_KEY;
     packet->index = 3;
     packet->data = packet_advanced_key_config();
 
@@ -176,8 +176,8 @@ TEST(Packet, SetAndGetAdvancedKey)
 
     buffer.fill(0);
     packet = packet_as<PacketAdvancedKey>(buffer);
-    packet->code = PACKET_CODE_GET;
-    packet->type = PACKET_DATA_ADVANCED_KEY;
+    packet->header.code = PACKET_CODE_GET;
+    packet->header.type = PACKET_DATA_ADVANCED_KEY;
     packet->index = 3;
 
     packet_process(buffer.data(), sizeof(PacketAdvancedKey));
@@ -191,8 +191,8 @@ TEST(Packet, RejectsOutOfRangeAdvancedKeyIndex)
     const auto original = g_keyboard_advanced_keys[0].config;
     PacketBuffer buffer = {};
     PacketAdvancedKey *packet = packet_as<PacketAdvancedKey>(buffer);
-    packet->code = PACKET_CODE_SET;
-    packet->type = PACKET_DATA_ADVANCED_KEY;
+    packet->header.code = PACKET_CODE_SET;
+    packet->header.type = PACKET_DATA_ADVANCED_KEY;
     packet->index = ADVANCED_KEY_NUM;
     packet->data = packet_advanced_key_config();
 
@@ -205,8 +205,8 @@ TEST(Packet, SetAndGetRGBBaseConfig)
 {
     PacketBuffer buffer = {};
     PacketRGBBaseConfig *packet = packet_as<PacketRGBBaseConfig>(buffer);
-    packet->code = PACKET_CODE_SET;
-    packet->type = PACKET_DATA_RGB_BASE_CONFIG;
+    packet->header.code = PACKET_CODE_SET;
+    packet->header.type = PACKET_DATA_RGB_BASE_CONFIG;
     packet->mode = RGB_BASE_MODE_WAVE;
     packet->r = 10;
     packet->g = 20;
@@ -219,6 +219,11 @@ TEST(Packet, SetAndGetRGBBaseConfig)
     packet->density = 90;
     packet->brightness = 100;
 
+    rgb_set_brightness(100);
+    rgb_set(0, 255, 128, 64);
+    const ColorRGB expected_led = led_color_buffer[0];
+    rgb_set_brightness(255);
+
     packet_process(buffer.data(), sizeof(PacketRGBBaseConfig));
 
     EXPECT_EQ(RGB_BASE_MODE_WAVE, g_rgb_base_config.mode);
@@ -226,11 +231,15 @@ TEST(Packet, SetAndGetRGBBaseConfig)
     EXPECT_EQ(20, g_rgb_base_config.rgb.g);
     EXPECT_EQ(30, g_rgb_base_config.rgb.b);
     EXPECT_EQ(100, g_rgb_base_config.brightness);
+    rgb_set(0, 255, 128, 64);
+    EXPECT_EQ(expected_led.r, led_color_buffer[0].r);
+    EXPECT_EQ(expected_led.g, led_color_buffer[0].g);
+    EXPECT_EQ(expected_led.b, led_color_buffer[0].b);
 
     buffer.fill(0);
     packet = packet_as<PacketRGBBaseConfig>(buffer);
-    packet->code = PACKET_CODE_GET;
-    packet->type = PACKET_DATA_RGB_BASE_CONFIG;
+    packet->header.code = PACKET_CODE_GET;
+    packet->header.type = PACKET_DATA_RGB_BASE_CONFIG;
 
     packet_process(buffer.data(), sizeof(PacketRGBBaseConfig));
 
@@ -251,8 +260,8 @@ TEST(Packet, SetAndGetRGBConfigs)
 {
     PacketBuffer buffer = {};
     PacketRGBConfigs *packet = packet_as<PacketRGBConfigs>(buffer);
-    packet->code = PACKET_CODE_SET;
-    packet->type = PACKET_DATA_RGB_CONFIG;
+    packet->header.code = PACKET_CODE_SET;
+    packet->header.type = PACKET_DATA_RGB_CONFIG;
     packet->length = 2;
     packet->data[0].index = 3;
     packet->data[0].mode = RGB_MODE_LINEAR;
@@ -281,8 +290,8 @@ TEST(Packet, SetAndGetRGBConfigs)
 
     buffer.fill(0);
     packet = packet_as<PacketRGBConfigs>(buffer);
-    packet->code = PACKET_CODE_GET;
-    packet->type = PACKET_DATA_RGB_CONFIG;
+    packet->header.code = PACKET_CODE_GET;
+    packet->header.type = PACKET_DATA_RGB_CONFIG;
     packet->length = 2;
     packet->data[0].index = 3;
     packet->data[1].index = 5;
@@ -304,8 +313,8 @@ TEST(Packet, DynamicKeyUsesExplicitPayloadSize)
     const DynamicKey dynamic_key = make_dynamic_key();
     PacketBuffer buffer = {};
     PacketDynamicKey *packet = packet_as<PacketDynamicKey>(buffer);
-    packet->code = PACKET_CODE_SET;
-    packet->type = PACKET_DATA_DYNAMIC_KEY;
+    packet->header.code = PACKET_CODE_SET;
+    packet->header.type = PACKET_DATA_DYNAMIC_KEY;
     packet->index = 1;
     std::memcpy(packet->dynamic_key, &dynamic_key, sizeof(dynamic_key));
 
@@ -316,8 +325,8 @@ TEST(Packet, DynamicKeyUsesExplicitPayloadSize)
 
     buffer.fill(0);
     packet = packet_as<PacketDynamicKey>(buffer);
-    packet->code = PACKET_CODE_GET;
-    packet->type = PACKET_DATA_DYNAMIC_KEY;
+    packet->header.code = PACKET_CODE_GET;
+    packet->header.type = PACKET_DATA_DYNAMIC_KEY;
     packet->index = 1;
 
     packet_process(buffer.data(), dynamic_key_packet_size());
@@ -329,15 +338,15 @@ TEST(Packet, SetAndGetProfileIndex)
 {
     PacketBuffer buffer = {};
     PacketProfileIndex *packet = packet_as<PacketProfileIndex>(buffer);
-    packet->code = PACKET_CODE_SET;
-    packet->type = PACKET_DATA_PROFILE_INDEX;
+    packet->header.code = PACKET_CODE_SET;
+    packet->header.type = PACKET_DATA_PROFILE_INDEX;
     packet->index = 2;
 
     packet_process(buffer.data(), sizeof(PacketProfileIndex));
 
     EXPECT_EQ(2, g_current_profile_index);
 
-    packet->code = PACKET_CODE_GET;
+    packet->header.code = PACKET_CODE_GET;
     packet->index = 0;
     packet_process(buffer.data(), sizeof(PacketProfileIndex));
 
@@ -348,8 +357,8 @@ TEST(Packet, SetAndGetKeyboardConfigBits)
 {
     PacketBuffer buffer = {};
     PacketConfig *packet = packet_as<PacketConfig>(buffer);
-    packet->code = PACKET_CODE_SET;
-    packet->type = PACKET_DATA_CONFIG;
+    packet->header.code = PACKET_CODE_SET;
+    packet->header.type = PACKET_DATA_CONFIG;
     packet->length = 2;
     packet->data[0].index = KEYBOARD_CONFIG_NKRO;
     packet->data[0].value = 1;
@@ -361,7 +370,7 @@ TEST(Packet, SetAndGetKeyboardConfigBits)
     EXPECT_TRUE(static_cast<bool>(g_keyboard_config.nkro));
     EXPECT_TRUE(static_cast<bool>(g_keyboard_config.winlock));
 
-    packet->code = PACKET_CODE_GET;
+    packet->header.code = PACKET_CODE_GET;
     packet->data[0].value = 0;
     packet->data[1].value = 0;
     packet_process(buffer.data(), config_packet_size(packet->length));
@@ -415,8 +424,8 @@ TEST(Packet, SetAndGetMacroActions)
 {
     PacketBuffer buffer = {};
     PacketMacro* packet = packet_as<PacketMacro>(buffer);
-    packet->code = PACKET_CODE_SET;
-    packet->type = PACKET_DATA_MACRO;
+    packet->header.code = PACKET_CODE_SET;
+    packet->header.type = PACKET_DATA_MACRO;
     packet->macro_index = 0;
     packet->length = 2;
     packet->data[0].index = 0;
@@ -442,8 +451,8 @@ TEST(Packet, SetAndGetMacroActions)
 
     buffer.fill(0);
     packet = packet_as<PacketMacro>(buffer);
-    packet->code = PACKET_CODE_GET;
-    packet->type = PACKET_DATA_MACRO;
+    packet->header.code = PACKET_CODE_GET;
+    packet->header.type = PACKET_DATA_MACRO;
     packet->macro_index = 0;
     packet->length = 2;
     packet->data[0].index = 0;

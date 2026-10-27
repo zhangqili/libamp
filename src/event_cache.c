@@ -20,21 +20,15 @@ void event_cache_init(void)
 
 void event_cache_add_to_report(void)
 {
-    EventCacheList * list = &g_event_buffer_list;
-    EventCacheListNode * last_node = &list->data[list->head];
-    UNUSED(last_node);
     event_loop_queue_foreach(&event_cache_buffer, EventLoopQueueElm, event)
     {
         event_cache_push(event->event, (void*)event->tick);
         event_loop_queue_pop(&event_cache_buffer);
     }
-    for (int16_t iterator = list->data[list->head].next; iterator >= 0;)
+    const EventCacheList *list = &g_event_buffer_list;
+    for (int16_t index = list->data[list->head].next; index >= 0; index = list->data[index].next)
     {
-        EventCacheListNode* node = &(list->data[iterator]);
-        EventCache *item = &(node->data);
-        keyboard_event_report_handler(item->event);
-        last_node = node;
-        iterator = list->data[iterator].next;
+        keyboard_event_report_handler(list->data[index].data.event);
     }
 }
 

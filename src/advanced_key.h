@@ -26,7 +26,7 @@ typedef uint16_t AnalogRawValue;
 
 #define ANALOG_VALUE_RANGE (ANALOG_VALUE_MAX - ANALOG_VALUE_MIN)
 
-#define ANALOG_VALUE_NORMALIZE(x) ((x)/(float)ANALOG_VALUE_RANGE)
+#define ANALOG_VALUE_NORMALIZE(x) ((x) * (1.0f / (float)ANALOG_VALUE_RANGE))
 #define ANALOG_VALUE_ANTI_NORMALIZE(x) ((AnalogValue)(((float)(x))*ANALOG_VALUE_RANGE))
 
 #define A_NORM ANALOG_VALUE_NORMALIZE
@@ -78,13 +78,13 @@ typedef struct __AdvancedKey
     int16_t difference;
     int32_t q_scale_to_index;
     AdvancedKeyConfiguration config;
-
 } AdvancedKey;
 
-void advanced_key_init(AdvancedKey *advanced_key);
+void advanced_key_init(AdvancedKey *advanced_key, uint16_t id);
 bool advanced_key_update(AdvancedKey *advanced_key, AnalogValue value);
-bool advanced_key_update_raw(AdvancedKey *advanced_key, AnalogValue value);
+bool advanced_key_update_raw(AdvancedKey *advanced_key, AnalogRawValue raw);
 bool advanced_key_update_state(AdvancedKey *advanced_key, bool state);
+int32_t advanced_key_lut_index(const AdvancedKey *advanced_key, AnalogRawValue value);
 AnalogValue advanced_key_normalize(AdvancedKey *advanced_key, AnalogRawValue value);
 void advanced_key_set_range(AdvancedKey *advanced_key, AnalogRawValue upper, AnalogRawValue lower);
 void advanced_key_reset_range(AdvancedKey* advanced_key, AnalogRawValue value);

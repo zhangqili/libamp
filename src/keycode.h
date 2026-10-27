@@ -22,6 +22,8 @@ enum LayerControlKeycode {
 };
 
 #define LAYER(code,layer) (((code) << 12) | ((layer) << 8) | LAYER_CONTROL)
+#define LAYER_KEYCODE_GET_ACTION(keycode) (((keycode) >> 12) & 0x0F)
+#define LAYER_KEYCODE_GET_LAYER(keycode) (((keycode) >> 8) & 0x0F)
 
 enum ModifierKeycode
 {
@@ -234,6 +236,16 @@ enum MouseKeycode {
   MOUSE_MOVE_LEFT              = 0x12,
   MOUSE_MOVE_RIGHT             = 0x13,
 };
+
+/* Mouse movement bindings follow the analog travel of their key. */
+#define MOUSE_KEYCODE_IS_MOVE(keycode) (KEYCODE_GET_SUB((keycode)) >= MOUSE_MOVE_UP)
+
+/* Joystick sub-keycode layout: bit 7 inverts the axis, bits 5-6 select the axis
+ * mapping (0 = button), bits 0-4 hold the axis or button index. */
+#define JOYSTICK_KEYCODE_GET_AXIS_MAP(keycode) (KEYCODE_GET_SUB((keycode) >> 5) & 0x03)
+#define JOYSTICK_KEYCODE_IS_AXIS_INVERT(keycode) (KEYCODE_GET_SUB((keycode)) & 0x80)
+#define JOYSTICK_KEYCODE_IS_AXIS(keycode) (KEYCODE_GET_SUB((keycode)) & 0xE0)
+#define JOYSTICK_KEYCODE_GET_AXIS_INDEX(keycode) (KEYCODE_GET_SUB((keycode)) & 0x1F)
 
 enum KeyboardKeycode {
   KEYBOARD_REBOOT                 = 0x00,
@@ -662,7 +674,8 @@ enum MIDINoteKeycode
 };
 
 
-static inline uint16_t consumer_keycode_to_rawcide(uint8_t key) {
+/* Consumer page usage for a CONSUMER_COLLECTION sub-keycode. */
+static inline uint16_t consumer_keycode_to_rawcode(uint8_t key) {
   switch (key) {
   case CONSUMER_AUDIO_MUTE:
     return AUDIO_MUTE;
@@ -762,6 +775,10 @@ enum GamepadKeycode {
   GAMEPAD_LTA = 40,
   GAMEPAD_RTA = 41,
 };
+
+/* Gamepad sub-keycodes above the trigger buttons are analog axes that follow
+ * the travel of their key. */
+#define GAMEPAD_KEYCODE_IS_AXIS(keycode) (KEYCODE_GET_SUB((keycode)) > GAMEPAD_RT)
 
 // Copyright 2025 QMK
 // SPDX-License-Identifier: GPL-2.0-or-later

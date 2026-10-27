@@ -39,12 +39,24 @@ typedef struct __Key
 #endif
 } Key;
 
+static inline void key_init(Key* key, uint16_t id);
 static inline bool key_update(Key* key,bool state);
+
 
 #ifdef KEY_CALLBACK_ENABLE
 static inline void key_attach(Key* key, KeyEvent e, KeyCallback cb);
 static inline void key_emit(Key* key, KeyEvent e);
 #endif
+
+static inline void key_init(Key* key, uint16_t id)
+{
+    key->id = id;
+    key->state = 0;
+    key->report_state = 0;
+#if DEBOUNCE_PRESS > 0 || DEBOUNCE_RELEASE > 0
+    key->debounce = 0;
+#endif
+}
 
 static inline bool key_update(Key* key,bool state)
 {

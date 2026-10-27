@@ -126,16 +126,16 @@ TEST_F(MidiTest, UsbInputNotePacketsDriveAudioCallbacks)
 
     EXPECT_EQ(1u, audio_play_note_count);
     EXPECT_EQ(8u, audio_last_play_velocity);
-    EXPECT_GT(audio_last_play_frequency, 520.0f);
-    EXPECT_LT(audio_last_play_frequency, 525.0f);
+    EXPECT_GT(audio_last_play_frequency, 260.0f);
+    EXPECT_LT(audio_last_play_frequency, 263.0f);
 
     MIDIEventPacket note_off = make_packet(kCinNoteOff, 0x80, 60, 64);
     midi_input_callback(&note_off);
     midi_task();
 
     EXPECT_EQ(1u, audio_stop_note_count);
-    EXPECT_GT(audio_last_stop_frequency, 520.0f);
-    EXPECT_LT(audio_last_stop_frequency, 525.0f);
+    EXPECT_GT(audio_last_stop_frequency, 260.0f);
+    EXPECT_LT(audio_last_stop_frequency, 263.0f);
 }
 
 TEST_F(MidiTest, UsbInputNotePacketDispatchesMessageCallback)

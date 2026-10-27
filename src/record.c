@@ -86,25 +86,25 @@ LoopArrayElement loop_array_max(LoopArray *arr)
     return max;
 }
 
-void record_init()
+void record_init(void)
 {
 #if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
     record_reset_save_timer();
 #endif
+#ifdef ANALOG_HISTORY_ENABLE
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
-#ifdef ANALOG_HISTORY_ENABLE
         loop_array_init(&g_analog_historys[i],analog_datas[i],ANALOG_HISTORY_LENGTH);
+    }
 #endif
 #ifdef KPS_ENABLE
-        loop_array_init(&g_kps_data,kps_data,KPS_REFRESH_RATE);
+    loop_array_init(&g_kps_data, kps_data, KPS_REFRESH_RATE);
 #endif
 #ifdef KPS_HISTORY_ENABLE
-        loop_array_init(&g_kps_history,kps_history_data,KPS_HISTORY_LENGTH);
+    loop_array_init(&g_kps_history,kps_history_data,KPS_HISTORY_LENGTH);
 #endif
 #ifdef BIT_STREAM_ENABLE
 #endif
-    }
 }
 
 void record_process(void)
@@ -170,7 +170,7 @@ void record_analog_register(AdvancedKey*k)
 */
 
 #ifdef BIT_STREAM_ENABLE
-void record_bit_stream_timer()
+void record_bit_stream_timer(void)
 {
     for (uint8_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
@@ -186,7 +186,7 @@ void record_bit_stream_timer()
 #endif
 
 #ifdef ANALOG_HISTORY_ENABLE
-void record_analog_timer()
+void record_analog_timer(void)
 {
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
@@ -197,13 +197,13 @@ void record_analog_timer()
 #endif
 
 #ifdef KPS_HISTORY_ENABLE
-void record_kps_history_timer()
+void record_kps_history_timer(void)
 {
     loop_array_push_back(&g_kps_history,g_kps_max);
     g_kps_max=0;
 }
 
-void record_kps_timer()
+void record_kps_timer(void)
 {
     loop_array_push_back(&g_kps_data,kps_buf);
     g_kps = record_get_kps();
@@ -216,12 +216,12 @@ void record_kps_timer()
 #endif
 
 #ifdef KPS_ENABLE
-void record_kps_tick()
+void record_kps_tick(void)
 {
     kps_buf++;
 }
 
-uint16_t record_get_kps()
+uint16_t record_get_kps(void)
 {
     uint16_t kps = 0;
     for (uint8_t i = 0; i < KPS_REFRESH_RATE; i++)

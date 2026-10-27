@@ -37,7 +37,7 @@ enum {
   //PACKET_DATA_REPORT = 0x09,
   PACKET_DATA_MACRO = 0x0A,
   PACKET_DATA_FEATURE = 0x0B,
-  PACKET_DATA_SCRIPT_SCOURCE = 0x0C,
+  PACKET_DATA_SCRIPT_SOURCE = 0x0C,
   PACKET_DATA_SCRIPT_BYTECODE = 0x0D,
   PACKET_DATA_RECORD = 0x0E,
   PACKET_DATA_LAYOUT_OPTIONS = 0x0F,
@@ -275,6 +275,8 @@ typedef struct __PacketLayoutOptions
   uint64_t layout_options;
 } __PACKED PacketLayoutOptions;
 
+/* Handle one incoming raw HID / Nexus packet. May be called from the transport
+ * interrupt; the response is queued and sent by keyboard_task(). */
 void packet_process_buffer(uint8_t *buf, uint16_t len);
 void packet_process(uint8_t *buf, uint16_t len);
 void packet_process_advanced_key(PacketDataHeader*data);

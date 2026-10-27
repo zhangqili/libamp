@@ -60,7 +60,7 @@ void fill_profile(uint16_t seed)
     g_rgb_base_config.begin_tick = 12345;
     g_rgb_base_config.direction = static_cast<uint16_t>(seed + 8);
     g_rgb_base_config.density = static_cast<uint8_t>(seed + 9);
-    g_rgb_base_config.brightness = static_cast<uint8_t>(seed + 10);
+    rgb_set_brightness(static_cast<uint8_t>(seed + 10));
 
     for (uint16_t i = 0; i < RGB_NUM; i++) {
         g_rgb_configs[i].mode = static_cast<RGBMode>(i % (RGB_MODE_BUBBLE + 1));
@@ -144,6 +144,8 @@ TEST(Storage, CompleteProfileRoundTrip)
     std::array<Keycode, LAYER_NUM * TOTAL_KEY_NUM> expected_keymap;
     std::memcpy(expected_keymap.data(), g_keymap, sizeof(g_keymap));
     const RGBBaseConfig expected_rgb_base = g_rgb_base_config;
+    rgb_set(0, 255, 128, 64);
+    const ColorRGB expected_led = led_color_buffer[0];
     std::array<RGBConfig, RGB_NUM> expected_rgb_configs;
     std::memcpy(expected_rgb_configs.data(), g_rgb_configs, sizeof(g_rgb_configs));
     std::array<DynamicKey, DYNAMIC_KEY_NUM> expected_dynamic_keys;
@@ -155,6 +157,7 @@ TEST(Storage, CompleteProfileRoundTrip)
     std::memset(g_rgb_configs, 0, sizeof(g_rgb_configs));
     std::memset(g_dynamic_keys, 0, sizeof(g_dynamic_keys));
     std::memset(&g_rgb_base_config, 0, sizeof(g_rgb_base_config));
+    rgb_set_brightness(0);
     for (auto& key : g_keyboard_advanced_keys) {
         std::memset(&key.config, 0, sizeof(key.config));
     }
@@ -170,6 +173,8 @@ TEST(Storage, CompleteProfileRoundTrip)
     auto normalized_rgb_base = expected_rgb_base;
     normalized_rgb_base.begin_tick = 0;
     expect_rgb_base_config_eq(normalized_rgb_base, g_rgb_base_config);
+    rgb_set(0, 255, 128, 64);
+    expect_color_eq(expected_led, led_color_buffer[0]);
 
     auto normalized_rgb_configs = expected_rgb_configs;
     for (auto& config : normalized_rgb_configs) {
