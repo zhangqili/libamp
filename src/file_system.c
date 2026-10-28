@@ -83,6 +83,8 @@ _Static_assert(FS_BLOCK_COUNT >= 3, "LevelX requires spare erase blocks");
 /* LevelX uses ULONG words in its on-flash metadata. Test this layer with -m32
  * on LP64 hosts so that host images match the embedded target. */
 _Static_assert(sizeof(ULONG) == 4, "the LevelX layer requires 32-bit ULONG");
+_Static_assert(LX_NOR_SECTOR_SIZE * sizeof(ULONG) == FLASH_LAYER_SECTOR_SIZE,
+               "the LevelX layer requires 512-byte NOR sectors");
 
 static LX_NOR_FLASH flash_layer_nor;
 static ULONG flash_layer_nor_buffer[FLASH_LAYER_SECTOR_SIZE / sizeof(ULONG)];
@@ -178,8 +180,8 @@ static int flash_layer_init(void)
     UINT status = lx_nor_flash_open(&flash_layer_nor, "libamp NOR", flash_layer_nor_setup);
     if (status == LX_SUCCESS) {
         flash_layer_open = true;
-        /* LevelX holds back one erase block for reclaim and stores header
-         * sectors in every block, so only it knows the usable capacity. */
+        /* Query the usable capacity for FileX. The read-only LFS configuration
+         * computes the same geometry below, including headers and reclaim. */
         flash_layer_capacity =
             ((uint64_t)flash_layer_nor.lx_nor_flash_total_physical_sectors -
              flash_layer_nor.lx_nor_flash_physical_sectors_per_block) * FLASH_LAYER_SECTOR_SIZE;
@@ -579,9 +581,32 @@ static int _sync(const struct lfs_config *c)
     UNUSED(c);
     return LFS_ERR_OK;
 }
-/* block_count is filled in from the flash layer in fs_init(): wear leveling
- * hides part of the partition, so the usable size is only known at runtime. */
-static struct lfs_config _lfs_config =
+/* Match lx_nor_flash_open_extended(): initially reserve one sector for the
+ * block header, then size its mapping array and bitmap using the remaining
+ * sectors. Large erase blocks need multiple header sectors. All inputs are
+ * compile-time geometry, so the LFS configuration can remain read-only. */
+#if FLASH_LAYER == FLASH_LAYER_LEVELX
+#define LFS_LEVELX_MAP_ENTRIES (FS_BLOCK_SIZE / FLASH_LAYER_SECTOR_SIZE - 1)
+#define LFS_LEVELX_HEADER_WORDS \
+    (sizeof(LX_NOR_FLASH_BLOCK_HEADER) / sizeof(ULONG) + \
+     (LFS_LEVELX_MAP_ENTRIES + 31) / 32 + LFS_LEVELX_MAP_ENTRIES)
+#define LFS_LEVELX_HEADER_SECTORS \
+    ((LFS_LEVELX_HEADER_WORDS + LX_NOR_SECTOR_SIZE - 1) / LX_NOR_SECTOR_SIZE)
+_Static_assert(FS_BLOCK_SIZE / FLASH_LAYER_SECTOR_SIZE > LFS_LEVELX_HEADER_SECTORS,
+               "LevelX erase blocks must have room for data sectors");
+/* One whole data area stays spare for LevelX reclaim. Truncate the resulting
+ * byte capacity to complete LFS blocks, as with the runtime capacity. */
+#define LFS_FLASH_BLOCK_COUNT \
+    (((uint64_t)(FS_BLOCK_COUNT - 1) * \
+      (FS_BLOCK_SIZE / FLASH_LAYER_SECTOR_SIZE - LFS_LEVELX_HEADER_SECTORS) * \
+      FLASH_LAYER_SECTOR_SIZE) / FS_BLOCK_SIZE)
+#else
+#define LFS_FLASH_BLOCK_COUNT FS_BLOCK_COUNT
+#endif
+_Static_assert(LFS_FLASH_BLOCK_COUNT >= 2 && LFS_FLASH_BLOCK_COUNT <= UINT32_MAX,
+               "LittleFS requires at least two addressable blocks");
+
+static const struct lfs_config _lfs_config =
 {
     // block device operations
     .read  = lfs_flash_read,
@@ -593,7 +618,7 @@ static struct lfs_config _lfs_config =
     .read_size = FS_READ_SIZE,
     .prog_size = FS_PROG_SIZE,
     .block_size = FS_BLOCK_SIZE,
-    .block_count = 0,
+    .block_count = LFS_FLASH_BLOCK_COUNT,
 
     .cache_size = FS_CACHE_SIZE,
     .lookahead_size = FS_LOOKAHEAD_SIZE,
@@ -625,7 +650,6 @@ int fs_init(void)
             return -1;
 #endif
     }
-    _lfs_config.block_count = (lfs_size_t)(flash_layer_capacity / FS_BLOCK_SIZE);
     // mount the filesystem
     int err = lfs_mount(&_lfs, &_lfs_config);
     // reformat if we can't mount the filesystem
@@ -644,7 +668,6 @@ int fs_format(void)
     (void)lfs_unmount(&_lfs);
     if (flash_layer_init() != 0)
         return -1;
-    _lfs_config.block_count = (lfs_size_t)(flash_layer_capacity / FS_BLOCK_SIZE);
     return lfs_format(&_lfs, &_lfs_config);
 }
 

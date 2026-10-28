@@ -148,7 +148,7 @@ bool nexus_slave_is_online(uint8_t slave_id);
 int  nexus_send_report(void);
 
 /* Synchronous request/response from the master. Only call these from a
- * context where g_keyboard_tick keeps advancing (the foreground loop, or an
+ * context where keyboard_tick_get32() keeps advancing (the foreground loop, or an
  * interrupt below the tick's priority): the functions spin until the slave
  * echoes the request or the timeout, in ticks, elapses. */
 int nexus_request_timeout(uint8_t slave_id, const uint8_t *request,

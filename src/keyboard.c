@@ -65,13 +65,13 @@ Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
 __WEAK const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
-__WEAK volatile uint32_t g_keyboard_tick;
 volatile bool g_keyboard_is_suspend;
 __WEAK volatile KeyboardReportFlag g_keyboard_report_flags;
 
 volatile uint32_t g_keyboard_bitmap[KEY_BITMAP_SIZE];
 
 static uint32_t target_calibration_tick;
+static bool calibration_pending;
 
 static EventLoopQueue event_buffer;
 static EventLoopQueueElm event_buffers[EVENT_BUFFER_LENGTH];
@@ -227,7 +227,7 @@ void keyboard_keycode_event_handler(KeyboardEvent event)
 
 static void keyboard_key_event_dispatch(KeyboardEvent event, bool pressed)
 {
-    event_loop_queue_push(&event_buffer, (EventLoopQueueElm){event, g_keyboard_tick});
+    event_loop_queue_push(&event_buffer, (EventLoopQueueElm){event, keyboard_tick_get32()});
 #ifdef SCRIPT_ENABLE
     script_key_event_handler(event);
 #endif
@@ -339,7 +339,7 @@ void keyboard_event_poller(KeyboardEvent event, uint32_t tick)
     {    
         Key * key = (Key*)event.key;
 #ifdef RGB_ENABLE
-        rgb_activate(key->id, g_keyboard_tick);
+        rgb_activate(key->id, keyboard_tick_get32());
 #endif
         // keyboard_key_event_down_callback((Key*)event.key);
     }
@@ -492,7 +492,8 @@ static void keyboard_operation_event_handler_(KeyboardEvent event)
 #if defined(NEXUS_ENABLE) && !NEXUS_IS_SLAVE
             nexus_calibrate();
 #endif
-            target_calibration_tick = g_keyboard_tick + KEYBOARD_TIME_TO_TICK(CALIBRATION_DELAY);
+            target_calibration_tick = keyboard_tick_get32() + KEYBOARD_TIME_TO_TICK(CALIBRATION_DELAY);
+            calibration_pending = true;
         }
         break;
     case KEYBOARD_EVENT_KEY_DOWN:
@@ -571,10 +572,11 @@ void keyboard_report_clear_all(void)
 
 void keyboard_init(void)
 {
-    g_keyboard_tick = 0;
+    keyboard_tick_init();
     g_keyboard_config.enable_report = true;
     g_keyboard_report_flags.raw = 0;
     target_calibration_tick = 0;
+    calibration_pending = false;
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         advanced_key_init(&g_keyboard_advanced_keys[i], i);
@@ -935,9 +937,9 @@ void keyboard_process(void)
 #if defined(SCRIPT_ENABLE) && defined(SCRIPT_POLLING)
     script_process();
 #endif
-    if (target_calibration_tick && g_keyboard_tick >= target_calibration_tick)
+    if (calibration_pending && tick_reached32(keyboard_tick_get32(), target_calibration_tick))
     {
-        target_calibration_tick = 0;
+        calibration_pending = false;
         analog_calibrate();
         packet_notify_event(PACKET_EVENT_CONFIG_CHANGED);
     }

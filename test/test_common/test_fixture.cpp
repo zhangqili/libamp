@@ -4,10 +4,22 @@
 
 #include "keyboard.h"
 #include "record.h"
+#include "keyboard_tick.h"
 
 extern "C" {
 
 extern uint8_t flash_buffer[FS_BLOCK_SIZE * FS_BLOCK_COUNT];
+
+void libamp_test_set_tick(uint64_t tick)
+{
+    keyboard_tick_reset();
+    while (tick > UINT32_MAX)
+    {
+        keyboard_tick_inc(UINT32_MAX);
+        tick -= UINT32_MAX;
+    }
+    keyboard_tick_inc((uint32_t)tick);
+}
 
 void libamp_test_clear_output_buffers(void)
 {

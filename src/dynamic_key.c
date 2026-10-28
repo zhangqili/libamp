@@ -104,7 +104,7 @@ void dynamic_key_add_to_report(void)
 #define DKS_RELEASE_FULLY 6
 #define DKS_GET_KEY_CONTROL(key_ctrl, n) (((key_ctrl) >> (n)) & 0x03)
 
-static inline void dynamic_key_s_update_state(DynamicKeyStroke4x4 *dk, uint8_t stage_shift)
+static inline void dynamic_key_s_update_state(DynamicKeyStroke4x4 *dk, uint8_t stage_shift, uint32_t tick)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -112,17 +112,20 @@ static inline void dynamic_key_s_update_state(DynamicKeyStroke4x4 *dk, uint8_t s
         {
         case DKS_RELEASE:
             BIT_RESET(dk->key_state, i);
+            BIT_RESET(dk->key_tap_state, i);
             break;
         case DKS_TAP:
-            dk->key_end_tick[i] = g_keyboard_tick + DK_TAP_DURATION;
+            dk->key_end_tick[i] = tick + DK_TAP_DURATION;
             BIT_SET(dk->key_state, i);
+            BIT_SET(dk->key_tap_state, i);
             break;
         case DKS_HOLD:
-            dk->key_end_tick[i] = 0xFFFFFFFF;
             BIT_SET(dk->key_state, i);
+            BIT_RESET(dk->key_tap_state, i);
             break;
         default:
             BIT_RESET(dk->key_state, i);
+            BIT_RESET(dk->key_tap_state, i);
             break;
         }
     }
@@ -136,6 +139,7 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
     {
         return;
     }
+    const uint32_t tick = keyboard_tick_get32();
     AnalogValue last_value = dynamic_key_s->filtered_value;
     AnalogValue current_value = hysteresis_filter(&dynamic_key->filtered_value, keyboard_get_key_analog_value(key), DYNAMIC_KEY_HYSTERESIS);
     uint8_t last_key_state = dynamic_key_s->key_state;
@@ -147,29 +151,31 @@ void dynamic_key_s_process(DynamicKeyStroke4x4*dynamic_key)
     {
         if (current_relative_value >= dynamic_key_s->press_begin_distance && last_relative_value < dynamic_key_s->press_begin_distance)
         {
-            dynamic_key_s_update_state(dynamic_key, DKS_PRESS_BEGIN);
+            dynamic_key_s_update_state(dynamic_key, DKS_PRESS_BEGIN, tick);
         }
         if (current_relative_value >= dynamic_key_s->press_fully_distance && last_relative_value < dynamic_key_s->press_fully_distance)
         {
-            dynamic_key_s_update_state(dynamic_key, DKS_PRESS_FULLY);
+            dynamic_key_s_update_state(dynamic_key, DKS_PRESS_FULLY, tick);
         }
     }
     else if (current_value < last_value)
     {
         if (current_relative_value <= dynamic_key_s->release_begin_distance && last_relative_value > dynamic_key_s->release_begin_distance)
         {
-            dynamic_key_s_update_state(dynamic_key, DKS_RELEASE_BEGIN);
+            dynamic_key_s_update_state(dynamic_key, DKS_RELEASE_BEGIN, tick);
         }
         if (current_relative_value <= dynamic_key_s->release_fully_distance && last_relative_value > dynamic_key_s->release_fully_distance)
         {
-            dynamic_key_s_update_state(dynamic_key, DKS_RELEASE_FULLY);
+            dynamic_key_s_update_state(dynamic_key, DKS_RELEASE_FULLY, tick);
         }
     }
     for (int i = 0; i < 4; i++)
     {
-        if (g_keyboard_tick > dynamic_key_s->key_end_tick[i])
+        if (BIT_GET(dynamic_key_s->key_tap_state, i) &&
+            tick_reached32(tick, dynamic_key_s->key_end_tick[i] + 1u))
         {
             BIT_RESET(dynamic_key_s->key_state, i);
+            BIT_RESET(dynamic_key_s->key_tap_state, i);
         }
         keyboard_event_handler(MK_EVENT(dynamic_key_s->key_binding[i], 
             CALC_EVENT(BIT_GET(last_key_state, i), BIT_GET(dynamic_key_s->key_state, i)), key));
@@ -185,17 +191,18 @@ void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
     {
         return;
     }
+    const uint32_t tick = keyboard_tick_get32();
     bool last_report_state = dynamic_key_mt->key_report_state;
     bool next_report_state = dynamic_key_mt->key_report_state;
     if (IS_POS_EDGE(dynamic_key_mt->key_state , key->state))
     {
-        dynamic_key_mt->begin_tick = g_keyboard_tick;
+        dynamic_key_mt->begin_tick = tick;
     }
     if (IS_NEG_EDGE(dynamic_key_mt->key_state, key->state))
     {
-        if (g_keyboard_tick - dynamic_key_mt->begin_tick < dynamic_key_mt->duration)
+        if (tick_elapsed32(tick, dynamic_key_mt->begin_tick) < dynamic_key_mt->duration)
         {
-            dynamic_key_mt->end_tick = g_keyboard_tick+DK_TAP_DURATION;
+            dynamic_key_mt->end_tick = tick + DK_TAP_DURATION;
             dynamic_key_mt->state = DYNAMIC_KEY_ACTION_TAP;
             next_report_state = true;
         }
@@ -203,15 +210,15 @@ void dynamic_key_mt_process(DynamicKeyModTap*dynamic_key)
         {
             next_report_state = false;
         }
-        dynamic_key_mt->begin_tick = g_keyboard_tick;
+        dynamic_key_mt->begin_tick = tick;
     }
-    if (key->state && !last_report_state && (g_keyboard_tick - dynamic_key_mt->begin_tick > dynamic_key_mt->duration))
+    if (key->state && !last_report_state && (tick_elapsed32(tick, dynamic_key_mt->begin_tick) > dynamic_key_mt->duration))
     {
-        dynamic_key_mt->end_tick = 0xFFFFFFFF;
         dynamic_key_mt->state = DYNAMIC_KEY_ACTION_HOLD;
         next_report_state = true;
     }
-    if (g_keyboard_tick > dynamic_key_mt->end_tick && last_report_state)
+    if (dynamic_key_mt->state == DYNAMIC_KEY_ACTION_TAP && last_report_state &&
+        tick_reached32(tick, dynamic_key_mt->end_tick + 1u))
     {
         next_report_state = false;
     }

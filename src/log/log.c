@@ -139,7 +139,7 @@ int log_add_fp(FILE *fp, int level) {
 
 
 static void init_event(log_Event *ev, void *udata) {
-  ev->tick = g_keyboard_tick;
+  ev->tick = keyboard_tick_get32();
   ev->udata = udata;
 }
 

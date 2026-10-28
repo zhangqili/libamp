@@ -111,7 +111,7 @@ void record_process(void)
 {
 #if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
     const uint32_t interval_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_SAVE_INTERVAL_MS);
-    if ((uint32_t)(g_keyboard_tick - statistics_last_save_tick) >= interval_ticks)
+    if (tick_elapsed32(keyboard_tick_get32(), statistics_last_save_tick) >= interval_ticks)
     {
         record_reset_save_timer();
         storage_save_statistics();
@@ -122,12 +122,12 @@ void record_process(void)
 #if defined(STORAGE_ENABLE) && defined(RECORD_PERSIST_ENABLE)
 void record_reset_save_timer(void)
 {
-    statistics_last_save_tick = g_keyboard_tick;
+    statistics_last_save_tick = keyboard_tick_get32();
 }
 
 void record_schedule_idle_save(void)
 {
-    statistics_last_save_tick = g_keyboard_tick - KEYBOARD_TIME_TO_TICK(
+    statistics_last_save_tick = keyboard_tick_get32() - KEYBOARD_TIME_TO_TICK(
         RECORD_STATISTICS_SAVE_INTERVAL_MS - RECORD_STATISTICS_IDLE_SAVE_MS);
 }
 #endif
@@ -235,11 +235,11 @@ uint16_t record_get_kps(void)
 #ifdef RECORD_PERSIST_ENABLE
 uint64_t record_get_runtime(void)
 {
-    return g_runtime + KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+    return g_runtime + KEYBOARD_TICK_TO_TIME64(keyboard_tick_get64());
 }
 
 void record_set_runtime(uint64_t runtime)
 {
-    g_runtime = runtime - KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+    g_runtime = runtime - KEYBOARD_TICK_TO_TIME64(keyboard_tick_get64());
 }
 #endif

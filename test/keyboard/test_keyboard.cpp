@@ -6,6 +6,30 @@
 #include "math.h"
 #include "test_fixture.h"
 
+TEST(Keyboard, CalibrationDeadlineMayWrapToZero)
+{
+    const uint32_t delay = KEYBOARD_TIME_TO_TICK(CALIBRATION_DELAY);
+    libamp_test_set_tick(UINT32_MAX - delay + 1u);
+    auto &key = g_keyboard_advanced_keys[0];
+    key.config.calibration_mode = ADVANCED_KEY_NO_CALIBRATION;
+    const Keycode calibrate = KEYBOARD_OPERATION | (KEYBOARD_CALIBRATE << 8);
+    const KeyboardEvent event = MK_EVENT(calibrate, KEYBOARD_EVENT_KEY_UP, &key);
+    keyboard_operation_event_handler(event);
+    keyboard_operation_event_poller(event, keyboard_tick_get32());
+    keyboard_process();
+    EXPECT_EQ(ADVANCED_KEY_NO_CALIBRATION, key.config.calibration_mode);
+    keyboard_tick_inc(delay - 1);
+    keyboard_process();
+    EXPECT_EQ(ADVANCED_KEY_NO_CALIBRATION, key.config.calibration_mode);
+    keyboard_tick_inc(1);
+    keyboard_process();
+    EXPECT_EQ(ADVANCED_KEY_AUTO_CALIBRATION_UNDEFINED, key.config.calibration_mode);
+    key.config.calibration_mode = ADVANCED_KEY_NO_CALIBRATION;
+    keyboard_tick_inc(1);
+    keyboard_process();
+    EXPECT_EQ(ADVANCED_KEY_NO_CALIBRATION, key.config.calibration_mode);
+}
+
 TEST(Keyboard, DebounceMatchesEveryCounterAndStateClass)
 {
 #if DEBOUNCE_PRESS > 0 || DEBOUNCE_RELEASE > 0

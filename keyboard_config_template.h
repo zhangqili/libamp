@@ -14,6 +14,7 @@
 #define ADVANCED_KEY_NUM        1       /* Number of analog/advanced keys. */
 #define KEY_NUM                 0       /* Number of ordinary digital keys. */
 #define POLLING_RATE            1000    /* USB report rate and keyboard tick rate. */
+// #define KEYBOARD_TICK_64BIT_ENABLE 1   /* Retain full uptime; default 0 uses a wrapping 32-bit clock without atomic builtins. */
 #define CALIBRATION_DELAY       1000    /* Delay in ms before manual calibration. */
 #define DEBUG_INTERVAL          0       /* Debug-packet interval in ticks; 0 disables it. */
 // #define CONFIG_USB_HS                 /* Use high-speed USB; set POLLING_RATE to 8000. */

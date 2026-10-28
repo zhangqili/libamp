@@ -474,7 +474,7 @@ TEST(Packet, SetAndGetMacroActions)
 TEST(Packet, GetDebugAndVersionResponses)
 {
     constexpr uint32_t kDebugTick = 1234;
-    g_keyboard_tick = kDebugTick;
+    libamp_test_set_tick(kDebugTick);
     g_keyboard_advanced_keys[2].raw = 111;
     g_keyboard_advanced_keys[2].value = 222;
     g_keyboard_advanced_keys[2].key.state = true;

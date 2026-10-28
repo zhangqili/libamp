@@ -61,7 +61,7 @@ MouseReport report_mouse_for_travel(AdvancedKey* advanced_key, AnalogValue value
     keyboard_report_clear_all();
     libamp_test_clear_output_buffers();
     g_keyboard_report_flags.mouse = false;
-    g_keyboard_tick = MOUSE_MOVE_TICK;
+    libamp_test_set_tick(MOUSE_MOVE_TICK);
     keyboard_report_build();
     mouse_report_send();
 

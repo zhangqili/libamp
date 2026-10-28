@@ -79,7 +79,7 @@ TEST_F(NexusRawTest, ShortFramesOnlyUpdateTheSamplesTheyCarry)
     EXPECT_TRUE(nexus_slave_is_online(0));
 
     uint8_t one_byte = NEXUS_REPORT_FLAG;
-    g_keyboard_tick += kLinkTimeoutTicks + 1;
+    keyboard_tick_inc(kLinkTimeoutTicks + 1);
     nexus_process_buffer(0, &one_byte, 1);
     EXPECT_FALSE(nexus_slave_is_online(0)) << "a frame without a full sample is not a report";
 }
@@ -92,7 +92,7 @@ TEST_F(NexusRawTest, SilentSlaveReadsAsRestingKeys)
     nexus_process();
     EXPECT_TRUE(g_keyboard_advanced_keys[5].key.state) << "lower bound is full travel";
 
-    g_keyboard_tick += kLinkTimeoutTicks + 1;
+    keyboard_tick_inc(kLinkTimeoutTicks + 1);
     nexus_process();
     EXPECT_EQ(g_keyboard_advanced_keys[5].config.upper_bound, g_keyboard_advanced_keys[5].raw);
     EXPECT_FALSE(g_keyboard_advanced_keys[5].key.state);

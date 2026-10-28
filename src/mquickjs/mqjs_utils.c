@@ -47,14 +47,14 @@ typedef struct {
     JSGCRef func;
     uint16_t type;
     Keycode keycode;
-    int32_t timeout; /* in ms */
+    int64_t timeout; /* in ms, on the 64-bit boot clock */
 } JSTimer;
 
 static JSTimer js_timer_list[SCRIPT_MAX_TIMERS];
 
 static int64_t get_time_ms(void)
 {
-    return KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+    return (int64_t)KEYBOARD_TICK_TO_TIME64(keyboard_tick_get64());
 }
 
 static AdvancedKey virtual_key;
@@ -266,11 +266,11 @@ static JSValue js_keyboard_get_tick(JSContext *ctx, JSValue *this_val, int argc,
 {
     if (magic)
     {
-        return JS_NewInt64(ctx, (int64_t)KEYBOARD_TICK_TO_TIME(g_keyboard_tick));
+        return JS_NewInt64(ctx, get_time_ms());
     }
     else
     {
-        return JS_NewInt64(ctx, (int64_t)g_keyboard_tick);
+        return JS_NewInt64(ctx, (int64_t)keyboard_tick_get64());
     }
 }
 
@@ -550,7 +550,7 @@ static JSValue js_gc(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 
 static JSValue js_date_now(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 {
-    return JS_NewInt64(ctx, (int64_t)KEYBOARD_TICK_TO_TIME(g_keyboard_tick));
+    return JS_NewInt64(ctx, get_time_ms());
 }
 
 static JSValue js_performance_now(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)

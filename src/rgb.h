@@ -61,7 +61,7 @@ extern "C" {
  * RGB_FRAME_INTERVAL_TICKS apart. The default keeps the historic pacing of one
  * frame per keyboard tick. A board that ticks at several kHz can lower this to
  * a few hundred and spend far less main-loop time on frames the LEDs cannot
- * show; effects are timed by g_keyboard_tick, so they look the same at any
+ * show; effects are timed by the keyboard clock, so they look the same at any
  * frame rate. */
 #ifndef RGB_MAX_FRAME_RATE
 #define RGB_MAX_FRAME_RATE (POLLING_RATE)

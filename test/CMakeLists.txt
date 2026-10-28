@@ -20,6 +20,7 @@ add_executable(libamp_tests
     key/test_key.cpp
     advanced_key/test_advanced_key.cpp
     keyboard/test_keyboard.cpp
+    keyboard/test_tick_script.cpp
     dynamic_key/test_dynamic_key.cpp
     event/test_event.cpp
     large_packet/test_large_packet.cpp
@@ -48,6 +49,47 @@ target_link_libraries(libamp_tests
 )
 
 gtest_discover_tests(libamp_tests)
+
+find_package(Threads REQUIRED)
+foreach(tick_bits IN ITEMS 32 64)
+    if(tick_bits EQUAL 64)
+        set(tick_64bit_enable 1)
+    else()
+        set(tick_64bit_enable 0)
+    endif()
+    foreach(tick_rate IN ITEMS 1000 8000 125 1024)
+        set(tick_target libamp_tick_${tick_bits}_${tick_rate}_tests)
+        add_executable(${tick_target}
+            keyboard/test_tick.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/keyboard_tick.c
+        )
+        target_compile_definitions(${tick_target} PRIVATE
+            POLLING_RATE=${tick_rate}
+            KEYBOARD_TICK_64BIT_ENABLE=${tick_64bit_enable}
+        )
+        target_link_libraries(${tick_target} PRIVATE libamp GTest::gtest_main Threads::Threads)
+        gtest_discover_tests(${tick_target} TEST_PREFIX "Tick${tick_bits}_${tick_rate}.")
+    endforeach()
+
+    foreach(tick_override IN ITEMS 32 64 both)
+        set(tick_target libamp_tick_${tick_bits}_override_${tick_override}_tests)
+        add_executable(${tick_target}
+            keyboard/test_tick_override.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/keyboard_tick.c
+        )
+        target_compile_definitions(${tick_target} PRIVATE
+            KEYBOARD_TICK_64BIT_ENABLE=${tick_64bit_enable}
+        )
+        if(NOT tick_override STREQUAL "64")
+            target_compile_definitions(${tick_target} PRIVATE TEST_OVERRIDE_TICK32)
+        endif()
+        if(NOT tick_override STREQUAL "32")
+            target_compile_definitions(${tick_target} PRIVATE TEST_OVERRIDE_TICK64)
+        endif()
+        target_link_libraries(${tick_target} PRIVATE libamp GTest::gtest_main)
+        gtest_discover_tests(${tick_target} TEST_PREFIX "Tick${tick_bits}Override${tick_override}.")
+    endforeach()
+endforeach()
 
 add_executable(libamp_serial_override_tests
     usb/test_usb_serial_number_custom.cpp

@@ -98,12 +98,11 @@ void rgb_init(void)
 /* ------------------------------------------------------------------------- */
 
 /* Time offset of the base effects in degrees: (elapsed ms * speed) mod 360,
- * computed without a 64-bit division. The milliseconds are reduced first (a
- * 32-bit modulo by a constant compiles to a multiply), and the remaining
+ * using the full boot clock. The milliseconds are reduced first, and the remaining
  * product, below 2^34, is folded at 2^32 with the precomputed residue. */
 static float rgb_base_time_offset(void)
 {
-    const uint32_t milliseconds = KEYBOARD_TICK_TO_TIME(g_keyboard_tick) % HUE_CYCLE_MILLIDEGREES;
+    const uint32_t milliseconds = (uint32_t)(KEYBOARD_TICK_TO_TIME64(keyboard_tick_get64()) % HUE_CYCLE_MILLIDEGREES);
     const int32_t speed = g_rgb_base_config.speed;
     const uint64_t product = (uint64_t)milliseconds * (uint32_t)(speed < 0 ? -speed : speed);
     uint32_t wrapped = ((uint32_t)(product >> 32) * HUE_CYCLE_FOLD_2P32 + (uint32_t)product % HUE_CYCLE_MILLIDEGREES)
@@ -288,7 +287,7 @@ static inline bool rgb_mode_is_ripple(RGBMode mode)
     }
 }
 
-static void rgb_render_ripples(void)
+static void rgb_render_ripples(uint32_t tick)
 {
     RGBArgumentList *list = &rgb_argument_list;
     for (int16_t *iterator_ptr = &list->data[list->head].next; *iterator_ptr >= 0;)
@@ -297,7 +296,7 @@ static void rgb_render_ripples(void)
         const RGBArgument *ripple = &node->data;
         const RGBConfig *config = &g_rgb_configs[ripple->rgb_ptr];
         const RGBLocation *origin = &g_rgb_locations[ripple->rgb_ptr];
-        const float distance = CALC_SPAN(g_keyboard_tick - ripple->begin_tick, config->speed);
+        const float distance = CALC_SPAN(tick_elapsed32(tick, ripple->begin_tick), config->speed);
 
         if (rgb_ripple_has_left_board(origin, distance))
         {
@@ -379,9 +378,14 @@ static inline float rgb_key_travel(const Key *key)
     return key != NULL ? (float)keyboard_get_key_effective_analog_value((Key *)key) * (1.0f / ANALOG_VALUE_RANGE) : 0.0f;
 }
 
-static void rgb_render_keys(void)
+static void rgb_render_keys(uint32_t tick)
 {
     ColorRGB temp_rgb;
+    UNUSED(tick);
+#if RGB_MODE_USE_CYCLE
+    uint32_t cycle_milliseconds = 0;
+    bool cycle_milliseconds_ready = false;
+#endif
     for (uint16_t i = 0; i < RGB_NUM; i++)
     {
         Color *target_color = &g_rgb_colors[i];
@@ -402,23 +406,13 @@ static void rgb_render_keys(void)
 #if RGB_MODE_USE_TRIGGER
         case RGB_MODE_TRIGGER:
         {
-            uint32_t elapsed_ticks;
             if (report_state)
             {
-                config->begin_tick = g_keyboard_tick;
-                elapsed_ticks = g_keyboard_tick - config->begin_tick;
-                if (elapsed_ticks == 0)
-                {
-                    /* expf(0) is exactly one. Preserve the decay path if an
-                     * interrupt advanced the tick after restarting it. */
-                    color_mix(target_color, &config->rgb);
-                    break;
-                }
+                config->begin_tick = tick;
+                color_mix(target_color, &config->rgb);
+                break;
             }
-            else
-            {
-                elapsed_ticks = g_keyboard_tick - config->begin_tick;
-            }
+            const uint32_t elapsed_ticks = tick_elapsed32(tick, config->begin_tick);
             const float exponent = CALC_SPAN(elapsed_ticks, config->speed) * RGB_TRIGGER_DECAY_LN;
             if (exponent < RGB_TRIGGER_DECAY_SILENT)
             {
@@ -440,9 +434,15 @@ static void rgb_render_keys(void)
 #if RGB_MODE_USE_CYCLE
         case RGB_MODE_CYCLE:
         {
-            const uint32_t hue_offset = (uint32_t)(int32_t)CALC_SPAN(g_keyboard_tick, config->speed);
+            if (!cycle_milliseconds_ready)
+            {
+                cycle_milliseconds = (uint32_t)(KEYBOARD_TICK_TO_TIME64(keyboard_tick_get64()) % 360u);
+                cycle_milliseconds_ready = true;
+            }
+            const int32_t hue_offset = (int32_t)cycle_milliseconds * config->speed;
+            const int32_t hue = (int32_t)config->hsv.h + hue_offset % 360;
             const ColorHSV hsv = {
-                (uint16_t)((config->hsv.h + hue_offset) % 360),
+                (uint16_t)((hue % 360 + 360) % 360),
                 config->hsv.s,
                 config->hsv.v,
             };
@@ -469,7 +469,7 @@ static void rgb_render_keys(void)
 
 void rgb_process(void)
 {
-    const uint32_t tick = g_keyboard_tick;
+    const uint32_t tick = keyboard_tick_get32();
     if (rgb_frame_rendered && !rgb_frame_is_due(tick, rgb_frame_tick, RGB_FRAME_INTERVAL_TICKS))
     {
         return;
@@ -495,8 +495,8 @@ void rgb_process(void)
 
     memset(g_rgb_colors, 0, sizeof(g_rgb_colors));
     rgb_render_base();
-    rgb_render_ripples();
-    rgb_render_keys();
+    rgb_render_ripples(tick);
+    rgb_render_keys(tick);
     rgb_flush();
 }
 
@@ -532,10 +532,10 @@ void rgb_set(uint16_t index, uint8_t r, uint8_t g, uint8_t b)
 void rgb_init_flash(void)
 {
     const RGBLocation location = PORT_LOCATION;
-    const uint32_t begin_tick = g_keyboard_tick;
-    while (KEYBOARD_TICK_TO_TIME(g_keyboard_tick - begin_tick) < RGB_FLASH_MAX_DURATION)
+    const uint32_t begin_tick = keyboard_tick_get32();
+    while (KEYBOARD_TICK_TO_TIME(tick_elapsed32(keyboard_tick_get32(), begin_tick)) < RGB_FLASH_MAX_DURATION)
     {
-        const float distance = (float)KEYBOARD_TICK_TO_TIME(g_keyboard_tick - begin_tick) * RGB_FLASH_RIPPLE_SPEED;
+        const float distance = (float)KEYBOARD_TICK_TO_TIME(tick_elapsed32(keyboard_tick_get32(), begin_tick)) * RGB_FLASH_RIPPLE_SPEED;
         bool animation_playing = false;
         memset(g_rgb_colors, 0, sizeof(g_rgb_colors));
         for (uint16_t i = 0; i < RGB_NUM; i++)
@@ -572,10 +572,10 @@ void rgb_init_flash(void)
 
 void rgb_flash(void)
 {
-    const uint32_t begin_tick = g_keyboard_tick;
-    while (g_keyboard_tick - begin_tick < RGB_FLASH_MAX_DURATION)
+    const uint32_t begin_tick = keyboard_tick_get32();
+    while (tick_elapsed32(keyboard_tick_get32(), begin_tick) < RGB_FLASH_MAX_DURATION)
     {
-        const float distance = (float)(g_keyboard_tick - begin_tick);
+        const float distance = (float)(tick_elapsed32(keyboard_tick_get32(), begin_tick));
         const float half_duration = RGB_FLASH_MAX_DURATION / 2;
         const float intensity = (half_duration - fabsf(distance - half_duration)) * (1.0f / half_duration);
         const uint8_t level = (uint8_t)(intensity * 255.0f);

@@ -367,7 +367,7 @@ void packet_fill_debug(PacketDebug*data)
     PacketDebug* packet = data;
     if (data->code == PACKET_CODE_DEBUG)
     {       
-        packet->tick = g_keyboard_tick;
+        packet->tick = keyboard_tick_get32();
         for (uint8_t i = 0; i < packet->length; i++)
         {
             uint16_t key_index =  packet->data[i].index;
@@ -527,11 +527,11 @@ void packet_process_record(PacketDataHeader *data)
         {
         case PACKET_DATA_RECORD_RUNTIME:
             {
-                ((PacketRecordRuntime *)data)->uptime = KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+                ((PacketRecordRuntime *)data)->uptime = KEYBOARD_TICK_TO_TIME64(keyboard_tick_get64());
 #ifdef RECORD_PERSIST_ENABLE
                 ((PacketRecordRuntime *)data)->runtime = record_get_runtime();
 #else
-                ((PacketRecordRuntime *)data)->runtime = KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+                ((PacketRecordRuntime *)data)->runtime = KEYBOARD_TICK_TO_TIME64(keyboard_tick_get64());
 #endif
             }
             break;

@@ -1,3 +1,4 @@
+#include "test_fixture.h"
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -78,7 +79,7 @@ void reset_capture()
     corrupt_response_id = false;
     drop_echo = false;
     fail_send = false;
-    g_keyboard_tick = 0;
+    libamp_test_set_tick(0);
     nexus_init();
 }
 
@@ -173,7 +174,7 @@ extern "C" int nexus_send(uint8_t slave_id, uint8_t *report, uint16_t len)
     if (corrupt_response_id)
     {
         echo[1]++;
-        g_keyboard_tick = g_keyboard_tick + 2;
+        libamp_test_set_tick(keyboard_tick_get32() + 2);
     }
     nexus_process_buffer(slave_id, echo, len);
     return 0;
@@ -350,7 +351,7 @@ TEST(NexusConfigSync, ResendsWhenTheEchoIsLost)
     nexus_poll();
     EXPECT_EQ(1u, captured_packet_count) << "one request in flight at a time";
 
-    g_keyboard_tick += kRequestTimeoutTicks;
+    keyboard_tick_inc(kRequestTimeoutTicks);
     deliver_report(0, 0, 0, 0);   // keep the slave online
     nexus_poll();
     nexus_poll();
@@ -363,7 +364,7 @@ TEST(NexusConfigSync, ResendsEverythingWhenTheSlaveReconnects)
     reset_capture();
     bring_slave_online_and_drain();
 
-    g_keyboard_tick += kLinkTimeoutTicks + 1;
+    keyboard_tick_inc(kLinkTimeoutTicks + 1);
     nexus_poll();
     EXPECT_FALSE(nexus_slave_is_online(0));
     EXPECT_EQ(0u, captured_packet_count);
@@ -428,11 +429,11 @@ TEST(NexusReport, ReleasesKeysWhenTheSlaveGoesSilent)
     nexus_process();
     ASSERT_TRUE(g_keyboard_advanced_keys[5].key.state);
 
-    g_keyboard_tick += kLinkTimeoutTicks;
+    keyboard_tick_inc(kLinkTimeoutTicks);
     nexus_process();
     EXPECT_TRUE(g_keyboard_advanced_keys[5].key.state) << "still within the link timeout";
 
-    g_keyboard_tick += 1;
+    keyboard_tick_inc(1);
     nexus_process();
     EXPECT_FALSE(g_keyboard_advanced_keys[2].key.state);
     EXPECT_FALSE(g_keyboard_advanced_keys[5].key.state);
@@ -597,11 +598,11 @@ TEST(NexusReport, DebounceKeepsCountingBetweenFrames)
     deliver_report(0, 0, 0, 0b000);
     for (int tick = 1; tick < DEBOUNCE_PRESS + DEBOUNCE_RELEASE; tick++)
     {
-        g_keyboard_tick++;
+        keyboard_tick_inc(1);
         nexus_process();
         EXPECT_TRUE(key->report_state) << "tick " << tick;
     }
-    g_keyboard_tick++;
+    keyboard_tick_inc(1);
     nexus_process();
     EXPECT_FALSE(key->report_state);
 }
@@ -618,7 +619,7 @@ TEST(NexusReport, HeldMouseMoveKeyDispatchesEveryTick)
     {
         g_keyboard_report_flags.mouse = false;
         g_keyboard_report_flags.keyboard = false;
-        g_keyboard_tick++;
+        keyboard_tick_inc(1);
         nexus_process();
         EXPECT_TRUE((bool)g_keyboard_report_flags.mouse) << "tick " << tick << ": movement runs while held";
         EXPECT_EQ(tick == 0, (bool)g_keyboard_report_flags.keyboard) << "tick " << tick << ": a plain key only reports its edge";
@@ -641,13 +642,13 @@ TEST(NexusReport, LayerSwitchedBySlaveKeyAppliesToKeysProcessedAfterIt)
     // already runs its mouse movement (which marks the key reported), key 2
     // was evaluated before the switch and catches up on the next tick.
     deliver_report(0, 0, 0, 0b010);
-    g_keyboard_tick++;
+    keyboard_tick_inc(1);
     nexus_process();
     ASSERT_EQ(1, layer_get());
     EXPECT_TRUE(g_keyboard_advanced_keys[8].key.report_state);
     EXPECT_FALSE(g_keyboard_advanced_keys[2].key.report_state);
 
-    g_keyboard_tick++;
+    keyboard_tick_inc(1);
     nexus_process();
     EXPECT_TRUE(g_keyboard_advanced_keys[2].key.report_state);
 }

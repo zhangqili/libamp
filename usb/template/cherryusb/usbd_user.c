@@ -21,7 +21,7 @@
 #endif
 
 #ifdef WEBUSB_ENABLE
-static struct usb_webusb_descriptor webusb_url_desc = {
+static const struct usb_webusb_descriptor webusb_url_desc = {
     .vendor_code = WEBUSB_VENDOR_CODE,
     .string = (const uint8_t *)&WebUSBURLDescriptor,
     .string_len = WEBUSB_URL_DESCRIPTOR_LENGTH
@@ -29,13 +29,13 @@ static struct usb_webusb_descriptor webusb_url_desc = {
 #endif
 
 #ifdef MSOS20_ENABLE
-static struct usb_msosv2_descriptor msosv2_desc = {
+static const struct usb_msosv2_descriptor msosv2_desc = {
     .vendor_code = MSOS20_VENDOR_CODE,
     .compat_id = MSOS20DescriptorSet,
     .compat_id_len = sizeof(MSOS20DescriptorSet),
 };
 
-static struct usb_bos_descriptor bos_desc = {
+static const struct usb_bos_descriptor bos_desc = {
     .string = BOSDescriptor,
     .string_len = sizeof(BOSDescriptor)
 };

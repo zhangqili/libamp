@@ -12,7 +12,7 @@
 static uint16_t current_lamp_id = 0;
 
 uint16_t lamp_array_get_lamp_array_attributes_report(uint8_t* buffer) {
-    LampArrayAttributesReport report = {
+    const LampArrayAttributesReport report = {
         REPORT_ID_LIGHTING_LAMP_ARRAY_ATTRIBUTES,
         RGB_NUM,
         RGB_WIDTH * KEY_SWITCH_DISTANCE,

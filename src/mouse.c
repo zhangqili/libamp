@@ -95,7 +95,7 @@ static inline bool should_move(int t, int speed)
 void mouse_set_axis(Keycode keycode, AnalogValue value)
 {
     uint32_t speed = A_NORM((value - ANALOG_VALUE_MIN)) * MOUSE_MAX_SPEED;
-    uint32_t mouse_value = speed / POLLING_RATE + should_move(g_keyboard_tick%POLLING_RATE, speed);
+    uint32_t mouse_value = speed / POLLING_RATE + should_move(keyboard_tick_get32()%POLLING_RATE, speed);
     switch (KEYCODE_GET_SUB(keycode))
     {
     case MOUSE_MOVE_UP:

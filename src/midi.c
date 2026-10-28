@@ -69,7 +69,7 @@ static uint8_t tone_status[MIDI_TONE_COUNT];
 
 static uint8_t midi_modulation;
 static int8_t midi_modulation_step;
-static uint16_t midi_modulation_timer;
+static uint32_t midi_modulation_timer;
 MIDIConfig midi_config;
 
 static uint8_t usb_midi_event(uint8_t cable, uint8_t cin)
@@ -780,11 +780,12 @@ void midi_task(void)
 {
     midi_runtime_process(&midi_runtime);
 #ifdef MIDI_ADVANCED
-    if ((int32_t)(KEYBOARD_TICK_TO_TIME(g_keyboard_tick) - midi_modulation_timer) < midi_config.modulation_interval)
+    const uint32_t tick = keyboard_tick_get32();
+    if (tick_elapsed32(tick, midi_modulation_timer) < KEYBOARD_TIME_TO_TICK(midi_config.modulation_interval))
     {
         return;
     }
-    midi_modulation_timer = KEYBOARD_TICK_TO_TIME(g_keyboard_tick);
+    midi_modulation_timer = tick;
 
     if (midi_modulation_step != 0)
     {

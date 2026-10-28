@@ -51,11 +51,11 @@ void macro_event_handler(KeyboardEvent event)
             break;
         case MACRO_PLAYING_START_ONCE_NO_GAP:
             macro_start_play_once(&g_macros[index]);
-            g_macros[index].begin_tick = g_keyboard_tick + g_macros[index].actions[0].delay;
+            g_macros[index].begin_tick = keyboard_tick_get32() + g_macros[index].actions[0].delay;
             break;
         case MACRO_PLAYING_START_CIRCULARLY_NO_GAP:
             macro_start_play_circularly(&g_macros[index]);
-            g_macros[index].begin_tick = g_keyboard_tick + g_macros[index].actions[0].delay;
+            g_macros[index].begin_tick = keyboard_tick_get32() + g_macros[index].actions[0].delay;
             break;
         case MACRO_PLAYING_STOP:
             macro_stop_play(&g_macros[index]);
@@ -103,14 +103,14 @@ void macro_record_handler(KeyboardEvent event)
 
 void macro_start_record(Macro*macro)
 {
-    macro->begin_tick = g_keyboard_tick;
+    macro->begin_tick = keyboard_tick_get32();
     macro->state = MACRO_STATE_RECORDING;
     macro->index = 0;
 }
 
 void macro_stop_record(Macro*macro)
 {
-    macro->actions[macro->index].delay = g_keyboard_tick - macro->begin_tick;
+    macro->actions[macro->index].delay = tick_elapsed32(keyboard_tick_get32(), macro->begin_tick);
     macro->actions[macro->index].event.keycode = KEY_NO_EVENT;
     macro->state = MACRO_STATE_IDLE;
     macro->index=0;
@@ -119,7 +119,7 @@ void macro_stop_record(Macro*macro)
 void macro_record(Macro*macro,KeyboardEvent event)
 {
     macro->actions[macro->index].event = event;
-    macro->actions[macro->index].delay = g_keyboard_tick - macro->begin_tick;
+    macro->actions[macro->index].delay = tick_elapsed32(keyboard_tick_get32(), macro->begin_tick);
     macro->index++;
     if (macro->index >= MACRO_MAX_ACTIONS)
     {
@@ -130,21 +130,21 @@ void macro_record(Macro*macro,KeyboardEvent event)
 
 void macro_start_play_once(Macro*macro)
 {
-    macro->begin_tick = g_keyboard_tick;
+    macro->begin_tick = keyboard_tick_get32();
     macro->state = MACRO_STATE_PLAYING_ONCE;
     macro->index = 0;
 }
 
 void macro_start_play_circularly(Macro*macro)
 {
-    macro->begin_tick = g_keyboard_tick;
+    macro->begin_tick = keyboard_tick_get32();
     macro->state = MACRO_STATE_PLAYING_CIRCULARLY;
     macro->index = 0;
 }
 
 void macro_stop_play(Macro*macro)
 {
-    macro->begin_tick = g_keyboard_tick;
+    macro->begin_tick = keyboard_tick_get32();
     macro->state = MACRO_STATE_IDLE;
     macro->index = 0;
 }
@@ -160,7 +160,10 @@ void macro_process(void)
             break;
         case MACRO_STATE_PLAYING_ONCE:
         case MACRO_STATE_PLAYING_CIRCULARLY:
-            while (macro->actions[macro->index].delay + macro->begin_tick <= g_keyboard_tick)
+        {
+            const uint32_t tick = keyboard_tick_get32();
+            while (tick_reached32(tick,
+                                 macro->begin_tick + macro->actions[macro->index].delay))
             {
                 KeyboardEvent event = macro->actions[macro->index].event;
                 uint8_t report_state = ((Key*)event.key)->report_state;
@@ -173,7 +176,7 @@ void macro_process(void)
                     else
                     {
                         macro_start_play_circularly(macro);
-                        macro->begin_tick = g_keyboard_tick + macro->actions[0].delay;
+                        macro->begin_tick = tick + macro->actions[0].delay;
                     }
                     event_forward_list_remove_specific_owner(&g_event_buffer_list, macro);
                     break;
@@ -194,6 +197,7 @@ void macro_process(void)
                 macro->index++;
             }
             break;
+        }
         
         default:
             break;

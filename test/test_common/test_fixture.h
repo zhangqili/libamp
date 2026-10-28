@@ -33,6 +33,8 @@ extern uint32_t flash_invalid_accesses;
 extern uint32_t flash_erase_calls;
 
 void libamp_test_reset_environment(void);
+/* Set the software clock while no tick writer/readers are running. */
+void libamp_test_set_tick(uint64_t tick);
 void libamp_test_clear_output_buffers(void);
 
 #ifdef __cplusplus

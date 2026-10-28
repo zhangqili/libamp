@@ -41,6 +41,55 @@ ColorRGB scalar_hsv_to_rgb(const ColorHSV &hsv)
 
 } // namespace
 
+TEST(RGB, BaseAnimationUsesFullBootClock)
+{
+    g_rgb_base_config.mode = RGB_BASE_MODE_RAINBOW;
+    g_rgb_base_config.speed = 1;
+    g_rgb_base_config.density = 0;
+    g_rgb_base_config.hsv = {0, 100, 100};
+    for (auto &config : g_rgb_configs) {
+        config.mode = RGB_MODE_FIXED;
+        config.rgb = {0, 0, 0};
+    }
+    const uint64_t ms = (UINT64_C(1) << 32) + 12345;
+    libamp_test_set_tick(KEYBOARD_TIME_TO_TICK64(ms % 360000u));
+    rgb_init();
+    rgb_process();
+    const ColorRGB expected = g_rgb_colors[0];
+    libamp_test_set_tick(KEYBOARD_TIME_TO_TICK64(ms));
+    rgb_init();
+    rgb_process();
+    EXPECT_EQ(expected.r, g_rgb_colors[0].r);
+    EXPECT_EQ(expected.g, g_rgb_colors[0].g);
+    EXPECT_EQ(expected.b, g_rgb_colors[0].b);
+}
+
+TEST(RGB, KeyCycleUsesFullClockWithBothSpeedDirections)
+{
+    g_rgb_base_config.mode = RGB_BASE_MODE_BLANK;
+    for (auto &config : g_rgb_configs) {
+        config.mode = RGB_MODE_FIXED;
+        config.rgb = {0, 0, 0};
+    }
+    auto &config = g_rgb_configs[0];
+    config.mode = RGB_MODE_CYCLE;
+    config.hsv = {30, 100, 100};
+    const uint64_t ms = (UINT64_C(1) << 32) + 12345;
+    for (int16_t speed : {-32768, -20, 1, 20, 32767}) {
+        config.speed = speed;
+        const int32_t hue = 30 + (int64_t)(ms % 360u) * speed % 360;
+        const ColorHSV hsv = {(uint16_t)((hue % 360 + 360) % 360), 100, 100};
+        ColorRGB expected;
+        hsv_to_rgb(&expected, &hsv);
+        libamp_test_set_tick(KEYBOARD_TIME_TO_TICK64(ms));
+        rgb_init();
+        rgb_process();
+        EXPECT_EQ(expected.r, g_rgb_colors[0].r);
+        EXPECT_EQ(expected.g, g_rgb_colors[0].g);
+        EXPECT_EQ(expected.b, g_rgb_colors[0].b);
+    }
+}
+
 TEST(Color, HsvConversionMatchesScalarForEveryValidInput)
 {
     for (uint16_t h = 0; h < 360; h++) {
@@ -181,7 +230,7 @@ TEST(RGB, BrightnessKeysUpdateOutputAndClampAtLimits)
         const KeyboardEvent event = MK_VIRTUAL_EVENT(
             KEYCODE(KEYBOARD_OPERATION, test.command), KEYBOARD_EVENT_KEY_DOWN, keyboard_get_key(0));
         keyboard_operation_event_handler(event);
-        keyboard_operation_event_poller(event, g_keyboard_tick);
+        keyboard_operation_event_poller(event, keyboard_tick_get32());
         rgb_set(3, 128, 64, 255);
 
         EXPECT_EQ(test.expected, g_rgb_base_config.brightness);
@@ -239,7 +288,7 @@ TEST(RGB, RendersOneFrameUntilTheTickAdvances)
     rgb_process();
     EXPECT_EQ(1U, led_flush_count) << "a second call in the same tick renders nothing";
 
-    g_keyboard_tick++;
+    keyboard_tick_inc(1);
     rgb_process();
     EXPECT_EQ(2U, led_flush_count);
 }
@@ -266,27 +315,27 @@ TEST(RGB, TriggerFadeEndsExactlyWhereTheColorTruncatesToBlack)
     };
     static_assert(KEYBOARD_TICK_TO_TIME(2750) * 20 == 55000, "the boundary ticks below assume a 1 kHz tick");
 
-    g_keyboard_tick = 1000;
+    libamp_test_set_tick(1000);
     key->report_state = 1;
     rgb_process();
     key->report_state = 0;
     EXPECT_EQ(255, g_rgb_colors[0].r);
 
-    g_keyboard_tick = 1000 + 500;
+    libamp_test_set_tick(1000 + 500);
     rgb_process();
     EXPECT_EQ(faded(500), g_rgb_colors[0].r);
     EXPECT_NEAR(94, g_rgb_colors[0].r, 1);
 
-    g_keyboard_tick = 1000 + 2750;   /* exponent -5.50: 255 * 0.00408 is still one count */
+    libamp_test_set_tick(1000 + 2750);   /* exponent -5.50: 255 * 0.00408 is still one count */
     rgb_process();
     EXPECT_EQ(1, g_rgb_colors[0].r);
     EXPECT_EQ(1, g_rgb_colors[0].b);
 
-    g_keyboard_tick = 1000 + 2850;   /* exponent -5.70: truncates to black */
+    libamp_test_set_tick(1000 + 2850);   /* exponent -5.70: truncates to black */
     rgb_process();
     EXPECT_EQ(0, g_rgb_colors[0].r);
 
-    g_keyboard_tick = 1000 + 100000;
+    libamp_test_set_tick(1000 + 100000);
     rgb_process();
     EXPECT_EQ(0, g_rgb_colors[0].r);
     EXPECT_EQ(0, g_rgb_colors[0].g);
@@ -313,7 +362,7 @@ TEST(RGB, TriggerMatchesScalarForHeldAndReleasedKeysAcrossSpeeds)
         // Held frames also cross the tick wrap and must keep restarting decay.
         const uint32_t held_ticks[] = {0xFFFFFFF0u, 0xFFFFFFFBu, 1u};
         for (uint32_t tick : held_ticks) {
-            g_keyboard_tick = tick;
+            libamp_test_set_tick(tick);
             rgb_process();
             EXPECT_EQ(tick, config.begin_tick);
             EXPECT_EQ(config.rgb.r, g_rgb_colors[0].r);
@@ -334,7 +383,7 @@ TEST(RGB, TriggerMatchesScalarForHeldAndReleasedKeysAcrossSpeeds)
             if (speed < 0 && elapsed == 2850) {
                 continue;
             }
-            g_keyboard_tick = config.begin_tick + elapsed;
+            libamp_test_set_tick(config.begin_tick + elapsed);
             const float span = static_cast<float>(KEYBOARD_TICK_TO_TIME(elapsed)) * static_cast<float>(speed);
             const float intensity = std::exp(span * -1.0000500033e-4f);
             rgb_process();
@@ -399,11 +448,11 @@ uint32_t render_fingerprint(RGBBaseMode base_mode, RGBMode key_mode)
     }
 
     uint32_t h = 2166136261u;
-    g_keyboard_tick = 1000;
+    libamp_test_set_tick(1000);
     for (int frame = 0; frame < 6; frame++) {
         rgb_process();
         h = fnv1a_colors(h);
-        g_keyboard_tick += 250;
+        keyboard_tick_inc(250);
         if (frame == 1) {
             for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++) {
                 g_keyboard_advanced_keys[i].key.report_state = 0;   /* keys released: fades run */

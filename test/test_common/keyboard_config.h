@@ -12,6 +12,9 @@
 #define LAYER_NUM               5
 #define ADVANCED_KEY_NUM        64
 #define KEY_NUM                 0
+#ifndef KEYBOARD_TICK_64BIT_ENABLE
+#define KEYBOARD_TICK_64BIT_ENABLE 1
+#endif
 //#define CONTINUOUS_DEBUG
 #define DEBUG_INTERVAL 1
 #define DYNAMICKEY_ENABLE
@@ -164,6 +167,8 @@
 /* Script */
 /**********/
 #define SCRIPT_ENABLE
+/* Host tests parse source with 64-bit JS values and the full standard library. */
+#define SCRIPT_MEMORY_SIZE (32 * 1024)
 //#define SCRIPT_MINIMAL
 
 #endif /* KEYBOARD_CONFIG_H_ */

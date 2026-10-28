@@ -76,7 +76,7 @@ add_custom_target(generate_mqjs_headers_task
     DEPENDS ${MQJS_GEN_HEADER_ATOM} ${MQJS_GEN_HEADER_LIB}
 )
 
-file(GLOB COMPONENT_SRCS
+file(GLOB COMPONENT_SRCS CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/src/*.c
     ${PROJECT_SOURCE_DIR}/usb/*.c
     ${PROJECT_SOURCE_DIR}/lib/littlefs/*.c

@@ -78,7 +78,7 @@ TEST(DynamicKey, ModTap)
     keyboard_report_send();
     //EXPECT_TRUE(dynamic_key.mt.vkey0.report_state);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
-    g_keyboard_tick += 200;
+    keyboard_tick_inc(200);
 
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0));
@@ -102,7 +102,7 @@ TEST(DynamicKey, ModTap)
     dynamic_key_add_to_report();
     keyboard_report_send();
     EXPECT_EQ(keyboard_send_buffer[2], KEY_NO_EVENT);
-    g_keyboard_tick += 50;
+    keyboard_tick_inc(50);
 
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(0.0));
     dynamic_key_process();
@@ -111,6 +111,89 @@ TEST(DynamicKey, ModTap)
     keyboard_report_send();
     //EXPECT_TRUE(dynamic_key.mt.vkey0.state);
     EXPECT_EQ(keyboard_send_buffer[2], KEY_A);
+}
+
+TEST(DynamicKey, ModTapTapDeadlineCanBeZero)
+{
+    auto &mt = g_dynamic_keys[0].mt;
+    mt = {};
+    mt.type = DYNAMIC_KEY_MOD_TAP;
+    mt.key_binding[0] = KEY_A;
+    mt.key_binding[1] = KEY_B;
+    mt.duration = 100;
+    bind_dynamic_key(0);
+    Key *key = keyboard_get_key(0);
+
+    libamp_test_set_tick(UINT32_MAX - KEYBOARD_TIME_TO_TICK(5));
+    key->state = true;
+    dynamic_key_mt_process(&mt);
+    keyboard_tick_inc(1);
+    key->state = false;
+    dynamic_key_mt_process(&mt);
+    EXPECT_EQ(0u, mt.end_tick);
+    EXPECT_TRUE(mt.key_report_state);
+    keyboard_tick_inc(KEYBOARD_TIME_TO_TICK(5));
+    dynamic_key_mt_process(&mt);
+    EXPECT_TRUE(mt.key_report_state); // The existing strict > boundary is kept.
+    keyboard_tick_inc(1);
+    dynamic_key_mt_process(&mt);
+    EXPECT_FALSE(mt.key_report_state);
+}
+
+TEST(DynamicKey, StrokeTapAtMaxTimestampAndHoldRemainDistinct)
+{
+    static_assert(sizeof(DynamicKey) == 56, "tick state must preserve the wire layout");
+    auto &dk = g_dynamic_keys[0].dks;
+    dk = {};
+    dk.type = DYNAMIC_KEY_STROKE;
+    dk.key_binding[0] = KEY_A;
+    dk.key_binding[1] = KEY_B;
+    dk.key_control[0] = DKS_KEY_CONTROL(DKS_TAP, DKS_TAP, DKS_RELEASE, DKS_RELEASE);
+    dk.key_control[1] = DKS_KEY_CONTROL(DKS_HOLD, DKS_HOLD, DKS_RELEASE, DKS_RELEASE);
+    dk.press_begin_distance = A_ANTI_NORM(0.25);
+    dk.press_fully_distance = A_ANTI_NORM(0.75);
+    dk.release_begin_distance = A_ANTI_NORM(0.75);
+    dk.release_fully_distance = A_ANTI_NORM(0.25);
+    bind_dynamic_key(0);
+    libamp_test_set_tick(UINT32_MAX - KEYBOARD_TIME_TO_TICK(5));
+    keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1));
+    dynamic_key_s_process(&dk);
+    EXPECT_EQ(UINT32_MAX, dk.key_end_tick[0]);
+    EXPECT_EQ(3u, dk.key_state);
+    keyboard_tick_inc(KEYBOARD_TIME_TO_TICK(5));
+    dynamic_key_s_process(&dk);
+    EXPECT_EQ(3u, dk.key_state);
+    keyboard_tick_inc(1);
+    dynamic_key_s_process(&dk);
+    EXPECT_EQ(2u, dk.key_state);
+    keyboard_tick_inc(0x80000000u);
+    dynamic_key_s_process(&dk);
+    EXPECT_EQ(2u, dk.key_state);
+}
+
+TEST(DynamicKey, ModTapHoldSurvivesWrapUntilPhysicalRelease)
+{
+    auto &mt = g_dynamic_keys[0].mt;
+    mt = {};
+    mt.type = DYNAMIC_KEY_MOD_TAP;
+    mt.key_binding[0] = KEY_A;
+    mt.key_binding[1] = KEY_B;
+    mt.duration = 10;
+    bind_dynamic_key(0);
+    Key *key = keyboard_get_key(0);
+    libamp_test_set_tick(UINT32_MAX - 20u);
+    key->state = true;
+    dynamic_key_mt_process(&mt);
+    keyboard_tick_inc(11);
+    dynamic_key_mt_process(&mt);
+    ASSERT_EQ(DYNAMIC_KEY_ACTION_HOLD, mt.state);
+    ASSERT_TRUE(mt.key_report_state);
+    keyboard_tick_inc(0x80000010u);
+    dynamic_key_mt_process(&mt);
+    EXPECT_TRUE(mt.key_report_state);
+    key->state = false;
+    dynamic_key_mt_process(&mt);
+    EXPECT_FALSE(mt.key_report_state);
 }
 
 TEST(DynamicKey, ToggleKey)
@@ -194,7 +277,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     // B deactivate
     // C deactivate
     // D keep activating
-    g_keyboard_tick+=10;
+    keyboard_tick_inc(10);
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.3));
     dynamic_key_process();
     keyboard_report_clear_all();
@@ -204,7 +287,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     EXPECT_EQ(keyboard_send_buffer[3], KEY_D);
     EXPECT_EQ(keyboard_send_buffer[4], KEY_NO_EVENT);
 
-    g_keyboard_tick+=10;
+    keyboard_tick_inc(10);
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.4));
     dynamic_key_process();
     keyboard_report_clear_all();
@@ -218,7 +301,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     // B keep activating
     // C keep activating
     // D deactivate
-    g_keyboard_tick+=10;
+    keyboard_tick_inc(10);
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.8));
     dynamic_key_process();
     keyboard_report_clear_all();
@@ -229,7 +312,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     EXPECT_EQ(keyboard_send_buffer[4], KEY_C);
     EXPECT_EQ(keyboard_send_buffer[5], KEY_NO_EVENT);
 
-    g_keyboard_tick+=10;
+    keyboard_tick_inc(10);
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.9));
     dynamic_key_process();
     keyboard_report_clear_all();
@@ -244,7 +327,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     // B deactivate
     // C activate once
     // D activate once
-    g_keyboard_tick+=10;
+    keyboard_tick_inc(10);
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.6));
     dynamic_key_process();
     keyboard_report_clear_all();
@@ -255,7 +338,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     EXPECT_EQ(keyboard_send_buffer[4], KEY_D);
     EXPECT_EQ(keyboard_send_buffer[5], KEY_NO_EVENT);
 
-    g_keyboard_tick+=10;
+    keyboard_tick_inc(10);
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.5));
     dynamic_key_process();
     keyboard_report_clear_all();
@@ -268,7 +351,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     // B deactivate
     // C keep activating 
     // D deactivate
-    g_keyboard_tick+=10;
+    keyboard_tick_inc(10);
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.2));
     dynamic_key_process();
     keyboard_report_clear_all();
@@ -277,7 +360,7 @@ TEST(DynamicKey, DynamicKeyStroke)
     EXPECT_EQ(keyboard_send_buffer[2], KEY_C);
     EXPECT_EQ(keyboard_send_buffer[3], KEY_NO_EVENT);
 
-    g_keyboard_tick+=10;
+    keyboard_tick_inc(10);
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0],A_ANTI_NORM(0.1));
     dynamic_key_process();
     keyboard_report_clear_all();
@@ -301,7 +384,7 @@ TEST(DynamicKey, DerivedEventsRemainPhysicalForPoller)
     keyboard_process();
 
     EXPECT_EQ(user_poller_count, 1);
-    EXPECT_EQ(user_poller_tick, g_keyboard_tick);
+    EXPECT_EQ(user_poller_tick, keyboard_tick_get32());
     EXPECT_EQ(KEY_USER, KEYCODE_GET_MAIN(last_user_poller_event.keycode));
     EXPECT_EQ(KEYBOARD_EVENT_KEY_DOWN, last_user_poller_event.event);
     EXPECT_FALSE(last_user_poller_event.is_virtual);
@@ -335,12 +418,12 @@ TEST(DynamicKey, DerivedEventsDoNotRetriggerRgbActivation)
     g_rgb_configs[rgb_index].mode = RGB_MODE_BUBBLE;
     g_rgb_configs[rgb_index].begin_tick = 0;
 
-    g_keyboard_tick = 100;
+    libamp_test_set_tick(100);
     keyboard_advanced_key_update(&g_keyboard_advanced_keys[0], A_ANTI_NORM(1.0f));
     keyboard_process();
     EXPECT_EQ(0u, g_rgb_configs[rgb_index].begin_tick);
 
-    g_keyboard_tick = 150;
+    libamp_test_set_tick(150);
     dynamic_key_process();
     keyboard_process();
     EXPECT_EQ(150u, g_rgb_configs[rgb_index].begin_tick);

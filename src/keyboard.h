@@ -11,6 +11,7 @@
 #include "keyboard_config.h"
 #include "keyboard_def.h"
 #include "keyboard_util.h"
+#include "keyboard_tick.h"
 #include "event.h"
 #include "keycode.h"
 
@@ -67,12 +68,28 @@ extern "C" {
 #if (POLLING_RATE % 1000) == 0
 #define KEYBOARD_TIME_TO_TICK(x)   ((uint32_t)(x) * (uint32_t)(POLLING_RATE / 1000))
 #define KEYBOARD_TICK_TO_TIME(x)   ((uint32_t)(x) / (uint32_t)(POLLING_RATE / 1000))
+#define KEYBOARD_TIME_TO_TICK64(x) ((uint64_t)(x) * (uint64_t)(POLLING_RATE / 1000))
+#define KEYBOARD_TICK_TO_TIME64(x) ((uint64_t)(x) / (uint64_t)(POLLING_RATE / 1000))
 #elif (1000 % POLLING_RATE) == 0
 #define KEYBOARD_TIME_TO_TICK(x)   ((uint32_t)(x) / (uint32_t)(1000 / POLLING_RATE))
 #define KEYBOARD_TICK_TO_TIME(x)   ((uint32_t)(x) * (uint32_t)(1000 / POLLING_RATE))
+#define KEYBOARD_TIME_TO_TICK64(x) ((uint64_t)(x) / (uint64_t)(1000 / POLLING_RATE))
+#define KEYBOARD_TICK_TO_TIME64(x) ((uint64_t)(x) * (uint64_t)(1000 / POLLING_RATE))
 #else
 #define KEYBOARD_TIME_TO_TICK(x)   ((uint32_t)(((uint64_t)(x) * POLLING_RATE) / 1000))
 #define KEYBOARD_TICK_TO_TIME(x)   ((uint32_t)(((uint64_t)(x) * 1000) / POLLING_RATE))
+/* Divide before multiplying so the intermediate product cannot overflow when
+ * the final result fits. Functions also evaluate the input exactly once. */
+static inline uint64_t keyboard_time_to_tick64(uint64_t ms)
+{
+    return (ms / 1000) * POLLING_RATE + ((ms % 1000) * POLLING_RATE) / 1000;
+}
+static inline uint64_t keyboard_tick_to_time64(uint64_t tick)
+{
+    return (tick / POLLING_RATE) * 1000 + ((tick % POLLING_RATE) * 1000) / POLLING_RATE;
+}
+#define KEYBOARD_TIME_TO_TICK64(x) keyboard_time_to_tick64((uint64_t)(x))
+#define KEYBOARD_TICK_TO_TIME64(x) keyboard_tick_to_time64((uint64_t)(x))
 #endif
 
 #define KEY_BITMAP_SIZE ((TOTAL_KEY_NUM + sizeof(uint32_t)*8 - 1) / (sizeof(uint32_t)*8))
@@ -208,7 +225,6 @@ extern Keycode g_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
 extern const Keycode g_default_keymap[LAYER_NUM][TOTAL_KEY_NUM];
 
-extern volatile uint32_t g_keyboard_tick;
 extern volatile bool g_keyboard_is_suspend;
 extern volatile KeyboardReportFlag g_keyboard_report_flags;
 

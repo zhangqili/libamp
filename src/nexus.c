@@ -124,7 +124,7 @@ static uint8_t nexus_key_owner[ADVANCED_KEY_NUM];
 static inline bool nexus_slave_online_at(const NexusSlave *slave, uint32_t tick)
 {
     return slave->report_seen &&
-           (uint32_t)(tick - slave->last_report_tick) <= NEXUS_LINK_TIMEOUT_TICKS;
+           tick_elapsed32(tick, slave->last_report_tick) <= NEXUS_LINK_TIMEOUT_TICKS;
 }
 
 bool nexus_slave_is_online(uint8_t slave_id)
@@ -133,7 +133,7 @@ bool nexus_slave_is_online(uint8_t slave_id)
     {
         return false;
     }
-    return nexus_slave_online_at(&nexus_slaves[slave_id], g_keyboard_tick);
+    return nexus_slave_online_at(&nexus_slaves[slave_id], keyboard_tick_get32());
 }
 
 static uint8_t nexus_next_id(void)
@@ -303,7 +303,7 @@ void nexus_process_buffer(uint8_t slave_id, uint8_t *buf, uint16_t len)
     {
         if (nexus_receive_report(slave, buf, len))
         {
-            slave->last_report_tick = g_keyboard_tick;
+            slave->last_report_tick = keyboard_tick_get32();
             slave->report_seen = true;
         }
         return;
@@ -412,7 +412,7 @@ static inline void nexus_apply_bitmap_word(NexusSlave *slave, uint32_t bitmap, u
 
 void nexus_process(void)
 {
-    const uint32_t tick = g_keyboard_tick;
+    const uint32_t tick = keyboard_tick_get32();
 #if NEXUS_USE_RAW
     for (uint16_t i = 0; i < ADVANCED_KEY_NUM; i++)
     {
@@ -544,7 +544,7 @@ static void nexus_send_next_config(uint8_t slave_id, NexusSlave *slave, uint32_t
 
 void nexus_poll(void)
 {
-    const uint32_t tick = g_keyboard_tick;
+    const uint32_t tick = keyboard_tick_get32();
     for (uint8_t s = 0; s < NEXUS_SLAVE_NUM; s++)
     {
         NexusSlave *slave = &nexus_slaves[s];
@@ -565,7 +565,7 @@ void nexus_poll(void)
                 slave->request_acked = false;
                 slave->response_ready = false;
             }
-            else if ((uint32_t)(tick - slave->request_tick) >= NEXUS_REQUEST_TIMEOUT_TICKS)
+            else if (tick_elapsed32(tick, slave->request_tick) >= NEXUS_REQUEST_TIMEOUT_TICKS)
             {
                 slave->request_in_flight = false;
                 slave->pending[slave->request_slot] = 1;
@@ -640,10 +640,10 @@ int nexus_request_timeout(uint8_t slave_id, const uint8_t *request,
     buffer[1] = id;
     nexus_discard_echo(slave_id);
 
-    const uint32_t start = g_keyboard_tick;
+    const uint32_t start = keyboard_tick_get32();
     uint16_t send_failures = 0;
     bool sent = false;
-    while ((uint32_t)(g_keyboard_tick - start) < timeout)
+    while (tick_elapsed32(keyboard_tick_get32(), start) < timeout)
     {
         if (!sent)
         {

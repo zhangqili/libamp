@@ -71,7 +71,7 @@ void feed_raw(uint16_t raw)
 void tick_idle(void)
 {
     feed_raw(2048);
-    g_keyboard_tick++;
+    keyboard_tick_inc(1);
     keyboard_task();
 }
 
@@ -79,8 +79,8 @@ void tick_idle(void)
  * report building sees pressed keys most of the time. */
 void tick_travel(void)
 {
-    feed_raw((uint16_t)((std::cos(g_keyboard_tick / 100.0f) + 1.0f) * 1024.0f));
-    g_keyboard_tick++;
+    feed_raw((uint16_t)((std::cos(keyboard_tick_get32() / 100.0f) + 1.0f) * 1024.0f));
+    keyboard_tick_inc(1);
     keyboard_task();
 }
 
@@ -88,7 +88,8 @@ void tick_travel(void)
  * extremum. Measure them separately from already-calibrated travel. */
 void update_ranges(void)
 {
-    const uint16_t span = (g_keyboard_tick++ & 2047u) + 1;
+    const uint16_t span = (keyboard_tick_get32() & 2047u) + 1;
+    keyboard_tick_inc(1);
     for (int i = 0; i < ADVANCED_KEY_NUM; i++)
     {
         advanced_key_set_range(&g_keyboard_advanced_keys[i], 2048, 2048 - span);
@@ -120,11 +121,11 @@ void deliver_slave_frame(uint32_t bitmap)
  * master's per-tick key loop itself. */
 void nexus_tick_idle(void)
 {
-    if ((g_keyboard_tick & 63u) == 0u)
+    if ((keyboard_tick_get32() & 63u) == 0u)
     {
         deliver_slave_frame(0);
     }
-    g_keyboard_tick++;
+    keyboard_tick_inc(1);
     nexus_process();
 }
 
@@ -133,13 +134,13 @@ void nexus_tick_toggle(void)
 {
     slave_bitmap ^= 0xFFFFu;
     deliver_slave_frame(slave_bitmap);
-    g_keyboard_tick++;
+    keyboard_tick_inc(1);
     nexus_process();
 }
 
 void frame(void)
 {
-    g_keyboard_tick++;
+    keyboard_tick_inc(1);
     rgb_process();
 }
 
@@ -148,7 +149,7 @@ void frame(void)
 uint32_t ripple_tick;
 void ripple_frame(void)
 {
-    g_keyboard_tick = ripple_tick + 1 + ((g_keyboard_tick - ripple_tick) % 128);
+    libamp_test_set_tick(ripple_tick + 1 + ((keyboard_tick_get32() - ripple_tick) % 128));
     rgb_process();
 }
 
@@ -156,10 +157,10 @@ void ripple_frame(void)
  * an already black effect after millions of keyboard ticks. */
 void trigger_frame(void)
 {
-    g_keyboard_tick++;
+    keyboard_tick_inc(1);
     for (int i = 0; i < RGB_NUM; i++)
     {
-        g_rgb_configs[i].begin_tick = g_keyboard_tick - KEYBOARD_TIME_TO_TICK(100);
+        g_rgb_configs[i].begin_tick = keyboard_tick_get32() - KEYBOARD_TIME_TO_TICK(100);
     }
     rgb_process();
 }
@@ -228,10 +229,10 @@ int main(int argc, char **argv)
     rgb_init(); /* discard effects left by the keyboard workload */
     g_rgb_base_config.mode = RGB_BASE_MODE_BLANK;
     set_per_key_mode(RGB_MODE_BUBBLE);
-    ripple_tick = g_keyboard_tick;
+    ripple_tick = keyboard_tick_get32();
     for (int i = 0; i < 8; i++)
     {
-        rgb_activate(i * 7, g_keyboard_tick); /* eight live ripples */
+        rgb_activate(i * 7, keyboard_tick_get32()); /* eight live ripples */
     }
     std::printf("rgb_process, 8 live bubble ripples: %8.1f ns/frame\n", ns_per_call(ripple_frame, frames));
     std::printf("(sanity: %u led flushes, led[0] = %u,%u,%u, key[0] value = %u)\n",

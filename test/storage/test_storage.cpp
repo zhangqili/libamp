@@ -363,18 +363,18 @@ TEST(Storage, StatisticsSaveAtConfiguredInterval)
     const uint32_t interval_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_SAVE_INTERVAL_MS);
     storage_save_statistics();
     g_runtime = 17;
-    g_keyboard_tick = interval_ticks - 1U;
+    libamp_test_set_tick(interval_ticks - 1U);
     record_process();
     EXPECT_EQ(0ULL, read_saved_statistics().runtime);
 
-    g_keyboard_tick = interval_ticks;
+    libamp_test_set_tick(interval_ticks);
     record_process();
     const auto saved = read_saved_statistics();
     EXPECT_EQ(17ULL + RECORD_STATISTICS_SAVE_INTERVAL_MS, saved.runtime);
-    g_keyboard_tick += interval_ticks - 1U;
+    keyboard_tick_inc(interval_ticks - 1U);
     record_process();
     EXPECT_EQ(saved.runtime, read_saved_statistics().runtime);
-    g_keyboard_tick = g_keyboard_tick + 1U;
+    libamp_test_set_tick(keyboard_tick_get32() + 1U);
     record_process();
     EXPECT_EQ(17ULL + 2ULL * RECORD_STATISTICS_SAVE_INTERVAL_MS, read_saved_statistics().runtime);
 }
@@ -386,28 +386,28 @@ TEST(Storage, StatisticsActivityRestartsIdleCountdown)
     auto *key = keyboard_get_key(0);
     keyboard_key_event_down_callback(key);
     keyboard_key_event_up_callback(key);
-    g_keyboard_tick = idle_ticks - 1U;
+    libamp_test_set_tick(idle_ticks - 1U);
     keyboard_key_event_down_callback(key);
     keyboard_key_event_up_callback(key);
-    g_keyboard_tick = idle_ticks;
+    libamp_test_set_tick(idle_ticks);
     record_process();
     EXPECT_EQ(0U, read_saved_statistics().counts[0]);
 
-    g_keyboard_tick = 2U * idle_ticks - 2U;
+    libamp_test_set_tick(2U * idle_ticks - 2U);
     record_process();
     EXPECT_EQ(0U, read_saved_statistics().counts[0]);
-    g_keyboard_tick = g_keyboard_tick + 1U;
+    libamp_test_set_tick(keyboard_tick_get32() + 1U);
     record_process();
     EXPECT_EQ(2U, read_saved_statistics().counts[0]);
 
     // A new count change advances the normal interval to another 120-second wait.
     keyboard_key_event_down_callback(key);
     keyboard_key_event_up_callback(key);
-    g_keyboard_tick += idle_ticks;
+    keyboard_tick_inc(idle_ticks);
     record_process();
     const auto saved = read_saved_statistics();
     EXPECT_EQ(3U, saved.counts[0]);
-    g_keyboard_tick += idle_ticks;
+    keyboard_tick_inc(idle_ticks);
     record_process();
     EXPECT_EQ(saved.runtime, read_saved_statistics().runtime);
 }
@@ -418,17 +418,17 @@ TEST(Storage, StatisticsReleasesAndHeldKeysDoNotChangeCountdown)
     storage_save_statistics();
     auto *first = keyboard_get_key(0);
     keyboard_key_event_down_callback(first);
-    g_keyboard_tick = idle_ticks / 2U;
+    libamp_test_set_tick(idle_ticks / 2U);
     keyboard_key_event_up_callback(first);
-    g_keyboard_tick = idle_ticks;
+    libamp_test_set_tick(idle_ticks);
     record_process();
     EXPECT_EQ(1U, read_saved_statistics().counts[0]);
 
     keyboard_key_event_down_callback(first);
-    g_keyboard_tick += idle_ticks - 1U;
+    keyboard_tick_inc(idle_ticks - 1U);
     record_process();
     EXPECT_EQ(1U, read_saved_statistics().counts[0]);
-    g_keyboard_tick = g_keyboard_tick + 1U;
+    libamp_test_set_tick(keyboard_tick_get32() + 1U);
     record_process();
     EXPECT_EQ(2U, read_saved_statistics().counts[0]);
 }
@@ -438,12 +438,12 @@ TEST(Storage, StatisticsCountChangeNearDeadlineLeavesFullIdleDelay)
     const uint32_t interval_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_SAVE_INTERVAL_MS);
     const uint32_t idle_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_IDLE_SAVE_MS);
     storage_save_statistics();
-    g_keyboard_tick = interval_ticks - 1U;
+    libamp_test_set_tick(interval_ticks - 1U);
     keyboard_key_event_down_callback(keyboard_get_key(0));
-    g_keyboard_tick = interval_ticks;
+    libamp_test_set_tick(interval_ticks);
     record_process();
     EXPECT_EQ(0U, read_saved_statistics().counts[0]);
-    g_keyboard_tick = interval_ticks + idle_ticks - 1U;
+    libamp_test_set_tick(interval_ticks + idle_ticks - 1U);
     record_process();
     EXPECT_EQ(1U, read_saved_statistics().counts[0]);
 }
@@ -452,13 +452,13 @@ TEST(Storage, StatisticsIdleCountdownHandlesTickWrap)
 {
     const uint32_t idle_ticks = KEYBOARD_TIME_TO_TICK(RECORD_STATISTICS_IDLE_SAVE_MS);
     storage_save_statistics();
-    g_keyboard_tick = UINT32_MAX - idle_ticks / 2U;
+    libamp_test_set_tick(UINT32_MAX - idle_ticks / 2U);
     keyboard_key_event_down_callback(keyboard_get_key(0));
     keyboard_key_event_up_callback(keyboard_get_key(0));
-    g_keyboard_tick += idle_ticks - 1U;
+    keyboard_tick_inc(idle_ticks - 1U);
     record_process();
     EXPECT_EQ(0U, read_saved_statistics().counts[0]);
-    g_keyboard_tick = g_keyboard_tick + 1U;
+    libamp_test_set_tick(keyboard_tick_get32() + 1U);
     record_process();
     EXPECT_EQ(1U, read_saved_statistics().counts[0]);
 }
@@ -472,7 +472,7 @@ TEST(Storage, ExplicitStatisticsSaveRestoresNormalInterval)
     storage_save_statistics();
     const auto saved = read_saved_statistics();
     EXPECT_EQ(1U, saved.counts[0]);
-    g_keyboard_tick = idle_ticks * 2U;
+    libamp_test_set_tick(idle_ticks * 2U);
     record_process();
     EXPECT_EQ(saved.runtime, read_saved_statistics().runtime);
 }

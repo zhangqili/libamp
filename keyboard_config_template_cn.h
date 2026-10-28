@@ -13,6 +13,7 @@
 #define ADVANCED_KEY_NUM        1       /* 模拟/高级按键数量。 */
 #define KEY_NUM                 0       /* 普通数字按键数量。 */
 #define POLLING_RATE            1000    /* USB 报告率和键盘时钟频率。 */
+// #define KEYBOARD_TICK_64BIT_ENABLE 1   /* 保留完整运行时长；默认 0 使用无原子操作的 32 位回绕时钟。 */
 #define CALIBRATION_DELAY       1000    /* 手动校准前的延时，单位 ms。 */
 #define DEBUG_INTERVAL          0       /* 调试数据包间隔，单位 tick；0 为关闭。 */
 // #define CONFIG_USB_HS                 /* 使用 USB 高速；同时将 POLLING_RATE 设为 8000。 */

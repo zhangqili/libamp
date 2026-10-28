@@ -198,7 +198,7 @@ void script_init(void)
 #if SCRIPT_RUNTIME_STRATEGY == SCRIPT_JIT
     script_update_source((char *)g_script_source_buffer, strlen(g_script_source_buffer));
 #endif
-    JS_SetRandomSeed(js_ctx, g_keyboard_tick);
+    JS_SetRandomSeed(js_ctx, keyboard_tick_get64());
 }
 
 void script_eval(const char *code_buf, size_t len, const char *filename)

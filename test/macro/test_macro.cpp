@@ -1,3 +1,4 @@
+#include "test_fixture.h"
 #include <gtest/gtest.h>
 
 #include "macro.h"
@@ -22,18 +23,18 @@ TEST(Macro, RecordWritesTimedActionsAndTerminator)
     Key key = {};
     key.id = 0;
 
-    g_keyboard_tick = 100;
+    libamp_test_set_tick(100);
     macro_start_record(macro);
 
     KeyboardEvent down = MK_EVENT(KEY_A, KEYBOARD_EVENT_KEY_DOWN, &key);
-    g_keyboard_tick = 125;
+    libamp_test_set_tick(125);
     macro_record(macro, down);
 
     KeyboardEvent up = MK_EVENT(KEY_A, KEYBOARD_EVENT_KEY_UP, &key);
-    g_keyboard_tick = 140;
+    libamp_test_set_tick(140);
     macro_record(macro, up);
 
-    g_keyboard_tick = 150;
+    libamp_test_set_tick(150);
     macro_stop_record(macro);
 
     EXPECT_EQ(MACRO_STATE_IDLE, macro->state);
@@ -59,12 +60,35 @@ TEST(Macro, PlayOnceReturnsToIdleAtTerminator)
     macro->actions[2].delay = 15;
     macro->actions[2].event = MK_EVENT(KEY_NO_EVENT, KEYBOARD_EVENT_NO_EVENT, &key);
 
-    g_keyboard_tick = 100;
+    libamp_test_set_tick(100);
     macro_start_play_once(macro);
-    g_keyboard_tick = 115;
+    libamp_test_set_tick(115);
 
     macro_process();
 
     EXPECT_EQ(MACRO_STATE_IDLE, macro->state);
     EXPECT_EQ(0, macro->index);
+}
+
+TEST(Macro, PlaybackWaitsForDeadlineAcrossLowWordWrap)
+{
+    Macro *macro = &g_macros[0];
+    Key key = {};
+    macro->actions[0] = {20, MK_EVENT(KEY_A, KEYBOARD_EVENT_KEY_DOWN, &key)};
+    macro->actions[1] = {30, MK_EVENT(KEY_NO_EVENT, KEYBOARD_EVENT_NO_EVENT, &key)};
+    libamp_test_set_tick(UINT32_MAX - 9u);
+    macro_start_play_once(macro);
+
+    macro_process();
+    EXPECT_EQ(0u, macro->index);
+    keyboard_tick_inc(19);
+    macro_process();
+    EXPECT_EQ(0u, macro->index);
+    keyboard_tick_inc(1);
+    macro_process();
+    EXPECT_EQ(1u, macro->index);
+    EXPECT_EQ(MACRO_STATE_PLAYING_ONCE, macro->state);
+    keyboard_tick_inc(10);
+    macro_process();
+    EXPECT_EQ(MACRO_STATE_IDLE, macro->state);
 }

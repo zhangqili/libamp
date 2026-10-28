@@ -59,6 +59,7 @@ typedef struct __DynamicKeyStroke4x4
     HysteresisFilter filtered_value;
     uint32_t key_end_tick[4];
     uint8_t key_state;
+    uint8_t key_tap_state;
 } DynamicKeyStroke4x4;
 
 typedef struct __DynamicKeyModTap
